@@ -1,42 +1,29 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import { opsRoutes, portalRoutes } from '@/app/presentation/app-routes';
 import { iamRoutes } from '@/iam/presentation/iam.routes';
-import { useAuthStore } from '@/iam/application/iam.store';
+import { runRouteGuardChain } from '@/iam/infrastructure/route-guard-chain';
+import { tenantManagementPublicRoutes } from '@/tenant-management/presentation/tenant-management.routes';
+
+if (window.location.pathname === '/' && window.location.hash.startsWith('#/')) {
+  window.history.replaceState(null, '', window.location.hash.slice(1));
+}
 
 const routes = [
   { path: '/', redirect: '/auth/login' },
   iamRoutes,
+  ...tenantManagementPublicRoutes,
   opsRoutes,
   portalRoutes,
   { path: '/:pathMatch(.*)*', redirect: '/auth/login' },
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes,
   scrollBehavior() { return { top: 0 }; },
 });
 
-router.beforeEach((to) => {
-  const auth = useAuthStore();
-  const requiresAuth = to.matched.some(r => r.meta.requiresAuth);
-  const requiredScope = to.matched.find(r => r.meta.scope)?.meta.scope;
-
-  if (requiresAuth && !auth.isAuthenticated) {
-    return { name: 'auth.login' };
-  }
-  if (requiresAuth && requiredScope && auth.scope !== requiredScope) {
-    return { name: 'auth.forbidden', query: { from: to.fullPath, required: requiredScope } };
-  }
-  const rolesRecord = to.matched.find(r => r.meta.roles);
-  if (rolesRecord && auth.isAuthenticated) {
-    const userRole = auth.user?.roleKey || 'commercial';
-    if (!rolesRecord.meta.roles.includes(userRole)) {
-      return userRole === 'logistics'
-        ? { path: '/ops/operations/dashboard' }
-        : { path: '/ops/commercial/dashboard' };
-    }
-  }
-});
+router.beforeEach((to, from) => runRouteGuardChain(to, from));
 
 export default router;
+
