@@ -421,3 +421,4 @@ function availablePercent(product) {
     </div>
   </aside>
 </template>
+
