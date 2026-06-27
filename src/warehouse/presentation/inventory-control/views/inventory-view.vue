@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { daysUntil } from '@/shared/status';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const ds = useDataStore();
 const D = ds.D;
 const tab = ref('overview');
@@ -23,10 +23,28 @@ const lotMovements = computed(() => {
 const stockSearch = ref('');
 const stockFilter = ref('all');
 const movementFilter = ref('all');
+const showMovementForm = ref(false);
+const savingMovement = ref(false);
+const movementForm = ref({
+  productId: '',
+  warehouse: '',
+  type: 'entry',
+  quantity: 1,
+  lotNumber: '',
+  expirationDate: '',
+  temperatureReading: 4,
+  notes: '',
+});
+const movementTypes = [
+  { value: 'entry' },
+  { value: 'exit' },
+  { value: 'adjustment' },
+  { value: 'reservation_release' },
+];
 
 const filteredStock = computed(() => {
   let p = D.products;
-  if (stockFilter.value !== 'all') p = p.filter(x => x.status === stockFilter.value);
+  if (stockFilter.value !== 'all') p = p.filter(x => productStatus(x) === stockFilter.value);
   if (stockSearch.value) {
     const q = stockSearch.value.toLowerCase();
     p = p.filter(x => x.name.toLowerCase().includes(q) || x.sku.toLowerCase().includes(q));
@@ -37,11 +55,11 @@ const sortedLots   = computed(() => [...D.lots].sort((a, b) => new Date(a.expiry
 const expiringLots = computed(() => D.lots.filter(l => daysUntil(l.expiry) <= 10));
 const urgentLot    = computed(() => sortedLots.value.find(l => daysUntil(l.expiry) <= 10));
 const lowStockProducts = computed(() =>
-  D.products.filter(product => product.status === 'low' || product.stock - product.reserved < product.minStock)
+  D.products.filter(product => productStatus(product) === 'low')
 );
 const reservationRate = computed(() => {
-  const totalStock = D.products.reduce((sum, product) => sum + Number(product.stock || 0), 0);
-  const reserved = D.products.reduce((sum, product) => sum + Number(product.reserved || 0), 0);
+  const totalStock = D.lots.reduce((sum, lot) => sum + Number(lot.qty || 0), 0);
+  const reserved = D.lots.reduce((sum, lot) => sum + Number(lot.reserved || 0), 0);
   return totalStock ? Math.round((reserved / totalStock) * 100) : 0;
 });
 
@@ -49,21 +67,71 @@ function stockStatusLabel(s) {
   return s === 'ok' ? t('inventory.stockOk') : s === 'low' ? t('inventory.stockLow') : t('inventory.stockOut');
 }
 
+function productStatus(product) {
+  const available = Number(product.stock || 0) - Number(product.reserved || 0);
+  const percent = availablePercent(product);
+  if (available <= 0) return 'out';
+  if (percent <= 20 || available <= Number(product.minStock || 0)) return 'low';
+  return 'ok';
+}
+
+function productStatusClass(product) {
+  return productStatus(product) === 'ok' ? 'badge-green' : 'badge-red';
+}
+
 function movementTypeLabel(type) {
-  return {
-    ingreso: 'Inbound',
-    salida: 'Outbound',
-    reserva: 'Reservation',
-    ajuste: 'Adjustment',
-}[type] || type;
+  const key = `inventory.movementType.${type}`;
+  return te(key) ? t(key) : type;
+}
+
+function categoryLabel(category) {
+  const key = `catalog.category.${category}`;
+  return te(key) ? t(key) : category;
 }
 const filteredMovements = computed(() => {
   if (movementFilter.value === 'all') return D.movements;
   return D.movements.filter(movement => movement.type === movementFilter.value);
 });
 function availablePercent(product) {
-  if (!product.stock) return 0;
-  return Math.max(0, Math.round(((product.stock - product.reserved) / product.stock) * 100));
+  const available = Math.max(0, Number(product.stock || 0) - Number(product.reserved || 0));
+  const baseline = Math.max(Number(product.stock || 0), Number(product.minStock || 0) * 5, 1);
+  return Math.min(100, Math.round((available / baseline) * 100));
+}
+
+function resetMovementForm() {
+  const nextLotNumber = `LOT-${new Date().getFullYear()}-${String((D.movements.length || 0) + 1).padStart(4, '0')}`;
+  movementForm.value = {
+    productId: D.products[0]?.id || '',
+    warehouse: D.warehouses[0]?.name || '',
+    type: 'entry',
+    quantity: 1,
+    lotNumber: nextLotNumber,
+    expirationDate: '',
+    temperatureReading: 4,
+    notes: '',
+  };
+}
+
+function openMovementForm() {
+  resetMovementForm();
+  showMovementForm.value = true;
+  tab.value = 'movements';
+}
+
+async function saveMovement() {
+  if (savingMovement.value) return;
+  savingMovement.value = true;
+  try {
+    await ds.addStockMovement({
+      ...movementForm.value,
+      productId: movementForm.value.productId || D.products[0]?.id,
+      warehouse: movementForm.value.warehouse || D.warehouses[0]?.name,
+    });
+    showMovementForm.value = false;
+    resetMovementForm();
+  } finally {
+    savingMovement.value = false;
+  }
 }
 </script>
 
@@ -73,56 +141,75 @@ function availablePercent(product) {
       <div class="page-title">{{ t('nav.inventory') }}</div>
       <div class="page-subtitle">{{ D.company.name }} · {{ t('inventory.subtitle') }} {{ currentTimeLabel }}</div>
     </div>
-    <button class="btn btn-secondary" disabled title="Available in AV2">
+    <button class="btn btn-primary" type="button" @click="openMovementForm">
       <i class="pi pi-plus" aria-hidden="true"></i> {{ t('inventory.registerMovement') }}
     </button>
   </div>
 
+  <form v-if="showMovementForm" class="flow-panel flow-panel-pad movement-form" @submit.prevent="saveMovement">
+      <div class="editor-heading span-full">
+        <strong>{{ t('inventory.registerMovement') }}</strong>
+      <span>{{ t('inventory.form.updatesStock') }}</span>
+    </div>
+    <label>{{ t('inventory.table.product') }}<select v-model="movementForm.productId" required><option v-for="product in D.products" :key="product.id" :value="product.id">{{ product.name }}</option></select></label>
+    <label>{{ t('inventory.table.warehouse') }}<select v-model="movementForm.warehouse"><option v-for="warehouse in D.warehouses" :key="warehouse.id || warehouse.name" :value="warehouse.name">{{ warehouse.name }}</option></select></label>
+    <label>{{ t('inventory.table.type') }}<select v-model="movementForm.type"><option v-for="type in movementTypes" :key="type.value" :value="type.value">{{ movementTypeLabel(type.value) }}</option></select></label>
+    <label>{{ t('inventory.table.qty') }}<input v-model.number="movementForm.quantity" type="number" min="-999" required /></label>
+    <label>{{ t('inventory.table.lot') }}<input v-model="movementForm.lotNumber" readonly /></label>
+    <label>{{ t('inventory.table.expiry') }}<input v-model="movementForm.expirationDate" type="date" /></label>
+    <label>{{ t('inventory.form.temperatureReading') }}<input v-model.number="movementForm.temperatureReading" type="number" min="-30" max="20" /></label>
+    <label class="span-full">{{ t('inventory.table.note') }}<textarea v-model="movementForm.notes" rows="2"></textarea></label>
+    <div class="form-actions span-full">
+      <button class="btn btn-secondary" type="button" @click="showMovementForm = false">{{ t('common.cancel') }}</button>
+      <button class="btn btn-primary" type="submit" :disabled="savingMovement">
+        <i v-if="savingMovement" class="pi pi-spin pi-spinner"></i>
+        {{ t('common.save') }}
+      </button>
+    </div>
+  </form>
+
   <div class="banner banner-danger" v-if="expiringLots.length" role="alert">
     <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
-    <div><strong>{{ expiringLots.length }} lot(s) due soon</strong> —
+    <div><strong>{{ t('inventory.fefo.dueSoon', { count: expiringLots.length }) }}</strong> —
       {{ expiringLots.map(l => ds.productName(l.productId) + ' (' + l.id + ')').join(' · ') }}.
-      Prioritize release according to FEFO.
+      {{ t('inventory.fefo.prioritizeRelease') }}
     </div>
   </div>
 
   <div class="grid-3" style="margin-bottom:18px">
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-lock" style="color:#2563EB"></i> Reserved stock</div>
+      <div class="kpi-label"><i class="pi pi-lock" style="color:#2563EB"></i> {{ t('inventory.kpi.reservedStock') }}</div>
       <div class="kpi-value" style="color:#2563EB">{{ reservationRate }}%</div>
-      <div class="kpi-sub">Reserved across current catalog</div>
+      <div class="kpi-sub">{{ t('inventory.kpi.reservedStockSub') }}</div>
     </div>
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#F97316"></i> Low stock</div>
+      <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#F97316"></i> {{ t('inventory.stockLow') }}</div>
       <div class="kpi-value" style="color:#F97316">{{ lowStockProducts.length }}</div>
-      <div class="kpi-sub">Products below minimum or marked low</div>
+      <div class="kpi-sub">{{ t('inventory.kpi.lowStockSub') }}</div>
     </div>
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-hourglass" style="color:#B91C1C"></i> FEFO risk</div>
+      <div class="kpi-label"><i class="pi pi-hourglass" style="color:#B91C1C"></i> {{ t('inventory.kpi.fefoRisk') }}</div>
       <div class="kpi-value" style="color:#B91C1C">{{ expiringLots.length }}</div>
-      <div class="kpi-sub">Lots due in 10 days or less</div>
+      <div class="kpi-sub">{{ t('inventory.kpi.fefoRiskSub') }}</div>
     </div>
   </div>
 
   <!-- Tabs -->
-  <div style="display:flex;gap:2px;background:#F3F0EC;border-radius:10px;padding:4px;margin-bottom:20px;width:fit-content" role="tablist">
+  <div class="inventory-tabs" role="tablist">
     <button
       class="btn btn-ghost btn-sm"
-      :style="{background: tab==='overview'?'#fff':'transparent', boxShadow: tab==='overview'?'0 1px 3px rgba(0,0,0,0.06)':'none', border: 'none'}"
       @click="tab='overview'"
       role="tab"
       :aria-selected="tab === 'overview'"
     >{{ t('inventory.tabs.overview') }}</button>
     <button
       class="btn btn-ghost btn-sm"
-      :style="{background: tab==='lots'?'#fff':'transparent', boxShadow: tab==='lots'?'0 1px 3px rgba(0,0,0,0.06)':'none', border: 'none'}"
       @click="tab='lots'"
       role="tab"
       :aria-selected="tab === 'lots'"
     >{{ t('inventory.tabs.lots') }}</button>
     <button
       class="btn btn-ghost btn-sm"
-      :style="{background: tab==='movements'?'#fff':'transparent', boxShadow: tab==='movements'?'0 1px 3px rgba(0,0,0,0.06)':'none', border: 'none'}"
       @click="tab='movements'"
       role="tab"
       :aria-selected="tab === 'movements'"
@@ -149,7 +236,7 @@ function availablePercent(product) {
                 <span class="badge badge-green"><i class="pi pi-check" style="font-size:9px" aria-hidden="true"></i> {{ t('inventory.tempOk') }}</span>
               </div>
               <div
-                style="height:6px;background:#F3F0EC;border-radius:9999px;margin-bottom:6px;overflow:hidden"
+                style="height:6px;background:#e8eef7;border-radius:9999px;margin-bottom:6px;overflow:hidden"
                 role="progressbar"
                 :aria-valuenow="Math.round(z.used / z.capacity * 100)"
                 aria-valuemin="0"
@@ -175,7 +262,7 @@ function availablePercent(product) {
             <i class="pi pi-search" aria-hidden="true"></i>
             <input v-model="stockSearch" :placeholder="t('common.search')" :aria-label="t('common.search')" />
           </div>
-          <button v-for="f in ['all','ok','low','out']" :key="f" class="filter-chip" :class="{ active: stockFilter === f }" @click="stockFilter = f" :aria-pressed="stockFilter === f" style="font-size:11px;padding:5px 10px">
+          <button v-for="f in ['all','ok','low','out']" :key="f" class="filter-chip inventory-filter-chip" :class="{ active: stockFilter === f }" @click="stockFilter = f" :aria-pressed="stockFilter === f">
             {{ f === 'all' ? t('common.all') : f === 'ok' ? 'OK' : f === 'low' ? t('inventory.stockLow') : t('inventory.stockOut') }}
           </button>
         </div>
@@ -199,21 +286,21 @@ function availablePercent(product) {
           <tr v-for="p in filteredStock" :key="p.id">
             <td style="font-weight:500;font-size:13px">{{ p.name }}</td>
             <td><span class="mono">{{ p.sku }}</span></td>
-            <td style="font-size:12px;color:#6B7280">{{ p.category }}</td>
+            <td style="font-size:12px;color:#6B7280">{{ categoryLabel(p.category) }}</td>
             <td><span class="badge-temp" style="font-size:10px">{{ p.temp }}</span></td>
             <td style="font-weight:600">{{ p.stock }} <span style="font-size:11px;color:#9CA3AF">{{ p.unit }}</span></td>
             <td><span :style="{ color: p.reserved > 0 ? '#2563EB' : '#9CA3AF', fontWeight: p.reserved > 0 ? '600' : '400' }">{{ p.reserved }} {{ p.unit }}</span></td>
             <td>
-              <div style="font-weight:600" :style="{ color: p.stock - p.reserved <= 0 ? '#B91C1C' : p.stock - p.reserved < p.minStock ? '#C2410C' : '#15803D' }">
+              <div style="font-weight:600" :style="{ color: productStatus(p) === 'ok' ? '#15803D' : '#B91C1C' }">
                 {{ p.stock - p.reserved }} {{ p.unit }}
               </div>
-              <div style="height:5px;background:#F3F0EC;border-radius:9999px;margin-top:5px;overflow:hidden">
-                <div :style="{ width: availablePercent(p) + '%', height:'100%', background: availablePercent(p) < 25 ? '#EF4444' : availablePercent(p) < 50 ? '#F97316' : '#22C55E' }"></div>
+              <div style="height:5px;background:#e8eef7;border-radius:9999px;margin-top:5px;overflow:hidden">
+                <div :style="{ width: availablePercent(p) + '%', height:'100%', background: productStatus(p) === 'ok' ? '#22C55E' : '#EF4444' }"></div>
               </div>
             </td>
             <td style="font-size:12px;color:#6B7280">{{ p.minStock }} {{ p.unit }}</td>
             <td style="font-size:12px;color:#6B7280">{{ p.warehouse }}</td>
-            <td><span :class="'badge ' + (p.status === 'ok' ? 'badge-green' : p.status === 'low' ? 'badge-amber' : 'badge-red')">{{ stockStatusLabel(p.status) }}</span></td>
+            <td><span :class="'badge ' + productStatusClass(p)">{{ stockStatusLabel(productStatus(p)) }}</span></td>
           </tr>
         </tbody>
       </table>
@@ -227,10 +314,10 @@ function availablePercent(product) {
         <i class="pi pi-sort-amount-up" aria-hidden="true"></i> {{ t('inventory.fefoTitle') }}
       </div>
       <div style="font-size:14px;font-weight:600;color:#1E3A8A;margin-bottom:5px" v-if="urgentLot">
-        Prioritize outbound stock for {{ ds.productName(urgentLot.productId) }}
+        {{ t('inventory.fefo.prioritize', { product: ds.productName(urgentLot.productId) }) }}
       </div>
       <div style="font-size:12px;color:#3B4E6B;line-height:1.5" v-if="urgentLot">
-        Lot <strong>{{ urgentLot.id }}</strong> is due on <strong>{{ urgentLot.expiry }}</strong>. {{ urgentLot.qty - urgentLot.reserved }} {{ ds.productById(urgentLot.productId)?.unit }} remain available.
+        {{ t('inventory.fefo.lotDue', { lot: urgentLot.id, date: urgentLot.expiry, quantity: urgentLot.qty - urgentLot.reserved, unit: ds.productById(urgentLot.productId)?.unit }) }}
       </div>
     </div>
     <div class="card" style="overflow:hidden">
@@ -268,7 +355,7 @@ function availablePercent(product) {
             <td style="font-size:12px;color:#6B7280">{{ lot.entryDate }}</td>
             <td style="font-size:13px" :style="{ color: daysUntil(lot.expiry) <= 7 ? '#B91C1C' : daysUntil(lot.expiry) <= 30 ? '#B45309' : '' }">{{ lot.expiry }}</td>
             <td>
-              <span :class="daysUntil(lot.expiry) <= 7 ? 'badge badge-red' : daysUntil(lot.expiry) <= 30 ? 'badge badge-amber' : 'badge badge-green'">{{ daysUntil(lot.expiry) }} days</span>
+              <span :class="daysUntil(lot.expiry) <= 7 ? 'badge badge-red' : daysUntil(lot.expiry) <= 30 ? 'badge badge-amber' : 'badge badge-green'">{{ t('inventory.fefo.days', { count: daysUntil(lot.expiry) }) }}</span>
             </td>
             <td style="font-weight:600">{{ lot.qty }} {{ ds.productById(lot.productId)?.unit }}</td>
             <td style="color:#2563EB">{{ lot.reserved }} {{ ds.productById(lot.productId)?.unit }}</td>
@@ -285,10 +372,10 @@ function availablePercent(product) {
     <div class="card-header">
       <span class="card-title">{{ t('inventory.stockMovements') }}</span>
       <div class="filter-bar" style="margin-bottom:0">
-        <button v-for="type in ['all','ingreso','salida','reserva','ajuste']" :key="type" class="filter-chip" :class="{ active: movementFilter === type }" @click="movementFilter = type">
-          {{ type === 'all' ? 'All movements' : movementTypeLabel(type) }}
+        <button v-for="type in ['all','entry','exit','adjustment','reservation_release','reservation','review']" :key="type" class="filter-chip" :class="{ active: movementFilter === type }" @click="movementFilter = type">
+          {{ type === 'all' ? t('inventory.movementType.all') : movementTypeLabel(type) }}
         </button>
-        <button class="btn btn-secondary btn-sm" disabled title="Available in AV2">
+        <button class="btn btn-secondary btn-sm" type="button" @click="openMovementForm">
           <i class="pi pi-plus" aria-hidden="true"></i> {{ t('inventory.register') }}
         </button>
       </div>
@@ -328,7 +415,7 @@ function availablePercent(product) {
           <td colspan="8">
             <div class="empty-state" style="padding:24px">
               <div class="empty-state-icon"><i class="pi pi-filter"></i></div>
-              <div class="empty-state-title">No stock movements for this filter</div>
+              <div class="empty-state-title">{{ t('inventory.lotDrawer.noFilterMovements') }}</div>
             </div>
           </td>
         </tr>
@@ -351,13 +438,13 @@ function availablePercent(product) {
     :class="{ open: lotDrawer.open }"
     role="dialog"
     aria-modal="true"
-    aria-label="Lot Details"
+    :aria-label="t('inventory.lotDrawer.title')"
   >
     <div class="drawer-header">
       <div class="drawer-title">
         <span class="mono">{{ lotDrawer.lot?.id }}</span>
       </div>
-      <button class="btn btn-ghost btn-sm" @click="closeLot" aria-label="Close">
+      <button class="btn btn-ghost btn-sm" @click="closeLot" :aria-label="t('common.close')">
         <i class="pi pi-times"></i>
       </button>
     </div>
@@ -371,22 +458,22 @@ function availablePercent(product) {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Inbound</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('inventory.lotDrawer.inbound') }}</div>
           <div style="font-size:13px;font-weight:500">{{ lotDrawer.lot.entryDate }}</div>
         </div>
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Expiration</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('inventory.lotDrawer.expiration') }}</div>
           <div style="font-size:13px;font-weight:500" :style="{ color: daysUntil(lotDrawer.lot.expiry) <= 7 ? '#B91C1C' : daysUntil(lotDrawer.lot.expiry) <= 30 ? '#B45309' : '#111827' }">
             {{ lotDrawer.lot.expiry }}
-            <span style="font-size:11px;margin-left:4px">({{ daysUntil(lotDrawer.lot.expiry) }} days)</span>
+            <span style="font-size:11px;margin-left:4px">({{ t('inventory.fefo.days', { count: daysUntil(lotDrawer.lot.expiry) }) }})</span>
           </div>
         </div>
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Qty total</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('inventory.lotDrawer.qtyTotal') }}</div>
           <div style="font-size:15px;font-weight:700">{{ lotDrawer.lot.qty }} {{ ds.productById(lotDrawer.lot.productId)?.unit }}</div>
         </div>
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Available</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('common.available') }}</div>
           <div style="font-size:15px;font-weight:700;color:#15803D">{{ lotDrawer.lot.qty - lotDrawer.lot.reserved }} {{ ds.productById(lotDrawer.lot.productId)?.unit }}</div>
         </div>
       </div>
@@ -399,13 +486,13 @@ function availablePercent(product) {
       <div class="divider" style="margin:16px 0"></div>
 
       <div style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">
-        Registered Movements
+        {{ t('inventory.lotDrawer.registeredMovements') }}
       </div>
 
       <div v-if="!lotMovements.length" style="font-size:12px;color:#9CA3AF;text-align:center;padding:20px 0">
-        No movements for this lot
+        {{ t('inventory.lotDrawer.noMovements') }}
       </div>
-      <div v-for="m in lotMovements" :key="m.id" style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #F3F0EC;align-items:flex-start">
+      <div v-for="m in lotMovements" :key="m.id" style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #e8eef7;align-items:flex-start">
         <span :style="{
           padding: '2px 7px', borderRadius: '5px', fontSize: '10px', fontWeight: 700,
           textTransform: 'uppercase', flexShrink: 0, marginTop: '2px',
@@ -421,3 +508,95 @@ function availablePercent(product) {
     </div>
   </aside>
 </template>
+
+<style scoped>
+.movement-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+  border-color: #bfdbfe;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, .08);
+}
+.inventory-tabs {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #dbe5f2;
+  border-radius: 14px;
+  background: #eff6ff;
+}
+.inventory-tabs .btn {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+}
+.inventory-tabs .btn[aria-selected="true"] {
+  border-color: #bfdbfe;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, .12);
+  color: #1d4ed8;
+}
+.inventory-filter-chip {
+  min-height: 34px;
+  padding: 0 13px;
+  font-size: 12px;
+}
+.movement-form label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+.movement-form input,
+.movement-form select,
+.movement-form textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #d7deea;
+  border-radius: 10px;
+  padding: 0 11px;
+  background: #fff;
+  color: #0f172a;
+}
+.movement-form textarea {
+  padding: 10px 11px;
+  resize: vertical;
+}
+.editor-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #dbeafe;
+}
+.editor-heading strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+.editor-heading span {
+  color: #64748b;
+  font-size: 12px;
+}
+.span-full {
+  grid-column: 1 / -1;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+@media (max-width: 720px) {
+  .movement-form {
+    grid-template-columns: 1fr;
+  }
+  .span-full {
+    grid-column: auto;
+  }
+}
+</style>
+
