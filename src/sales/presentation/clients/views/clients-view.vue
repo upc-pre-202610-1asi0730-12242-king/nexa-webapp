@@ -62,3 +62,4 @@ const creditRiskCount = computed(() => clients.value.filter(client => creditSumm
     </div>
   </div>
 </template>
+
