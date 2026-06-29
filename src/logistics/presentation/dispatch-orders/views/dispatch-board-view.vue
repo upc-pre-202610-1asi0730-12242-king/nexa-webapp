@@ -12,17 +12,15 @@ const ds = useDataStore();
 const D = ds.D;
 const search = ref('');
 const routeFilter = ref('all');
+const busyDispatchId = ref(null);
+const actionError = ref('');
 
 const columns = [
-  { key: 'validating', label: 'In validation' },
-  { key: 'document_pending', label: 'Pending Business Documents' },
-  { key: 'ready_for_operations', label: 'Ready for operations' },
-  { key: 'preparing', label: 'Preparing' },
-  { key: 'ready_for_route', label: 'Ready for route' },
-  { key: 'in_route', label: 'On route' },
-  { key: 'delayed', label: 'Delayed' },
-  { key: 'delivered', label: 'Delivered' },
-  { key: 'incident', label: 'Incident' },
+  { key: 'ready_for_operations', label: 'Orders', statuses: ['ready_for_operations'] },
+  { key: 'preparing', label: 'Processed / ordering', statuses: ['assigned', 'scheduled', 'preparing', 'ready_for_route', 'reprogrammed'] },
+  { key: 'in_route', label: 'In distribution', statuses: ['in_route', 'delayed'] },
+  { key: 'delivered', label: 'Delivered', statuses: ['delivered'] },
+  { key: 'incident', label: 'Rejected / returned', statuses: ['incident', 'cancelled', 'rejected'] },
 ];
 
 const routes = computed(() => ['all', ...new Set(D.dispatchOrders.map(dispatch => dispatch.routeName).filter(Boolean))]);
@@ -42,7 +40,7 @@ const filtered = computed(() => {
 });
 
 function byColumn(column) {
-  return filtered.value.filter(dispatch => (dispatch.column || dispatch.status) === column.key);
+  return filtered.value.filter(dispatch => (column.statuses || [column.key]).includes(dispatch.column || dispatch.status));
 }
 
 function isDelayed(dispatch) {
@@ -53,6 +51,31 @@ function creditFor(dispatch) {
   return creditSummary(ds.clientById(dispatch.clientId) || {});
 }
 
+function etaLabel(dispatch) {
+  return dispatch.eta ? new Date(dispatch.eta).toLocaleDateString('en-US') : 'Not scheduled';
+}
+
+async function moveForward(dispatch) {
+  const next = {
+    ready_for_operations: 'preparing',
+    preparing: 'ready_for_route',
+    scheduled: 'ready_for_route',
+    assigned: 'ready_for_route',
+    ready_for_route: 'in_route',
+    in_route: 'delivered',
+    delayed: 'in_route',
+  }[dispatch.status] || 'preparing';
+  if (busyDispatchId.value || ['incident', 'cancelled', 'rejected', 'delivered'].includes(dispatch.status)) return;
+  busyDispatchId.value = dispatch.id;
+  actionError.value = '';
+  try {
+    await ds.updateDispatchStatus(dispatch.id, next);
+  } catch (error) {
+    actionError.value = error?.message || 'Dispatch could not be updated.';
+  } finally {
+    busyDispatchId.value = null;
+  }
+}
 </script>
 
 <template>
@@ -80,6 +103,11 @@ function creditFor(dispatch) {
     >
       {{ routeName === 'all' ? t('dispatch.allRoutes') : routeName }}
     </button>
+  </div>
+
+  <div v-if="actionError" class="banner banner-danger" style="margin-bottom:16px">
+    <i class="pi pi-exclamation-triangle"></i>
+    <div>{{ actionError }}</div>
   </div>
 
   <div class="kanban-board">
@@ -118,11 +146,11 @@ function creditFor(dispatch) {
           </div>
           <div class="flow-row-between">
             <span class="flow-note">ETA</span>
-            <strong>{{ new Date(dispatch.eta).toLocaleDateString('en-US') }}</strong>
+            <strong>{{ etaLabel(dispatch) }}</strong>
           </div>
           <div class="flow-row-between">
             <span class="flow-note">Responsible</span>
-            <strong>{{ dispatch.responsible }}</strong>
+            <strong>{{ dispatch.responsible || 'Unassigned' }}</strong>
           </div>
           <div v-if="creditFor(dispatch).limit" class="flow-row-between">
             <span class="flow-note">Client credit</span>
@@ -137,8 +165,14 @@ function creditFor(dispatch) {
           <i class="pi pi-exclamation-triangle"></i>
           <div>{{ dispatch.incidentNote }}</div>
         </div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%;justify-content:center" disabled>
-          <i class="pi pi-lock"></i> Backend workflow action pending
+        <button
+          class="btn btn-secondary btn-sm"
+          style="margin-top:12px;width:100%;justify-content:center"
+          :disabled="Boolean(busyDispatchId) || ['incident', 'cancelled', 'rejected', 'delivered'].includes(dispatch.status)"
+          @click.stop="moveForward(dispatch)"
+        >
+          <i :class="busyDispatchId === dispatch.id ? 'pi pi-spin pi-spinner' : 'pi pi-arrow-right'"></i>
+          {{ busyDispatchId === dispatch.id ? 'Updating...' : ['incident', 'cancelled', 'rejected'].includes(dispatch.status) ? 'Returned to Sales' : dispatch.status === 'delivered' ? 'Delivered' : 'Move dispatch forward' }}
         </button>
       </article>
     </section>
