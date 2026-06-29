@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { orderStatusLabel, orderStatusBadge, coldTypeLabel, coldTypeBadge, documentStatusLabel, documentStatusBadge, displayCode } from '@/shared/status';
@@ -8,11 +8,18 @@ import { creditSummary } from '@/shared/credit';
 const route = useRoute();
 const router = useRouter();
 const ds = useDataStore();
+const saving = ref(false);
+const actionError = ref('');
 
 const dispatch = computed(() => ds.dispatchOrderById(route.params.id));
 const order = computed(() => dispatch.value ? ds.purchaseOrderById(dispatch.value.orderId) : null);
 const client = computed(() => dispatch.value ? ds.clientById(dispatch.value.clientId) : null);
 const address = computed(() => dispatch.value ? ds.deliveryAddressById(dispatch.value.deliveryAddressId) : null);
+const orderDestination = computed(() => {
+  const delivery = order.value?.delivery || {};
+  const street = [delivery.addressType, delivery.address].filter(Boolean).join(' ');
+  return [street, delivery.district, delivery.city, delivery.province].filter(Boolean).join(', ');
+});
 const docs = computed(() => order.value ? ds.documentsForOrder(order.value.id) : []);
 const items = computed(() => order.value ? ds.orderItemsFor(order.value.id) : []);
 const events = computed(() => order.value ? ds.timelineForOrder(order.value.id) : []);
@@ -29,6 +36,31 @@ const temperatureSummary = computed(() => {
   };
 });
 
+async function runDispatchAction(status) {
+  if (!dispatch.value || saving.value) return;
+  saving.value = true;
+  actionError.value = '';
+  try {
+    await ds.updateDispatchStatus(dispatch.value.id, status);
+  } catch (error) {
+    actionError.value = error?.message || 'Dispatch action failed.';
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function completeDeliveryEvidence() {
+  if (!dispatch.value || saving.value) return;
+  saving.value = true;
+  actionError.value = '';
+  try {
+    await ds.completePod(dispatch.value.id);
+  } catch (error) {
+    actionError.value = error?.message || 'POD could not be completed.';
+  } finally {
+    saving.value = false;
+  }
+}
 </script>
 
 <template>
@@ -47,12 +79,27 @@ const temperatureSummary = computed(() => {
           <span :class="'badge ' + orderStatusBadge(dispatch.status)">{{ orderStatusLabel(dispatch.status) }}</span>
           <span :class="coldTypeBadge(dispatch.coldType)">{{ coldTypeLabel(dispatch.coldType) }}</span>
         </div>
-        <div class="page-subtitle">{{ ds.clientName(dispatch.clientId) }} - {{ dispatch.routeName }} - ETA {{ new Date(dispatch.eta).toLocaleString('en-US') }}</div>
+        <div class="page-subtitle">{{ ds.clientName(dispatch.clientId) }} - {{ dispatch.routeName || 'Route pending' }} - ETA {{ dispatch.eta ? new Date(dispatch.eta).toLocaleString('en-US') : 'Not scheduled' }}</div>
       </div>
       <div class="flow-row">
-        <button class="btn btn-secondary" disabled><i class="pi pi-lock"></i> Backend workflow action pending</button>
+        <button class="btn btn-secondary" :disabled="saving || ['delivered', 'incident'].includes(dispatch.status)" @click="runDispatchAction('preparing')">
+          <i class="pi pi-box"></i> Process
+        </button>
+        <button class="btn btn-secondary" :disabled="saving || !['preparing', 'scheduled', 'assigned'].includes(dispatch.status)" @click="runDispatchAction('ready_for_route')">
+          <i class="pi pi-check-circle"></i> Ready route
+        </button>
+        <button class="btn btn-primary" :disabled="saving || dispatch.status !== 'ready_for_route'" @click="runDispatchAction('in_route')">
+          <i class="pi pi-send"></i> Start route
+        </button>
+        <button class="btn btn-secondary" :disabled="saving || dispatch.status !== 'in_route'" @click="runDispatchAction('delivered')">
+          <i class="pi pi-flag"></i> Delivered
+        </button>
+        <button class="btn btn-danger" :disabled="saving || ['delivered', 'incident'].includes(dispatch.status)" @click="runDispatchAction('incident')">
+          <i class="pi pi-exclamation-triangle"></i> Return to Sales
+        </button>
       </div>
     </div>
+    <div v-if="actionError" class="banner banner-danger" style="margin-bottom:16px"><i class="pi pi-exclamation-triangle"></i><div>{{ actionError }}</div></div>
 
     <div class="flow-grid-12">
       <section class="flow-panel span-4">
@@ -65,8 +112,8 @@ const temperatureSummary = computed(() => {
           </div>
           <div>
             <div class="flow-eyebrow">Address</div>
-            <div style="font-size:13px;font-weight:700">{{ address?.label || client?.address || 'Registered address' }}</div>
-            <div class="flow-note">{{ address?.address || client?.address }}</div>
+            <div style="font-size:13px;font-weight:700">{{ orderDestination || address?.label || client?.address || 'Not configured' }}</div>
+            <div v-if="order?.delivery?.reference" class="flow-note">Reference: {{ order.delivery.reference }}</div>
           </div>
           <div class="flow-row-between"><span>Purchase Order</span><strong class="mono">{{ displayCode(order) }}</strong></div>
           <div class="flow-row-between"><span>Driver</span><strong>{{ dispatch.driverName }}</strong></div>
@@ -95,8 +142,20 @@ const temperatureSummary = computed(() => {
           <tbody>
             <tr v-for="item in items" :key="item.id">
               <td>
-                <div style="font-weight:800">{{ ds.productName(item.productId) }}</div>
-                <div class="flow-note">{{ ds.productById(item.productId)?.sku }}</div>
+                <div class="dispatch-product-cell">
+                  <img
+                    v-if="ds.productById(item.productId)?.imageUrl"
+                    class="dispatch-product-image"
+                    :src="ds.productById(item.productId).imageUrl"
+                    :alt="ds.productName(item.productId)"
+                    loading="lazy"
+                  />
+                  <div v-else class="dispatch-product-image dispatch-product-image-empty"><i class="pi pi-box"></i></div>
+                  <div>
+                    <div style="font-weight:800">{{ ds.productName(item.productId) }}</div>
+                    <div class="flow-note">{{ ds.productById(item.productId)?.sku }}</div>
+                  </div>
+                </div>
               </td>
               <td>{{ item.quantity }} {{ item.unit }} <span class="flow-note">({{ item.estimatedWeightKg }} kg)</span></td>
               <td><span :class="coldTypeBadge(ds.productById(item.productId)?.coldType)">{{ coldTypeLabel(ds.productById(item.productId)?.coldType) }}</span></td>
@@ -137,10 +196,12 @@ const temperatureSummary = computed(() => {
             <div>{{ pod?.status === 'complete' ? 'POD completed with photo and signature reference.' : 'POD pending: register reference photo and signature.' }}</div>
           </div>
           <div v-for="log in temps" :key="log.id" class="flow-row-between">
-            <span>{{ new Date(log.timestamp).toLocaleTimeString('en-US') }}</span>
-            <strong :style="{ color: log.status === 'ok' ? '#15803D' : '#B45309' }">{{ log.temperatureC }} C - {{ log.status }}</strong>
+            <span>{{ new Date(log.recordedAt || log.timestamp).toLocaleTimeString('en-US') }}</span>
+            <strong :style="{ color: log.status === 'ok' ? '#15803D' : '#B45309' }">{{ log.celsius ?? log.temperatureC }} C - {{ log.status }}</strong>
           </div>
-          <button class="btn btn-secondary" disabled><i class="pi pi-lock"></i> POD registration read-only</button>
+          <button class="btn btn-secondary" :disabled="saving || pod?.status === 'complete'" @click="completeDeliveryEvidence">
+            <i class="pi pi-camera"></i> {{ pod?.status === 'complete' ? 'POD complete' : 'Complete POD' }}
+          </button>
         </div>
       </section>
 
@@ -162,3 +223,29 @@ const temperatureSummary = computed(() => {
     </div>
   </template>
 </template>
+
+<style scoped>
+.dispatch-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+
+.dispatch-product-image {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  object-fit: contain;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dispatch-product-image-empty {
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+</style>
