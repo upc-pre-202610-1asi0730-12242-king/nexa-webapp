@@ -15,3 +15,4 @@ defineProps({ dispatch: { type: Object, default: () => ({}) }, clientName: { typ
     <div class="muted-text" style="margin-top:8px">{{ dispatch.routeName }} · {{ dispatch.driverName }}</div>
   </article>
 </template>
+
