@@ -57,10 +57,10 @@ src/<context>/
 To maintain semantic alignment across the entire product ecosystem, terminology is shared between the C# backend and Vue 3 frontend:
 - Avoid generic terms like "product" or "bill". Use the explicit aggregates: `CatalogItem`, `Order`, `InventoryItem`, `Invoice`, `Shipment`, and `Payment`.
 
-### 2. Anti-Corruption Layer (ACL) for In-Memory Fallbacks
-For contexts not yet integrated with live backend services (e.g., promotions, purchase requests, support messages), the local data manager in `src/app/application/stores/data.store.js` acts as an **Anti-Corruption Layer (ACL)**:
-- It intercepts infrastructure repository calls and clones static records (`src/shared/data/initial-data.json`) in-memory.
-- By translating raw mock states into valid domain aggregates, it isolates presentation modules from changes in the backend integration status, suppressing 404 connection errors.
+### 2. Anti-Corruption Layer (ACL) for Backend Resources
+The client uses API services and assemblers as an **Anti-Corruption Layer (ACL)** between Vue presentation modules and Nexa Platform REST resources:
+- Infrastructure services call `/api/v1/*` endpoints through the shared HTTP client.
+- Assemblers translate backend resource shapes into frontend domain read models without exposing raw transport details to views.
 
 ### 3. Separation of Domain Entities and View DTOs
 - Models representing core aggregates reside under the context-level `domain/model/` (e.g. `product.entity.js`, `dispatch.entity.js`).
