@@ -41,6 +41,7 @@
       "workspacePreview": "Vista del workspace",
       "workspaceNotFound": "Workspace no encontrado. Verifica el nombre.",
       "invalidCredentials": "El workspace, correo o contraseña no es correcto.",
+      "apiUnavailable": "La API de Nexa no es accesible desde este frontend. Revisa la URL local de la API o la configuración del proxy de Vite.",
       "missingFields": "Ingresa workspace, correo corporativo y contraseña.",
       "personalEmailWarning": "Usa tu correo corporativo. Los dominios personales no están permitidos para acceder al workspace.",
       "suspendedWorkspace": "Este workspace está suspendido. Contacta al administrador de tu organización antes de ingresar.",

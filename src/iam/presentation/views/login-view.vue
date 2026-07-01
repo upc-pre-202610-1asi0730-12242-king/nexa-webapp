@@ -66,6 +66,31 @@ function targetForCurrentSession() {
     : '/ops/commercial/dashboard';
 }
 
+function isCredentialFailure(err) {
+  return [400, 401].includes(Number(err?.response?.status));
+}
+
+function isApiConnectivityFailure(err) {
+  const status = Number(err?.response?.status || 0);
+  const contentType = String(err?.response?.headers?.['content-type'] || '');
+  return !err?.response ||
+    status === 404 ||
+    contentType.includes('text/html') ||
+    ['ERR_NETWORK', 'ECONNABORTED'].includes(err?.code);
+}
+
+function logLoginDiagnostic(err) {
+  if (!import.meta.env.DEV) return;
+  const config = err?.config || {};
+  console.warn('[Nexa Auth] Login request failed', {
+    status: err?.response?.status || null,
+    code: err?.code || null,
+    baseURL: config.baseURL || null,
+    url: config.url || null,
+    contentType: err?.response?.headers?.['content-type'] || null,
+  });
+}
+
 async function doLogin({ workspaceSlug, email, password }) {
   error.value = '';
   if (!workspaceSlug || !email || !password) {
@@ -91,7 +116,10 @@ async function doLogin({ workspaceSlug, email, password }) {
       router.push({ name: 'auth.blocked', query: { workspace: err.tenant?.slug || workspaceSlug } });
       return;
     }
-    error.value = t('auth.workspaceLogin.invalidCredentials');
+    logLoginDiagnostic(err);
+    error.value = isCredentialFailure(err) && !isApiConnectivityFailure(err)
+      ? t('auth.workspaceLogin.invalidCredentials')
+      : t('auth.workspaceLogin.apiUnavailable');
   } finally {
     loading.value = false;
   }
