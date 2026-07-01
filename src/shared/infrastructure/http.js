@@ -34,17 +34,28 @@ const attachBearerToken = (config) => {
 http.interceptors.request.use(attachBearerToken);
 coreHttp.interceptors.request.use(attachBearerToken);
 
+const parseProblemDetails = (err) => {
+  const data = err.response?.data;
+  if (!data || typeof data !== 'object') return err.message || 'common.dataLoadError';
+  return data.detail || data.title || data.message || err.message || 'common.dataLoadError';
+};
+
 const handleUnauthorized = (err) => {
+  err.nexaMessage = parseProblemDetails(err);
   if (err.response?.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem('nexa.user');
     localStorage.removeItem('nexa.token');
-    if (window.location.hash !== '#/auth/login') {
-      window.location.assign(`${window.location.origin}${window.location.pathname}#/auth/login`);
+    localStorage.removeItem('nexa.scope');
+    localStorage.removeItem('nexa.tenant');
+    localStorage.removeItem('nexa.membership');
+    if (window.location.pathname !== '/auth/login') {
+      window.location.assign('/auth/login');
     }
   }
   if (err.response?.status === 403 && typeof window !== 'undefined') {
-    const target = '#/auth/forbidden';
-    if (window.location.hash !== target) {
-      window.location.assign(`${window.location.origin}${window.location.pathname}${target}`);
+    const target = '/auth/forbidden';
+    if (window.location.pathname !== target) {
+      window.location.assign(target);
     }
   }
   return Promise.reject(err);
