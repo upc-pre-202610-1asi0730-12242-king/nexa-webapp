@@ -52,6 +52,7 @@ const api = Object.fromEntries(
 export const useDataStore = defineStore('data', () => {
   const loading = ref(false);
   const loadError = ref('');
+  const collectionErrors = ref({});
   const D = ref({
     company:   { id: '', name: '', legalName: '', ruc: '', address: '', country: '', emailDomain: '', subscriptionPlan: 'standard' },
     user:      { name: '', role: '', initials: '', email: '' },
@@ -945,13 +946,19 @@ export const useDataStore = defineStore('data', () => {
     return movement;
   }
 
-  async function readCoreCollection(loader) {
+  async function readCoreCollection(loader, collectionKey = 'collection') {
     try {
       const rows = await loader();
+      delete collectionErrors.value[collectionKey];
       return Array.isArray(rows) ? rows : [];
     } catch (error) {
       console.error('[Nexa API] Failed to load collection', error);
       loadError.value = 'common.dataLoadError';
+      collectionErrors.value[collectionKey] = {
+        message: error?.response?.data?.detail || error?.message || 'common.dataLoadError',
+        status: error?.response?.status || null,
+        failedAt: new Date().toISOString(),
+      };
       return [];
     }
   }
@@ -1228,29 +1235,29 @@ export const useDataStore = defineStore('data', () => {
       auditLogs,
       creditRequests,
     ] = await Promise.all([
-      readCoreCollection(() => tenantApi.getTenants()),
-      readCoreCollection(() => clientsApplication.getClients()),
-      readCoreCollection(() => catalogApplication.getProducts()),
-      readCoreCollection(() => catalogApplication.getCategories()),
-      readCoreCollection(() => catalogApplication.getBrands()),
-      readCoreCollection(() => inventoryApplication.getWarehouses()),
-      readCoreCollection(() => inventoryApplication.getLots()),
-      readCoreCollection(() => inventoryApplication.getMovements()),
-      readCoreCollection(() => purchaseOrdersApplication.getOrders()),
-      readCoreCollection(() => dispatchOrdersApplication.getDispatchOrders()),
-      readCoreCollection(() => api.purchaseRequests.getAll()),
-      readCoreCollection(() => api.requestItems.getAll()),
-      readCoreCollection(() => api.businessDocuments.getAll()),
-      readCoreCollection(() => api.deliveryEvents.getAll()),
-      readCoreCollection(() => api.proofOfDelivery.getAll()),
-      readCoreCollection(() => api.paymentMethods.getAll()),
-      readCoreCollection(() => paymentsApi.getPayments()),
-      readCoreCollection(() => api.messages.getAll()),
-      readCoreCollection(() => api.notifications.getAll()),
-      readCoreCollection(() => api.temperatureLogs.getAll()),
-      readCoreCollection(() => api.promotions.getAll()),
-      readCoreCollection(() => api.auditLogs.getAll()),
-      readCoreCollection(() => api.creditRequests.getAll()),
+      readCoreCollection(() => tenantApi.getTenants(), 'tenants'),
+      readCoreCollection(() => clientsApplication.getClients(), 'clients'),
+      readCoreCollection(() => catalogApplication.getProducts(), 'products'),
+      readCoreCollection(() => catalogApplication.getCategories(), 'categories'),
+      readCoreCollection(() => catalogApplication.getBrands(), 'brands'),
+      readCoreCollection(() => inventoryApplication.getWarehouses(), 'warehouses'),
+      readCoreCollection(() => inventoryApplication.getLots(), 'inventoryLots'),
+      readCoreCollection(() => inventoryApplication.getMovements(), 'stockMovements'),
+      readCoreCollection(() => purchaseOrdersApplication.getOrders(), 'orders'),
+      readCoreCollection(() => dispatchOrdersApplication.getDispatchOrders(), 'dispatchOrders'),
+      readCoreCollection(() => api.purchaseRequests.getAll(), 'purchaseRequests'),
+      readCoreCollection(() => api.requestItems.getAll(), 'purchaseRequestLines'),
+      readCoreCollection(() => api.businessDocuments.getAll(), 'businessDocuments'),
+      readCoreCollection(() => api.deliveryEvents.getAll(), 'dispatchEvents'),
+      readCoreCollection(() => api.proofOfDelivery.getAll(), 'proofOfDelivery'),
+      readCoreCollection(() => api.paymentMethods.getAll(), 'paymentMethods'),
+      readCoreCollection(() => paymentsApi.getPayments(), 'payments'),
+      readCoreCollection(() => api.messages.getAll(), 'messages'),
+      readCoreCollection(() => api.notifications.getAll(), 'notifications'),
+      readCoreCollection(() => api.temperatureLogs.getAll(), 'temperatureLogs'),
+      readCoreCollection(() => api.promotions.getAll(), 'promotions'),
+      readCoreCollection(() => api.auditLogs.getAll(), 'auditLogs'),
+      readCoreCollection(() => api.creditRequests.getAll(), 'creditRequests'),
     ]);
 
     if (tenants.length) {
@@ -1388,11 +1395,11 @@ export const useDataStore = defineStore('data', () => {
 
   async function refreshPurchaseRequests() {
     const [clients, products, purchaseRequests, purchaseRequestLines, messages] = await Promise.all([
-      D.value.clients.length ? Promise.resolve([]) : readCoreCollection(() => clientsApplication.getClients()),
-      D.value.products.length ? Promise.resolve([]) : readCoreCollection(() => catalogApplication.getProducts()),
-      readCoreCollection(() => api.purchaseRequests.getAll()),
-      readCoreCollection(() => api.requestItems.getAll()),
-      readCoreCollection(() => api.messages.getAll()),
+      D.value.clients.length ? Promise.resolve([]) : readCoreCollection(() => clientsApplication.getClients(), 'clients'),
+      D.value.products.length ? Promise.resolve([]) : readCoreCollection(() => catalogApplication.getProducts(), 'products'),
+      readCoreCollection(() => api.purchaseRequests.getAll(), 'purchaseRequests'),
+      readCoreCollection(() => api.requestItems.getAll(), 'purchaseRequestLines'),
+      readCoreCollection(() => api.messages.getAll(), 'messages'),
     ]);
 
     if (clients.length) D.value.clients = clients;
@@ -1423,6 +1430,7 @@ export const useDataStore = defineStore('data', () => {
     D,
     loading,
     loadError,
+    collectionErrors,
     clientName,
     productName,
     productById,
