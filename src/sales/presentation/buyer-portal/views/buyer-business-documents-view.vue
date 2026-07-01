@@ -11,7 +11,7 @@ const ds = useDataStore();
 
 const docs = computed(() =>
   ds.D.businessDocuments
-    .filter(doc => doc.clientId === auth.user?.clientId && (doc.visibleToBuyer || doc.required))
+    .filter(doc => ds.clientRecordMatches(doc, auth.user?.clientId) && (doc.visibleToBuyer || doc.required))
     .sort((a, b) => a.orderId.localeCompare(b.orderId))
 );
 const visibleDocs = computed(() => docs.value.filter(doc => doc.visibleToBuyer));

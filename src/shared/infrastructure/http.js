@@ -17,8 +17,17 @@ export const coreHttp = axios.create({
 });
 
 const attachBearerToken = (config) => {
+  const path = String(config.url || '');
+  const isPublicWorkspaceLookup = path.includes('/tenants/by-slug/');
+  const isPublicAuthentication = path.includes('/authentication/sign-in') || path.endsWith('/authentication');
+  if (isPublicWorkspaceLookup || isPublicAuthentication) return config;
+
   const token = localStorage.getItem('nexa.token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  const tenant = JSON.parse(localStorage.getItem('nexa.tenant') || 'null');
+  const membership = JSON.parse(localStorage.getItem('nexa.membership') || 'null');
+  if (tenant?.id || membership?.tenantId) config.headers['X-Nexa-Tenant-Id'] = membership?.tenantId || tenant.id;
+  if (tenant?.slug) config.headers['X-Nexa-Workspace'] = tenant.slug;
   return config;
 };
 
@@ -30,6 +39,12 @@ const handleUnauthorized = (err) => {
     localStorage.removeItem('nexa.token');
     if (window.location.hash !== '#/auth/login') {
       window.location.assign(`${window.location.origin}${window.location.pathname}#/auth/login`);
+    }
+  }
+  if (err.response?.status === 403 && typeof window !== 'undefined') {
+    const target = '#/auth/forbidden';
+    if (window.location.hash !== target) {
+      window.location.assign(`${window.location.origin}${window.location.pathname}${target}`);
     }
   }
   return Promise.reject(err);

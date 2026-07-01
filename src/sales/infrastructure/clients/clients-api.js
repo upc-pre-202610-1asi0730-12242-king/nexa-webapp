@@ -12,6 +12,14 @@ class ClientsApiService {
   getClientById(id) {
     return this.clients.getById(id);
   }
+
+  createClient(client) {
+    return this.clients.create(client);
+  }
+
+  updateClient(id, client) {
+    return this.clients.update(id, client);
+  }
 }
 
 export const clientsApiService = new ClientsApiService();

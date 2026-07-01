@@ -5,6 +5,7 @@ import { toNumber } from '@/shared/utils/number.utils';
 export class Product extends Entity {
   constructor({
     id,
+    backendId,
     name,
     sku,
     category,
@@ -29,10 +30,12 @@ export class Product extends Entity {
     catalogItemId,
     productId,
     currency = 'PEN',
+    presentation = '',
     weightKg = 1,
     knowledge = '',
   } = {}) {
     super({ id });
+    this.backendId = backendId;
     this.name = name;
     this.sku = sku;
     this.category = category;
@@ -57,6 +60,7 @@ export class Product extends Entity {
     this.catalogItemId = catalogItemId;
     this.productId = productId;
     this.currency = currency;
+    this.presentation = presentation;
     this.weightKg = toNumber(weightKg || 1);
     this.knowledge = knowledge || description;
   }

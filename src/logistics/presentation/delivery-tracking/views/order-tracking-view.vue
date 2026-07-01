@@ -15,7 +15,7 @@ const events = computed(() => ds.timelineForOrder(order.value.id));
     <div class="page-header">
       <div>
         <h1 class="page-title">{{ order.code || order.id || 'Tracking' }}</h1>
-        <p class="page-subtitle">Simulated tracking visible to S3.</p>
+        <p class="page-subtitle">Tracking visible to S3 from Nexa dispatch events.</p>
       </div>
     </div>
     <order-timeline :order="order" :events="events" />

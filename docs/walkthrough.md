@@ -9,15 +9,15 @@ This document summarizes the changes made to prepare the Nexa WebApp for its fin
   - **Bounded Context Boundaries**: Matching directories (`src/sales/`, `src/warehouse/`, etc.) with C# platform subdomains.
   - **Clean Architecture Layers**: Separation of presentation, application, domain, and infrastructure code inside each context.
   - **Ubiquitous Language**: Standardizing semantic entities (e.g. `CatalogItem`, `Order`, `InventoryItem`, `Invoice`, `Shipment`, `Payment`) across the frontend and backend.
-  - **Anti-Corruption Layer (ACL)**: Documenting the Pinia state management layer (`data.store.js`) as a translation ACL that prevents raw in-memory DTO data fallbacks from leaking into or corrupting the presentation and domain logic.
+  - **Anti-Corruption Layer (ACL)**: Documenting the Pinia state management layer (`data.store.js`) as a translation ACL that prevents raw backend DTO data from leaking into or corrupting the presentation and domain logic.
   - **Domain Entities vs. DTOs**: Separation of local read model entities from raw HTTP payload schemas.
 
 ### 2. GitHub Folder Compliance Updates
 - **Security Policy**: Upgraded [.github/SECURITY.md](file:///Users/diegosandoval284/Downloads/nexa-webapp-1.7.1/.github/SECURITY.md) and [wiki/Quality-and-Security.md](file:///Users/diegosandoval284/Downloads/nexa-webapp-1.7.1/wiki/Quality-and-Security.md) to define active security versions, private disclosure pathways (Security Advisories), secure Vue 3 XSS prevention techniques, and mandatory npm auditing requirements.
 - **Contributing Guidelines**: Updated [.github/CONTRIBUTING.md](file:///Users/diegosandoval284/Downloads/nexa-webapp-1.7.1/.github/CONTRIBUTING.md) and [wiki/Branching-and-Commits.md](file:///Users/diegosandoval284/Downloads/nexa-webapp-1.7.1/wiki/Branching-and-Commits.md) with the strict, multiline commit message structure (Type, Scope, Context, Changes, Reason, Validation).
 
-### 3. Deprecated Configuration Cleanup
-- Deleted `firebase.json` from the repository root, as static routing definitions for mock APIs are obsolete with the static Render deployment.
+### 3. Retired Configuration Cleanup
+- Deleted `firebase.json` from the repository root, as static routing definitions for retired local APIs are not used with the static Render deployment.
 
 ---
 

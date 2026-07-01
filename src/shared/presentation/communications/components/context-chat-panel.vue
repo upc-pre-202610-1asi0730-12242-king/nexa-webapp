@@ -7,7 +7,7 @@ defineProps({ messages: { type: Array, default: () => [] } });
     <div class="flow-panel-head">
       <div>
         <h2>Comentarios</h2>
-        <p>Simulated contextual communication between S1, S2 and S3.</p>
+        <p>Contextual communication between S1, S2 and S3.</p>
       </div>
     </div>
     <div class="flow-stack">

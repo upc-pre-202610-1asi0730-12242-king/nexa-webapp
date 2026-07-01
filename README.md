@@ -38,7 +38,7 @@
 
 ## Overview
 
-The `nexa-webapp` repository houses the single-page application (SPA) client interface for the Nexa B2B cold-chain operations ecosystem. Built using Vue 3 and Vite, it delivers intuitive, highly responsive dashboards for warehouse operators, logistics dispatchers, and B2B buyers. The application integrates securely with the ASP.NET Core platform backend for real-time operations, and utilizes structured in-memory datasets as safe fallbacks for local-only modules.
+The `nexa-webapp` repository houses the single-page application (SPA) client interface for the Nexa B2B cold-chain operations ecosystem. Built using Vue 3 and Vite, it delivers intuitive, highly responsive dashboards for warehouse operators, logistics dispatchers, and B2B buyers. The application integrates securely with the ASP.NET Core platform backend for real-time Sales, Logistics, Invoicing, Warehouse, IAM, and Buyer Portal operations.
 
 ---
 

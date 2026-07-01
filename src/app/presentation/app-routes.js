@@ -4,6 +4,7 @@ import { logisticsRoutes } from '@/logistics/presentation/logistics.routes';
 import { invoicingRoutes } from '@/invoicing/presentation/invoicing.routes';
 import { warehouseRoutes } from '@/warehouse/presentation/warehouse.routes';
 import { catalogManagementRoutes, catalogManagementPortalRoutes } from '@/catalog-management/presentation/catalog-management.routes';
+import { tenantManagementOpsRoutes } from '@/tenant-management/presentation/tenant-management.routes';
 
 export const opsRoutes = {
   path: '/ops',
@@ -16,19 +17,17 @@ export const opsRoutes = {
       name: 'ops.dashboard',
       redirect: () => {
         const user = JSON.parse(localStorage.getItem('nexa.user') || 'null');
+        if (user?.roleKey === 'owner') return '/ops/operations/company-administration';
         return user?.roleKey === 'logistics' ? '/ops/operations/dashboard' : '/ops/commercial/dashboard';
       },
     },
-    // #2 Legacy aliases keep older links working while menus use canonical domain routes.
-    { path: 'commercial/orders', redirect: '/ops/commercial/purchase-orders' },
-    { path: 'commercial/orders/create', redirect: '/ops/commercial/manual-order-entry' },
-    { path: 'commercial/orders/:id', redirect: to => `/ops/commercial/purchase-orders/${to.params.id}` },
     ...salesRoutes,
     ...invoicingRoutes,
     ...catalogManagementRoutes,
     ...warehouseRoutes,
     ...logisticsRoutes,
     ...sharedRoutes,
+    ...tenantManagementOpsRoutes,
     {
       path: 'settings',
       redirect: '/ops/operations/company-administration',

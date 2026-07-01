@@ -9,6 +9,7 @@ export class Order extends Entity {
     backendId,
     code,
     clientId,
+    clientAccountId,
     customerName,
     status = 'validating',
     priority = 'medium',
@@ -17,15 +18,19 @@ export class Order extends Entity {
     items = [],
     total = 0,
     notes = '',
+    delivery = {},
     paymentConfirmation,
     inventoryReservation,
     rejectionReason,
     confirmedAt,
+    createdAt,
+    updatedAt,
   } = {}) {
     super({ id });
     this.backendId = backendId;
     this.code = code || id;
     this.clientId = clientId;
+    this.clientAccountId = clientAccountId;
     this.customerName = customerName;
     this.status = new OrderStatus(status);
     this.priority = priority;
@@ -34,10 +39,13 @@ export class Order extends Entity {
     this.items = items.map(item => item instanceof OrderItem ? item : new OrderItem(item));
     this.total = total || this.calculateTotal();
     this.notes = notes;
+    this.delivery = delivery || {};
     this.paymentConfirmation = paymentConfirmation;
     this.inventoryReservation = inventoryReservation;
     this.rejectionReason = rejectionReason;
     this.confirmedAt = confirmedAt;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 
   calculateTotal() {

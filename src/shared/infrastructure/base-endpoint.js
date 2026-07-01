@@ -2,7 +2,6 @@ import { baseApi } from './base-api';
 
 /**
  * Endpoint adapter for Nexa backend resources.
- * Optional fallback stays disabled unless a caller opts in explicitly.
  */
 export class BaseEndpoint {
   constructor(endpointPath, api = baseApi, { useCoreBackend = true } = {}) {

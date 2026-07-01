@@ -2,8 +2,8 @@ import { BaseEndpoint } from '@/shared/infrastructure/base-endpoint';
 
 class AnalyticsApiService {
   constructor() {
-    this.alerts = new BaseEndpoint('/api/v1/alerts');
-    this.activityLog = new BaseEndpoint('/api/v1/activity-log');
+    this.alerts = new BaseEndpoint('/api/v1/notification-records');
+    this.activityLog = new BaseEndpoint('/api/v1/audit-logs');
   }
 
   getAlerts() {

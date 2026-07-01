@@ -9,7 +9,7 @@ import { baseApi } from '@/shared/infrastructure/base-api';
  */
 class DispatchOrdersApiService {
   constructor() {
-    this.dispatchOrders = new BaseEndpoint('/api/v1/shipments', baseApi, { useCoreBackend: true });
+    this.dispatchOrders = new BaseEndpoint('/api/v1/dispatch-orders', baseApi, { useCoreBackend: true });
   }
 
   /**
@@ -28,6 +28,26 @@ class DispatchOrdersApiService {
    */
   updateDispatchOrder(id, payload) {
     return this.dispatchOrders.patch(id, payload);
+  }
+
+  assign(id, responsible) {
+    return this.dispatchOrders.request((client, endpointPath) =>
+      client.post(this.dispatchOrders.pathFor(client, `/${id}/assignees`, endpointPath), { responsible }).then(response => response.data));
+  }
+
+  schedule(id, payload) {
+    return this.dispatchOrders.request((client, endpointPath) =>
+      client.post(this.dispatchOrders.pathFor(client, `/${id}/schedules`, endpointPath), payload).then(response => response.data));
+  }
+
+  startRoute(id) {
+    return this.dispatchOrders.request((client, endpointPath) =>
+      client.post(this.dispatchOrders.pathFor(client, `/${id}/route-starts`, endpointPath)).then(response => response.data));
+  }
+
+  registerIncident(id, note) {
+    return this.dispatchOrders.request((client, endpointPath) =>
+      client.post(this.dispatchOrders.pathFor(client, `/${id}/incidents`, endpointPath), { note }).then(response => response.data));
   }
 }
 

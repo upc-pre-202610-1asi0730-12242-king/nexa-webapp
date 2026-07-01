@@ -1,9 +1,6 @@
 import { InventoryLot } from '@/warehouse/domain/model/entities/inventory-lot.entity';
 import { InventoryLotResource } from './inventory-lot.resource';
 
-const fallbackEntryDate = '2026-06-06';
-const fallbackExpiryDate = '2026-12-31';
-
 const statusFor = (available = 0, reserved = 0) => {
   const availableQty = Number(available || 0) - Number(reserved || 0);
   if (availableQty <= 0) return 'out';
@@ -12,6 +9,24 @@ const statusFor = (available = 0, reserved = 0) => {
 };
 
 const normalizeBackendInventoryItem = (resource = {}) => {
+  if (resource.lotCode || resource.backendId) {
+    return {
+      id: resource.lotCode || resource.id,
+      backendId: resource.backendId,
+      productId: resource.productId,
+      catalogItemId: resource.catalogItemId,
+      qty: Number(resource.qty ?? resource.quantity ?? 0),
+      reserved: Number(resource.reserved ?? resource.reservedQuantity ?? 0),
+      expiry: resource.expiry || resource.expirationDate || null,
+      entryDate: resource.entryDate || resource.createdAt || null,
+      status: resource.status || statusFor(resource.qty, resource.reserved),
+      warehouse: resource.warehouse || 'Core warehouse',
+      zone: resource.zone || resource.warehouse || 'Core warehouse',
+      minimumTemperature: resource.minimumTemperature,
+      maximumTemperature: resource.maximumTemperature,
+      source: 'nexa-platform',
+    };
+  }
   if (resource.availableQuantity === undefined) return resource;
   const warehouseLocation = resource.warehouseLocation || 'Core warehouse';
 
@@ -22,8 +37,8 @@ const normalizeBackendInventoryItem = (resource = {}) => {
     catalogItemId: resource.catalogItemId,
     qty: Number(resource.availableQuantity || 0),
     reserved: Number(resource.reservedQuantity || 0),
-    expiry: resource.expiry || resource.expirationDate || fallbackExpiryDate,
-    entryDate: resource.entryDate || fallbackEntryDate,
+    expiry: resource.expiry || resource.expirationDate || null,
+    entryDate: resource.entryDate || resource.createdAt || null,
     status: statusFor(resource.availableQuantity, resource.reservedQuantity),
     warehouse: warehouseLocation,
     zone: warehouseLocation,

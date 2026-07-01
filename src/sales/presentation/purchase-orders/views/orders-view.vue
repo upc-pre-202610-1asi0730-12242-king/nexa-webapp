@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
@@ -9,10 +9,30 @@ const { t } = useI18n();
 const router = useRouter();
 const ds = useDataStore();
 const D = ds.D;
+const FILTER_STORAGE_KEY = 'nexa.sales.purchase-orders.filters';
+function readSavedFilters() {
+  try {
+    return JSON.parse(localStorage.getItem(FILTER_STORAGE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+const savedFilters = readSavedFilters();
 
-const search = ref('');
-const filter = ref('all');
+const search = ref(savedFilters.search || '');
+const filter = ref(savedFilters.filter || 'all');
+const sortKey = ref(savedFilters.sortKey || 'date');
+const sortDir = ref(savedFilters.sortDir || 'desc');
 const statusKeys = ORDER_STATUS_FILTERS;
+
+watch([search, filter, sortKey, sortDir], () => {
+  localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({
+    search: search.value,
+    filter: filter.value,
+    sortKey: sortKey.value,
+    sortDir: sortDir.value,
+  }));
+});
 
 const sourceOrders = computed(() => D.purchaseOrders.length ? D.purchaseOrders : D.orders);
 
@@ -23,8 +43,37 @@ const filtered = computed(() => {
     const q = search.value.toLowerCase();
     arr = arr.filter(o => displayCode(o).toLowerCase().includes(q) || ds.clientName(o.clientId).toLowerCase().includes(q));
   }
-  return arr;
+  return [...arr].sort((a, b) => compareOrder(a, b));
 });
+
+function sortBy(key) {
+  if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  else {
+    sortKey.value = key;
+    sortDir.value = key === 'date' ? 'desc' : 'asc';
+  }
+}
+
+function sortIndicator(key) {
+  if (sortKey.value !== key) return 'pi-sort-alt';
+  return sortDir.value === 'asc' ? 'pi-sort-amount-up-alt' : 'pi-sort-amount-down';
+}
+
+function compareOrder(a, b) {
+  const key = sortKey.value;
+  const values = {
+    order: [displayCode(a), displayCode(b)],
+    client: [ds.clientName(a.clientId), ds.clientName(b.clientId)],
+    date: [a.date || a.createdAt || '', b.date || b.createdAt || ''],
+    total: [Number(a.total || 0), Number(b.total || 0)],
+    status: [orderStatusLabel(a.status), orderStatusLabel(b.status)],
+    priority: [priorityLabel(a.priority), priorityLabel(b.priority)],
+  }[key] || ['', ''];
+  const result = typeof values[0] === 'number'
+    ? values[0] - values[1]
+    : String(values[0]).localeCompare(String(values[1]), undefined, { numeric: true, sensitivity: 'base' });
+  return sortDir.value === 'asc' ? result : -result;
+}
 </script>
 
 <template>
@@ -58,12 +107,12 @@ const filtered = computed(() => {
     <table class="data-table" role="table" :aria-label="t('nav.orders')">
       <thead>
         <tr>
-          <th scope="col">{{ t('orders.table.order') }}</th>
-          <th scope="col">{{ t('orders.table.client') }}</th>
-          <th scope="col">{{ t('orders.table.date') }}</th>
-          <th scope="col">{{ t('orders.table.total') }}</th>
-          <th scope="col">{{ t('orders.table.status') }}</th>
-          <th scope="col">{{ t('orders.table.priority') }}</th>
+          <th scope="col"><button class="table-sort" type="button" @click="sortBy('order')">{{ t('orders.table.order') }} <i :class="'pi ' + sortIndicator('order')"></i></button></th>
+          <th scope="col"><button class="table-sort" type="button" @click="sortBy('client')">{{ t('orders.table.client') }} <i :class="'pi ' + sortIndicator('client')"></i></button></th>
+          <th scope="col"><button class="table-sort" type="button" @click="sortBy('date')">{{ t('orders.table.date') }} <i :class="'pi ' + sortIndicator('date')"></i></button></th>
+          <th scope="col"><button class="table-sort" type="button" @click="sortBy('total')">{{ t('orders.table.total') }} <i :class="'pi ' + sortIndicator('total')"></i></button></th>
+          <th scope="col"><button class="table-sort" type="button" @click="sortBy('status')">{{ t('orders.table.status') }} <i :class="'pi ' + sortIndicator('status')"></i></button></th>
+          <th scope="col"><button class="table-sort" type="button" @click="sortBy('priority')">{{ t('orders.table.priority') }} <i :class="'pi ' + sortIndicator('priority')"></i></button></th>
           <th scope="col"></th>
         </tr>
       </thead>
@@ -84,3 +133,22 @@ const filtered = computed(() => {
     </table>
   </div>
 </template>
+
+<style scoped>
+.table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
+.table-sort i {
+  font-size: 11px;
+  color: #94a3b8;
+}
+</style>

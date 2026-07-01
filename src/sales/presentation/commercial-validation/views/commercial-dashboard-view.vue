@@ -14,10 +14,10 @@ const newRequests = computed(() => D.purchaseRequests.filter(r => ['submitted', 
 const blockedOrders = computed(() => D.purchaseOrders.filter(o => ['blocked', 'incident'].includes(o.status)));
 const validatingOrders = computed(() => D.purchaseOrders.filter(o => ['pending', 'validating', 'document_pending'].includes(o.status)));
 const pendingDocs = computed(() => D.businessDocuments.filter(doc => doc.required && ['pending', 'observed', 'rejected'].includes(doc.status)));
-const pendingPortalTasks = computed(() => D.portalUploadTasks.filter(task => ['pending', 'blocked'].includes(task.status)));
 const pendingCreditRequests = computed(() => D.creditRequests.filter(request => ['submitted', 'in_review'].includes(request.status)));
 const recentActivity = computed(() => D.activityLog.slice(0, 7));
 const requestPreview = computed(() => newRequests.value.slice(0, 5));
+const purchaseRequestPreview = computed(() => requestPreview.value.length ? requestPreview.value : D.purchaseRequests.slice(0, 5));
 const docsPreview = computed(() => pendingDocs.value.slice(0, 6));
 const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0, 4));
 </script>
@@ -72,7 +72,7 @@ const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0
         <div class="flow-kpi-icon" style="background:#ECFEFF;color:#0891B2"><i class="pi pi-file"></i></div>
       </div>
       <div class="kpi-value" style="color:#0891B2">{{ pendingDocs.length }}</div>
-      <div class="kpi-sub">{{ t('commercialDashboard.pendingDocsSub', { count: pendingPortalTasks.length }) }}</div>
+      <div class="kpi-sub">{{ t('commercialDashboard.pendingDocsSub') }}</div>
     </div>
     <div class="card kpi-card">
       <div class="flow-row-between">
@@ -94,7 +94,7 @@ const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0
         <button class="btn btn-ghost btn-sm" @click="router.push('/ops/commercial/purchase-requests')">{{ t('commercialDashboard.viewAll') }}</button>
       </div>
       <div class="flow-panel-pad">
-        <div v-for="request in requestPreview" :key="request.id" class="flow-list-item">
+        <div v-for="request in purchaseRequestPreview" :key="request.id" class="flow-list-item">
           <div>
             <div class="flow-row" style="margin-bottom:5px">
               <span class="mono">{{ displayCode(request) }}</span>
@@ -106,6 +106,14 @@ const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0
           </div>
           <button class="btn btn-primary btn-sm" @click="router.push('/ops/commercial/purchase-requests/' + request.id)">{{ t('common.review') }}</button>
         </div>
+        <button v-if="!purchaseRequestPreview.length" class="nexa-select-card full-width" type="button" @click="router.push('/ops/commercial/purchase-requests')">
+          <i class="pi pi-inbox"></i>
+          <span>
+            <strong>{{ t('commercialDashboard.requestsButton') }}</strong>
+            <small>Create or review buyer purchase requests from the same connected workflow.</small>
+          </span>
+          <i class="pi pi-arrow-right"></i>
+        </button>
       </div>
     </section>
 
@@ -124,10 +132,11 @@ const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0
           </div>
           <span :class="'badge ' + documentStatusBadge(doc.status)">{{ documentStatusLabel(doc.status) }}</span>
         </div>
+        <div v-if="!docsPreview.length" class="flow-note empty-panel-note">{{ t('commercialDashboard.noPendingDocuments') }}</div>
       </div>
     </section>
 
-    <section class="flow-panel span-4">
+    <section class="flow-panel span-8">
       <div class="flow-panel-head">
           <div>
           <div class="flow-title">{{ t('commercialDashboard.creditRequests') }}</div>
@@ -160,7 +169,7 @@ const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0
       </div>
     </section>
 
-    <section class="flow-panel span-8">
+    <section class="flow-panel span-12">
       <div class="flow-panel-head">
         <div class="flow-title">{{ t('commercialDashboard.recentActivity') }}</div>
         <span class="status-label">{{ t('commercialDashboard.operationalActivity') }}</span>
@@ -171,7 +180,49 @@ const creditRequestsPreview = computed(() => pendingCreditRequests.value.slice(0
           <div class="activity-text">{{ item.text }}</div>
           <div class="activity-time">{{ item.time }}</div>
         </div>
+        <div v-if="!recentActivity.length" class="flow-note empty-panel-note">{{ t('commercialDashboard.noRecentActivity') }}</div>
       </div>
     </section>
   </div>
 </template>
+
+<style scoped>
+.flow-action-banner,
+.kpi-card,
+.flow-panel {
+  border-radius: 18px;
+}
+.flow-action-banner {
+  margin-bottom: 20px;
+  padding: 22px 24px;
+}
+.kpi-card {
+  min-height: 118px;
+  padding: 22px;
+}
+.flow-panel-head {
+  padding: 22px 24px;
+}
+.flow-panel-pad {
+  padding: 22px 24px;
+}
+.flow-grid-12 {
+  align-items: stretch;
+}
+.flow-panel {
+  min-height: 100%;
+}
+.flow-list-item,
+.document-check,
+.activity-item {
+  padding-block: 14px;
+}
+.empty-panel-note { padding:18px; border:1px dashed #cbd5e1; border-radius:12px; background:#f8fafc; text-align:center; }
+@media (min-width: 1280px) {
+  .flow-action-banner,
+  .grid-4,
+  .flow-grid-12 {
+    width: 100%;
+  }
+}
+</style>

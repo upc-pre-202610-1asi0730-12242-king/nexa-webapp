@@ -16,6 +16,8 @@ export class DispatchResource {
     evidenceRequired,
     evidenceDone,
     checklist = [],
+    tenantId,
+    orderBackendId,
     routeName,
     eta,
     responsible,
@@ -25,11 +27,15 @@ export class DispatchResource {
     lastTemperatureCelsius,
     scheduledAt,
     deliveredAt,
+    createdAt,
+    updatedAt,
   } = {}) {
     this.id = id;
+    this.tenantId = tenantId;
     this.backendId = backendId;
     this.code = code || id;
     this.orderId = orderId;
+    this.orderBackendId = orderBackendId;
     this.clientId = clientId;
     this.status = status;
     this.column = column || status;
@@ -51,5 +57,7 @@ export class DispatchResource {
     this.lastTemperatureCelsius = lastTemperatureCelsius;
     this.scheduledAt = scheduledAt;
     this.deliveredAt = deliveredAt;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 }

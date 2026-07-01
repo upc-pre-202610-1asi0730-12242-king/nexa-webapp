@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { ORDER_STATUS_FLOW, orderStatusLabel, orderStatusBadge, priorityLabel, orderStepState, displayCode, timelineEventForStep, formatTimelineDateTime } from '@/shared/status';
+import { ORDER_STATUS_FLOW, orderStatusLabel, orderStatusBadge, priorityLabel, orderStepState, displayCode, timelineEventForStep, formatTimelineDateTime, effectiveOrderStatus } from '@/shared/status';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,6 +15,8 @@ const D = ds.D;
 
 const order = computed(() => ds.orderById(route.params.id));
 const client = computed(() => order.value ? ds.clientById(order.value.clientId) : null);
+const relatedDispatch = computed(() => order.value ? ds.dispatchForOrder(order.value.id) : null);
+const currentStatus = computed(() => effectiveOrderStatus(order.value?.status, relatedDispatch.value?.status));
 const displayItems = computed(() => {
   if (!order.value) return [];
   if (Array.isArray(order.value.items)) return order.value.items;
@@ -40,14 +42,18 @@ const canConfirmOrder = computed(() => confirmationChecks.value.every(check => c
 
 const timeline = computed(() => {
   if (!order.value) return [];
-  return ORDER_STATUS_FLOW.map((status, index) => {
-    const state = orderStepState(order.value.status, status);
-    return {
-      title: orderStatusLabel(status),
-      meta: formatTimelineDateTime(timelineEventForStep(orderEvents.value, status)?.timestamp || timelineEventForStep(orderEvents.value, status)?.createdAt || (index === 0 ? order.value?.createdAt || orderDate.value : null)),
-      done: state === 'done' || state === 'active',
-    };
-  });
+	  return ORDER_STATUS_FLOW.map((status, index) => {
+	    const event = timelineEventForStep(orderEvents.value, status);
+	    const state = orderStepState(currentStatus.value, status);
+	    const dispatchTimestamp = state === 'active'
+	      ? relatedDispatch.value?.updatedAt || relatedDispatch.value?.createdAt || relatedDispatch.value?.eta
+	      : null;
+	    return {
+	      title: orderStatusLabel(status),
+	      meta: formatTimelineDateTime(event?.timestamp || event?.createdAt || dispatchTimestamp || (index === 0 ? order.value?.createdAt || orderDate.value : null)),
+	      done: Boolean(event) || state === 'done' || state === 'active',
+	    };
+	  });
 });
 </script>
 
@@ -67,13 +73,15 @@ const timeline = computed(() => {
     <div style="flex:1">
       <div style="display:flex;align-items:center;gap:10px">
         <span class="page-title" style="font-family:'JetBrains Mono',monospace">{{ displayCode(order) }}</span>
-        <span :class="'badge ' + orderStatusBadge(order.status)">{{ orderStatusLabel(order.status) }}</span>
+        <span :class="'badge ' + orderStatusBadge(currentStatus)">{{ orderStatusLabel(currentStatus) }}</span>
         <span :class="'badge-priority-' + order.priority">{{ priorityLabel(order.priority) }}</span>
       </div>
       <div class="page-subtitle">{{ ds.clientName(order.clientId) }} · {{ orderDate }}</div>
     </div>
     <button class="btn btn-ghost" @click="toast.add({ severity:'info', summary:'Printing...', detail:'Opens the browser print dialog', life:2500 })"><i class="pi pi-print"></i> Print</button>
-    <button class="btn btn-secondary" :disabled="!canConfirmOrder"><i class="pi pi-lock"></i> Backend workflow action pending</button>
+    <button class="btn btn-secondary" disabled title="Orders are created after Sales acceptance and stock reservation.">
+      <i class="pi pi-lock"></i> Confirmed by Sales acceptance
+    </button>
   </div>
 
   <div class="banner banner-warning" v-if="order.notes">
@@ -89,8 +97,14 @@ const timeline = computed(() => {
           <tbody>
             <tr v-for="i in displayItems" :key="i.productId">
               <td>
-                <div style="font-weight:500;font-size:13px">{{ ds.productName(i.productId) }}</div>
-                <div class="mono" style="font-size:10px">{{ ds.productById(i.productId)?.sku }}</div>
+                <div class="order-product-cell">
+                  <img v-if="ds.productById(i.productId)?.imageUrl" class="order-product-image" :src="ds.productById(i.productId)?.imageUrl" :alt="ds.productName(i.productId)" loading="lazy" />
+                  <div v-else class="order-product-image order-product-image-empty"><i class="pi pi-box"></i></div>
+                  <div>
+                    <div style="font-weight:700;font-size:13px">{{ ds.productName(i.productId) }}</div>
+                    <div class="mono" style="font-size:10px">{{ ds.productById(i.productId)?.sku }}</div>
+                  </div>
+                </div>
               </td>
               <td>{{ i.qty }} {{ ds.productById(i.productId)?.unit }}</td>
               <td>S/ {{ i.price.toFixed(2) }}</td>
@@ -168,3 +182,35 @@ const timeline = computed(() => {
   </div>
   </template>
 </template>
+
+<style scoped>
+.order-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+.order-product-image {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.order-product-image-empty {
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+}
+.data-table td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.tl-item {
+  padding-bottom: 18px;
+}
+.tl-content {
+  padding-left: 2px;
+}
+</style>

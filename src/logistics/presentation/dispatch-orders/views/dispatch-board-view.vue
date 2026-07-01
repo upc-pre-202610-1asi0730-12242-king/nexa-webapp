@@ -12,20 +12,28 @@ const ds = useDataStore();
 const D = ds.D;
 const search = ref('');
 const routeFilter = ref('all');
+const sortMode = ref('priority');
+const busyDispatchId = ref(null);
+const actionError = ref('');
 
 const columns = [
-  { key: 'validating', label: 'In validation' },
-  { key: 'document_pending', label: 'Pending Business Documents' },
-  { key: 'ready_for_operations', label: 'Ready for operations' },
-  { key: 'preparing', label: 'Preparing' },
-  { key: 'ready_for_route', label: 'Ready for route' },
-  { key: 'in_route', label: 'On route' },
-  { key: 'delayed', label: 'Delayed' },
-  { key: 'delivered', label: 'Delivered' },
-  { key: 'incident', label: 'Incident' },
+  { key: 'ready_for_operations', label: 'Orders', statuses: ['ready_for_operations'] },
+  { key: 'preparing', label: 'Processed / ordering', statuses: ['assigned', 'scheduled', 'preparing', 'ready_for_route', 'reprogrammed'] },
+  { key: 'in_route', label: 'In distribution', statuses: ['in_route', 'delayed'] },
+  { key: 'delivered', label: 'Delivered', statuses: ['delivered'] },
+  { key: 'incident', label: 'Rejected / returned', statuses: ['incident', 'cancelled', 'rejected'] },
 ];
 
 const routes = computed(() => ['all', ...new Set(D.dispatchOrders.map(dispatch => dispatch.routeName).filter(Boolean))]);
+const sortOptions = [
+  { value: 'priority', label: 'Priority' },
+  { value: 'eta', label: 'ETA' },
+  { value: 'route', label: 'Route' },
+  { value: 'client', label: 'Client' },
+  { value: 'status', label: 'Status' },
+  { value: 'newest', label: 'Newest' },
+];
+const priorityRank = { high: 0, medium: 1, normal: 1, low: 2 };
 
 const filtered = computed(() => {
   let rows = D.dispatchOrders;
@@ -35,14 +43,23 @@ const filtered = computed(() => {
     rows = rows.filter(dispatch =>
       displayCode(dispatch).toLowerCase().includes(q) ||
       String(dispatch.orderId).toLowerCase().includes(q) ||
-      ds.clientName(dispatch.clientId).toLowerCase().includes(q)
+      ds.clientName(dispatch.clientId).toLowerCase().includes(q) ||
+      String(dispatch.routeName || '').toLowerCase().includes(q) ||
+      orderStatusLabel(dispatch.status).toLowerCase().includes(q)
     );
   }
-  return rows;
+  return [...rows].sort((a, b) => {
+    if (sortMode.value === 'eta') return new Date(a.eta || '2999-12-31') - new Date(b.eta || '2999-12-31');
+    if (sortMode.value === 'route') return String(a.routeName || '').localeCompare(String(b.routeName || ''));
+    if (sortMode.value === 'client') return ds.clientName(a.clientId).localeCompare(ds.clientName(b.clientId));
+    if (sortMode.value === 'status') return String(a.status || '').localeCompare(String(b.status || ''));
+    if (sortMode.value === 'newest') return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+    return (priorityRank[a.priority] ?? 3) - (priorityRank[b.priority] ?? 3);
+  });
 });
 
 function byColumn(column) {
-  return filtered.value.filter(dispatch => (dispatch.column || dispatch.status) === column.key);
+  return filtered.value.filter(dispatch => (column.statuses || [column.key]).includes(dispatch.column || dispatch.status));
 }
 
 function isDelayed(dispatch) {
@@ -53,6 +70,31 @@ function creditFor(dispatch) {
   return creditSummary(ds.clientById(dispatch.clientId) || {});
 }
 
+function etaLabel(dispatch) {
+  return dispatch.eta ? new Date(dispatch.eta).toLocaleDateString('en-US') : 'Not scheduled';
+}
+
+async function moveForward(dispatch) {
+  const next = {
+    ready_for_operations: 'preparing',
+    preparing: 'ready_for_route',
+    scheduled: 'ready_for_route',
+    assigned: 'ready_for_route',
+    ready_for_route: 'in_route',
+    in_route: 'delivered',
+    delayed: 'in_route',
+  }[dispatch.status] || 'preparing';
+  if (busyDispatchId.value || ['incident', 'cancelled', 'rejected', 'delivered'].includes(dispatch.status)) return;
+  busyDispatchId.value = dispatch.id;
+  actionError.value = '';
+  try {
+    await ds.updateDispatchStatus(dispatch.id, next);
+  } catch (error) {
+    actionError.value = error?.message || 'Dispatch could not be updated.';
+  } finally {
+    busyDispatchId.value = null;
+  }
+}
 </script>
 
 <template>
@@ -71,15 +113,25 @@ function creditFor(dispatch) {
       <i class="pi pi-search"></i>
       <input v-model="search" :placeholder="t('dispatch.searchPlaceholder')" :aria-label="t('dispatch.searchPlaceholder')" />
     </div>
-    <button
-      v-for="routeName in routes"
-      :key="routeName"
-      class="filter-chip"
-      :class="{ active: routeFilter === routeName }"
-      @click="routeFilter = routeName"
-    >
-      {{ routeName === 'all' ? t('dispatch.allRoutes') : routeName }}
-    </button>
+    <label class="dispatch-filter-select">
+      <span>Route</span>
+      <select v-model="routeFilter" :aria-label="t('dispatch.allRoutes')">
+        <option v-for="routeName in routes" :key="routeName" :value="routeName">
+          {{ routeName === 'all' ? t('dispatch.allRoutes') : routeName }}
+        </option>
+      </select>
+    </label>
+    <label class="dispatch-filter-select">
+      <span>Sort</span>
+      <select v-model="sortMode">
+        <option v-for="option in sortOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+  </div>
+
+  <div v-if="actionError" class="banner banner-danger" style="margin-bottom:16px">
+    <i class="pi pi-exclamation-triangle"></i>
+    <div>{{ actionError }}</div>
   </div>
 
   <div class="kanban-board">
@@ -108,23 +160,23 @@ function creditFor(dispatch) {
         </div>
         <div class="divider" style="margin:10px 0"></div>
         <div class="flow-stack" style="gap:6px">
-          <div class="flow-row-between">
+          <div class="flow-row-between dispatch-meta-row">
             <span class="flow-note">Business Documents</span>
             <strong>{{ dispatch.documentProgress || '0/0' }}</strong>
           </div>
-          <div class="flow-row-between">
+          <div class="flow-row-between dispatch-meta-row">
             <span class="flow-note">Route</span>
             <strong>{{ dispatch.routeName }}</strong>
           </div>
-          <div class="flow-row-between">
+          <div class="flow-row-between dispatch-meta-row">
             <span class="flow-note">ETA</span>
-            <strong>{{ new Date(dispatch.eta).toLocaleDateString('en-US') }}</strong>
+            <strong>{{ etaLabel(dispatch) }}</strong>
           </div>
-          <div class="flow-row-between">
+          <div class="flow-row-between dispatch-meta-row">
             <span class="flow-note">Responsible</span>
-            <strong>{{ dispatch.responsible }}</strong>
+            <strong>{{ dispatch.responsible || 'Unassigned' }}</strong>
           </div>
-          <div v-if="creditFor(dispatch).limit" class="flow-row-between">
+          <div v-if="creditFor(dispatch).limit" class="flow-row-between dispatch-meta-row">
             <span class="flow-note">Client credit</span>
             <strong>S/ {{ creditFor(dispatch).available.toLocaleString() }} available</strong>
           </div>
@@ -137,10 +189,80 @@ function creditFor(dispatch) {
           <i class="pi pi-exclamation-triangle"></i>
           <div>{{ dispatch.incidentNote }}</div>
         </div>
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%;justify-content:center" disabled>
-          <i class="pi pi-lock"></i> Backend workflow action pending
+        <button
+          class="btn btn-secondary btn-sm"
+          style="margin-top:12px;width:100%;justify-content:center"
+          :disabled="Boolean(busyDispatchId) || ['incident', 'cancelled', 'rejected', 'delivered'].includes(dispatch.status)"
+          @click.stop="moveForward(dispatch)"
+        >
+          <i :class="busyDispatchId === dispatch.id ? 'pi pi-spin pi-spinner' : 'pi pi-arrow-right'"></i>
+          {{ busyDispatchId === dispatch.id ? 'Updating...' : ['incident', 'cancelled', 'rejected'].includes(dispatch.status) ? 'Returned to Sales' : dispatch.status === 'delivered' ? 'Delivered' : 'Move dispatch forward' }}
         </button>
       </article>
     </section>
   </div>
 </template>
+
+<style scoped>
+.filter-bar {
+  align-items: stretch;
+}
+.dispatch-filter-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  max-width: min(100%, 360px);
+  padding: 0 12px;
+  border: 1px solid #dbe5f2;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+.dispatch-filter-select select {
+  min-width: 0;
+  max-width: 260px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  font-weight: 800;
+  outline: none;
+  text-overflow: ellipsis;
+}
+.kanban-board {
+  grid-template-columns: repeat(5, minmax(228px, 1fr));
+}
+.dispatch-card {
+  padding: 14px;
+}
+.dispatch-card strong {
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.dispatch-meta-row {
+  display: grid;
+  grid-template-columns: minmax(82px, 0.55fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+.dispatch-meta-row .flow-note {
+  line-height: 1.35;
+}
+.dispatch-meta-row strong {
+  justify-self: end;
+  max-width: 100%;
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: right;
+}
+@media (max-width: 720px) {
+  .dispatch-filter-select,
+  .dispatch-filter-select select {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+</style>
