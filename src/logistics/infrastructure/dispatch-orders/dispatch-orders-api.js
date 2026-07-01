@@ -20,6 +20,15 @@ class DispatchOrdersApiService {
     return this.dispatchOrders.getAll();
   }
 
+  getDispatchOrderSummary(id) {
+    return this.dispatchOrders.request((client, endpointPath) =>
+      client.get(this.dispatchOrders.pathFor(client, `/${id}/summary`, endpointPath)).then(response => response.data));
+  }
+
+  getDispatchSummary(id) {
+    return this.getDispatchOrderSummary(id);
+  }
+
   /**
    * @summary Updates a dispatch order record.
    * @param {string} id - Dispatch identifier.

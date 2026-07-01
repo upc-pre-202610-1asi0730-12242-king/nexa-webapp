@@ -17,4 +17,8 @@ export class PurchaseRequestsApi {
   validateCommercially(id, payload) { return this.requests.request((client, endpointPath) => client.post(this.requests.pathFor(client, `/${id}/commercial-validations`, endpointPath), payload).then(response => response.data)); }
   accept(id, note) { return this.requests.request((client, endpointPath) => client.post(this.requests.pathFor(client, `/${id}/acceptances`, endpointPath), { note }).then(response => response.data)); }
   sendMessage(id, payload) { return this.requests.request((client, endpointPath) => client.post(this.requests.pathFor(client, `/${id}/messages`, endpointPath), payload).then(response => response.data)); }
+  getSalesInbox(params = {}) {
+    return this.requests.request((client) =>
+      client.get(this.requests.pathFor(client, '', '/api/v1/sales/purchase-request-inbox'), { params }).then(response => response.data));
+  }
 }

@@ -20,6 +20,15 @@ class ClientsApiService {
   updateClient(id, client) {
     return this.clients.update(id, client);
   }
+
+  getClientFinancialProfile(id) {
+    return this.clients.request((client) =>
+      client.get(this.clients.pathFor(client, `/${id}/financial-profile`, '/api/v1/client-accounts')).then(response => response.data));
+  }
+
+  getFinancialProfile(id) {
+    return this.getClientFinancialProfile(id);
+  }
 }
 
 export const clientsApiService = new ClientsApiService();

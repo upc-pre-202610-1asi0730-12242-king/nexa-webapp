@@ -13,4 +13,19 @@ export class BuyerPortalApi {
   getRequests() { return this.requests.getAll(); }
   getOrders() { return this.orders.getAll(); }
   getDocuments() { return this.documents.getAll(); }
+  getBuyerDashboardSummary() {
+    return this.orders.request((client) =>
+      client.get(this.orders.pathFor(client, '', '/api/v1/buyer/dashboard-summary')).then(response => response.data));
+  }
+  getBuyerOrderLifecycle(id) {
+    return this.orders.request((client) =>
+      client.get(this.orders.pathFor(client, `/${id}/lifecycle`, '/api/v1/buyer/orders')).then(response => response.data));
+  }
+  getBuyerFinancialProfile() {
+    return this.orders.request((client) =>
+      client.get(this.orders.pathFor(client, '', '/api/v1/buyer/financial-profile')).then(response => response.data));
+  }
+  getDashboardSummary() { return this.getBuyerDashboardSummary(); }
+  getOrderLifecycle(id) { return this.getBuyerOrderLifecycle(id); }
+  getFinancialProfile() { return this.getBuyerFinancialProfile(); }
 }
