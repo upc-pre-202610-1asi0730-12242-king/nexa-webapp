@@ -1,13 +1,15 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
+import { usePurchaseOrdersStore } from '@/sales/application/purchase-orders/purchase-orders.store';
 import { ORDER_STATUS_FILTERS, orderStatusLabel, orderStatusBadge, priorityLabel, displayCode } from '@/shared/status';
 
 const { t } = useI18n();
 const router = useRouter();
 const ds = useDataStore();
+const purchaseOrdersStore = usePurchaseOrdersStore();
 const D = ds.D;
 const FILTER_STORAGE_KEY = 'nexa.sales.purchase-orders.filters';
 function readSavedFilters() {
@@ -34,14 +36,17 @@ watch([search, filter, sortKey, sortDir], () => {
   }));
 });
 
-const sourceOrders = computed(() => D.purchaseOrders.length ? D.purchaseOrders : D.orders);
+const sourceOrders = computed(() => purchaseOrdersStore.summaryRows.length
+  ? purchaseOrdersStore.summaryRows
+  : (D.purchaseOrders.length ? D.purchaseOrders : D.orders));
+const clientLabel = (order) => order.clientName || ds.clientName(order.clientId);
 
 const filtered = computed(() => {
   let arr = sourceOrders.value;
   if (filter.value !== 'all') arr = arr.filter(o => o.status === filter.value);
   if (search.value) {
     const q = search.value.toLowerCase();
-    arr = arr.filter(o => displayCode(o).toLowerCase().includes(q) || ds.clientName(o.clientId).toLowerCase().includes(q));
+    arr = arr.filter(o => displayCode(o).toLowerCase().includes(q) || clientLabel(o).toLowerCase().includes(q));
   }
   return [...arr].sort((a, b) => compareOrder(a, b));
 });
@@ -63,7 +68,7 @@ function compareOrder(a, b) {
   const key = sortKey.value;
   const values = {
     order: [displayCode(a), displayCode(b)],
-    client: [ds.clientName(a.clientId), ds.clientName(b.clientId)],
+    client: [clientLabel(a), clientLabel(b)],
     date: [a.date || a.createdAt || '', b.date || b.createdAt || ''],
     total: [Number(a.total || 0), Number(b.total || 0)],
     status: [orderStatusLabel(a.status), orderStatusLabel(b.status)],
@@ -74,6 +79,10 @@ function compareOrder(a, b) {
     : String(values[0]).localeCompare(String(values[1]), undefined, { numeric: true, sensitivity: 'base' });
   return sortDir.value === 'asc' ? result : -result;
 }
+
+onMounted(() => {
+  purchaseOrdersStore.loadOrderSummaries().catch(() => {});
+});
 </script>
 
 <template>
@@ -120,7 +129,7 @@ function compareOrder(a, b) {
         <tr v-for="o in filtered" :key="o.id" style="cursor:pointer" @click="router.push(`/ops/commercial/purchase-orders/${o.id}`)">
           <td><span class="mono">{{ displayCode(o) }}</span></td>
           <td>
-            <div style="font-weight:500;font-size:13px">{{ ds.clientName(o.clientId) }}</div>
+            <div style="font-weight:500;font-size:13px">{{ clientLabel(o) }}</div>
             <div style="font-size:11px;color:#9CA3AF">{{ ds.clientById(o.clientId)?.type || ds.clientById(o.clientId)?.segment }}</div>
           </td>
           <td style="font-size:12px;color:#6B7280">{{ o.date }}</td>

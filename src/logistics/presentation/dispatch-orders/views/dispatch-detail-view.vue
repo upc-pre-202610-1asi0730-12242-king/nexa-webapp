@@ -1,13 +1,15 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
+import { useDispatchOrdersStore } from '@/logistics/application/dispatch-orders/dispatch-orders.store';
 import { orderStatusLabel, orderStatusBadge, coldTypeLabel, coldTypeBadge, documentStatusLabel, documentStatusBadge, displayCode } from '@/shared/status';
 import { creditSummary } from '@/shared/credit';
 
 const route = useRoute();
 const router = useRouter();
 const ds = useDataStore();
+const dispatchOrdersStore = useDispatchOrdersStore();
 const saving = ref(false);
 const actionError = ref('');
 
@@ -22,7 +24,11 @@ const orderDestination = computed(() => {
 });
 const docs = computed(() => order.value ? ds.documentsForOrder(order.value.id) : []);
 const items = computed(() => order.value ? ds.orderItemsFor(order.value.id) : []);
-const events = computed(() => order.value ? ds.timelineForOrder(order.value.id) : []);
+const dispatchReadModelId = computed(() => dispatch.value ? (dispatch.value.backendId || dispatch.value.id) : null);
+const events = computed(() => {
+  const readModelEvents = dispatchOrdersStore.eventsForDispatch(dispatchReadModelId.value);
+  return readModelEvents.length ? readModelEvents : (order.value ? ds.timelineForOrder(order.value.id) : []);
+});
 const temps = computed(() => order.value ? ds.temperatureForOrder(order.value.id) : []);
 const pod = computed(() => dispatch.value ? ds.D.proofOfDelivery.find(item => item.dispatchOrderId === dispatch.value.id) : null);
 const credit = computed(() => creditSummary(client.value || {}));
@@ -61,6 +67,10 @@ async function completeDeliveryEvidence() {
     saving.value = false;
   }
 }
+
+watch(dispatchReadModelId, (id) => {
+  if (id) dispatchOrdersStore.loadDispatchSummary(id).catch(() => {});
+}, { immediate: true });
 </script>
 
 <template>

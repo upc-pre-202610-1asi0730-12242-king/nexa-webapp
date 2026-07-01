@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
+import { useBuyerPortalStore } from '@/sales/application/buyer-portal/buyer-portal.store';
 import { orderStatusLabel, orderStatusBadge, buildOrderTrackingSteps, documentStatusLabel, documentStatusBadge, coldTypeLabel, coldTypeBadge, displayCode, effectiveOrderStatus } from '@/shared/status';
 import { formatAddress } from '@/shared/utils/address.utils';
 
@@ -10,6 +11,7 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const ds = useDataStore();
+const buyerPortal = useBuyerPortalStore();
 const downloadingDocumentId = ref(null);
 const documentError = ref('');
 
@@ -21,7 +23,12 @@ const dispatch = computed(() => order.value ? ds.dispatchForOrder(order.value.id
 const address = computed(() => order.value ? ds.deliveryAddressById(order.value.deliveryAddressId) : null);
 const docs = computed(() => order.value ? ds.documentsForOrder(order.value.id).filter(doc => doc.visibleToBuyer || doc.required) : []);
 const items = computed(() => order.value ? ds.orderItemsFor(order.value.id) : []);
-const events = computed(() => order.value ? ds.lifecycleEventsForOrder(order.value.id) : []);
+const orderReadModelId = computed(() => order.value ? (order.value.backendId || order.value.id) : null);
+const events = computed(() => {
+  if (!order.value) return [];
+  const readModelEvents = buyerPortal.lifecycleEventsForOrder(orderReadModelId.value);
+  return readModelEvents.length ? readModelEvents : ds.lifecycleEventsForOrder(order.value.id);
+});
 const temps = computed(() => order.value ? ds.temperatureForOrder(order.value.id).filter(log => log.visibleToBuyer) : []);
 const visibleEvents = computed(() => events.value);
 const trackedOrder = computed(() => {
@@ -69,6 +76,10 @@ async function downloadDocument(document) {
     downloadingDocumentId.value = null;
   }
 }
+
+watch(orderReadModelId, (id) => {
+  if (id) buyerPortal.loadOrderLifecycle(id).catch(() => {});
+}, { immediate: true });
 </script>
 
 <template>

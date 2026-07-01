@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
+import { useProductCatalogStore } from '@/catalog-management/application/product-catalog/product-catalog.store';
 import { coldTypeLabel, coldTypeBadge } from '@/shared/status';
 import { brandForProduct, logoForProduct } from '@/catalog-management/application/product-catalog/product-brand';
 
@@ -10,10 +11,21 @@ const route = useRoute();
 const router = useRouter();
 const ds = useDataStore();
 const cart = useCartStore();
+const productCatalogStore = useProductCatalogStore();
 
 const product = computed(() => ds.productById(route.params.id));
 const promos = computed(() => product.value ? ds.promotionsForProduct(product.value.id) : []);
-const availableStock = computed(() => product.value ? Math.max(0, Number(product.value.stock || 0) - Number(product.value.reserved || 0)) : 0);
+const productReadModelId = computed(() => product.value?.backendId || null);
+const availability = computed(() => productCatalogStore.availabilityForProduct(productReadModelId.value));
+const availableStock = computed(() => {
+  if (availability.value?.availableStock !== null && availability.value?.availableStock !== undefined) {
+    return Number(availability.value.availableStock || 0);
+  }
+  if (availability.value?.catalogAvailableStock !== null && availability.value?.catalogAvailableStock !== undefined) {
+    return Number(availability.value.catalogAvailableStock || 0);
+  }
+  return product.value ? Math.max(0, Number(product.value.stock || 0) - Number(product.value.reserved || 0)) : 0;
+});
 const cartProductIds = computed(() => new Set(cart.items.map(item => item.productId)));
 const related = computed(() => {
   if (!product.value) return [];
@@ -47,6 +59,10 @@ function stockLabel(item) {
   if (item.status === 'out') return 'Unavailable';
   return item.commercialAvailability || 'Available';
 }
+
+watch(productReadModelId, (id) => {
+  if (id) productCatalogStore.loadProductAvailability(id).catch(() => {});
+}, { immediate: true });
 </script>
 
 <template>

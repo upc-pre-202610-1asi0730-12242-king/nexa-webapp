@@ -20,6 +20,8 @@ Existing context stores include:
 - Global facade now exposes `collectionErrors` by collection key.
 - Failed API loads still set `loadError`, but also preserve per-resource error status/message/timestamp.
 - Added client methods for backend read-model endpoints without forcing screens to migrate before the backend contracts exist.
+- Context stores now load role-focused read models with explicit loading/error state.
+- Buyer home/profile preparation, Buyer order detail lifecycle, Sales order summaries, Sales purchase request inbox, Logistics dispatch detail, and Catalog item availability consume read-model endpoints while keeping the legacy `data.store.js` joins as fallback.
 
 ## Migration Rules
 
@@ -53,4 +55,4 @@ Catalog:
 - `getProductAvailability`
 - `getPromotionalCatalog`
 
-These methods are additive and should be wired into screens only after backend endpoints are available and validated.
+These methods are additive. Current screens use them incrementally through context stores and keep old collection-based data as compatibility fallback during the migration.

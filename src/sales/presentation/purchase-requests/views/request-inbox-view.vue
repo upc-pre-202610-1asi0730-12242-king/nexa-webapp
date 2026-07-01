@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
+import { usePurchaseRequestsStore } from '@/sales/application/purchase-requests/purchase-requests.store';
 import {
   requestStatusLabel,
   requestStatusBadge,
@@ -13,8 +14,25 @@ import {
 import { formatAddress } from '@/shared/utils/address.utils';
 
 const ds = useDataStore();
+const purchaseRequestsStore = usePurchaseRequestsStore();
 const router = useRouter();
-const requests = computed(() => [...ds.D.purchaseRequests].sort((a, b) => recordTimestamp(b) - recordTimestamp(a)));
+const readModelRequests = computed(() => purchaseRequestsStore.inbox.map(request => ({
+  id: request.id,
+  backendId: request.id,
+  code: request.code,
+  clientId: request.client?.id,
+  clientName: request.client?.commercialName || request.client?.businessName || request.client?.code,
+  status: request.status,
+  priority: request.priority,
+  createdAt: request.createdAt,
+  requestedDeliveryDate: request.requestedDeliveryDate,
+  comments: request.lastMessagePreview,
+  lineCount: request.lineCount,
+  commercialOwner: request.commercialOwner,
+})));
+const requests = computed(() => (readModelRequests.value.length ? readModelRequests.value : ds.D.purchaseRequests)
+  .slice()
+  .sort((a, b) => recordTimestamp(b) - recordTimestamp(a)));
 const selectedRequest = ref(null);
 const closedStatuses = ['approved', 'rejected', 'converted_to_order'];
 
@@ -49,6 +67,12 @@ function openDetails(request) {
 function canRespond(request) {
   return !closedStatuses.includes(request.status);
 }
+
+const clientLabel = (request) => request.clientName || ds.clientName(request.clientId);
+
+onMounted(() => {
+  purchaseRequestsStore.loadSalesInbox().catch(() => {});
+});
 </script>
 
 <template>
@@ -82,7 +106,7 @@ function canRespond(request) {
               <span class="mono" style="font-weight:800;color:#1D4ED8">{{ displayCode(request) }}</span>
               <span :class="'badge ' + requestStatusBadge(request.status)">{{ requestStatusLabel(request.status) }}</span>
             </div>
-            <h2 style="margin:0">{{ ds.clientName(request.clientId) }}</h2>
+            <h2 style="margin:0">{{ clientLabel(request) }}</h2>
             <p class="muted-text">{{ request.comments }}</p>
           </div>
           <span :class="['badge', request.priority === 'urgent' ? 'badge-red' : 'badge-blue']">{{ request.priority === 'urgent' ? 'URGENT' : (request.priority || 'normal') }}</span>

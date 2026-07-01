@@ -1,10 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
 import { useAuthStore } from '@/iam/application/iam.store';
+import { useBuyerPortalStore } from '@/sales/application/buyer-portal/buyer-portal.store';
 import { orderStatusLabel, orderStatusBadge, requestStatusLabel, requestStatusBadge, buildOrderTrackingSteps, displayCode, recordTimestamp } from '@/shared/status';
 import { creditSummary } from '@/shared/credit';
 
@@ -13,6 +14,7 @@ const { t } = useI18n();
 const ds = useDataStore();
 const cart = useCartStore();
 const auth = useAuthStore();
+const buyerPortal = useBuyerPortalStore();
 const D = ds.D;
 
 const client = computed(() => ds.clientById(auth.user?.clientId) || (auth.user?.clientId ? {
@@ -54,6 +56,14 @@ const featured = computed(() =>
 const trackingSteps = computed(() => activeOrder.value ? buildOrderTrackingSteps(activeOrder.value, ds.timelineForOrder(activeOrder.value.id)) : []);
 const firstName = computed(() => auth.user?.name?.split(' ')[0] || 'buyer');
 const formatMoney = (value) => Number(value || 0).toLocaleString();
+
+onMounted(() => {
+  if (!auth.user?.clientId) return;
+  Promise.allSettled([
+    buyerPortal.loadDashboardSummary(),
+    buyerPortal.loadFinancialProfile(),
+  ]);
+});
 
 </script>
 
