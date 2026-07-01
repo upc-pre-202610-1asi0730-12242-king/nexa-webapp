@@ -90,7 +90,10 @@ async function moveForward(dispatch) {
   try {
     await ds.updateDispatchStatus(dispatch.id, next);
   } catch (error) {
-    actionError.value = error?.message || 'Dispatch could not be updated.';
+    actionError.value = error?.response?.data?.detail
+      || error?.response?.data?.message
+      || error?.message
+      || 'Dispatch could not be updated.';
   } finally {
     busyDispatchId.value = null;
   }

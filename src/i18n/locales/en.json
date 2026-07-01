@@ -798,7 +798,13 @@
     "activeDemandGuard": "Active orders or requests use this product",
     "outStockGuard": "Out-of-stock product can only be reviewed",
     "readyMaintenance": "Ready for catalog maintenance",
-    "remove": "Remove"
+    "remove": "Remove",
+    "category": {
+      "cheese": "Cheese",
+      "charcuterie": "Charcuterie",
+      "butter": "Butter",
+      "dessert": "Dessert"
+    }
   },
   "inventory": {
     "subtitle": "Updated today",
@@ -948,7 +954,48 @@
     "notifDesc": "Receive alerts for critical stock and pending orders",
     "langEs": "Español",
     "langEn": "English",
-    "avatarHint": "Auto initials"
+    "avatarHint": "Auto initials",
+    "workspace": {
+      "subtitle": "Workspace identity, role scope, and persisted notification preferences for the current Nexa session.",
+      "switchAccount": "Switch account",
+      "identity": "Workspace identity",
+      "identityDescription": "Your role, tenant, workspace and membership are validated before this session is created.",
+      "accountDescription": "Account fields persist in the current Nexa workspace; role remains read-only.",
+      "editAccount": "Edit account",
+      "workspaceSlug": "Workspace slug",
+      "membershipStatus": "Membership status",
+      "saving": "Saving...",
+      "preferencesTitle": "Workspace preferences",
+      "preferencesDescription": "Workspace behavior for this session.",
+      "editPreferences": "Edit preferences",
+      "savePreferences": "Save preferences",
+      "criticalNotifications": "Critical notifications",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "planAccess": "Plan access",
+      "operationalScope": "Operational scope",
+      "scopeDescription": "Permission summary for the current workspace profile.",
+      "roles": {
+        "owner": "Company Owner",
+        "commercial": "Sales",
+        "logistics": "Logistics Manager",
+        "buyer": "B2B Buyer"
+      },
+      "permissions": {
+        "inventory": "Inventory Control",
+        "dispatch": "Dispatch Orders",
+        "deliveryEvidence": "Proof of Delivery",
+        "analytics": "Operational Analytics",
+        "companyAdministration": "Company Administration",
+        "workspaceSetup": "Workspace Setup",
+        "teammates": "Teammates",
+        "businessRules": "Business Rules",
+        "catalog": "Product Catalog",
+        "orders": "Purchase Orders",
+        "manualOrder": "Manual Order Entry",
+        "documents": "Business Documents"
+      }
+    }
   },
   "portal": {
     "nav": {
@@ -983,6 +1030,7 @@
     "orderNotFound": "Order not found",
     "orderNotFoundDesc": "There is no valid order to confirm in this session.",
     "backToCatalog": "Back to catalog",
+    "backToRequests": "Back to my requests",
     "orderNumber": "Order number",
     "products": "Products",
     "whatsNext": "What's next?",

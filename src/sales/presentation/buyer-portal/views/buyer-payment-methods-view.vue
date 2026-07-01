@@ -4,6 +4,7 @@ import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
 import ReferenceSelect from '@/shared/presentation/components/reference-select.vue';
 import PaymentOptionCard from '@/invoicing/presentation/payments/components/payment-option-card.vue';
+import StripePaymentFoundation from '@/invoicing/presentation/payments/components/stripe-payment-foundation.vue';
 import { creditSummary } from '@/shared/credit';
 
 const auth = useAuthStore();
@@ -31,23 +32,20 @@ const paymentsBase = computed(() => {
 });
 const payments = computed(() => {
   if (statusFilter.value === 'all') return paymentsBase.value;
-  if (statusFilter.value === 'confirmed') {
-    return paymentsBase.value.filter(payment => ['paid', 'confirmed'].includes(String(payment.status).toLowerCase()));
-  }
-  return paymentsBase.value.filter(payment => !['paid', 'confirmed'].includes(String(payment.status).toLowerCase()));
+  return paymentsBase.value.filter(payment => paymentState(payment.status) === statusFilter.value);
 });
 const paymentMethods = computed(() => ds.paymentMethodsForClient(clientId.value));
 const totalPaid = computed(() =>
   paymentsBase.value
-    .filter(payment => ['paid', 'confirmed'].includes(String(payment.status).toLowerCase()))
+    .filter(payment => paymentState(payment.status) === 'paid')
     .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
 );
 const totalPending = computed(() =>
   paymentsBase.value
-    .filter(payment => !['paid', 'confirmed'].includes(String(payment.status).toLowerCase()))
+    .filter(payment => ['pending', 'processing'].includes(paymentState(payment.status)))
     .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
 );
-const nextDue = computed(() => paymentsBase.value.find(payment => !['paid', 'confirmed'].includes(String(payment.status).toLowerCase())));
+const nextDue = computed(() => paymentsBase.value.find(payment => ['pending', 'processing'].includes(paymentState(payment.status))));
 const creditUsagePercent = computed(() => {
   if (!credit.value.limit) return 0;
   return Math.min(100, Math.round((credit.value.used / credit.value.limit) * 100));
@@ -74,10 +72,32 @@ const canAddMethod = computed(() => methodType.value === 'card'
   : Boolean(methodLabel.value.trim()));
 const statusOptions = [
   { key: 'all', label: 'All records' },
-  { key: 'confirmed', label: 'Confirmed' },
   { key: 'pending', label: 'Pending' },
+  { key: 'processing', label: 'Processing' },
+  { key: 'paid', label: 'Paid' },
+  { key: 'failed', label: 'Failed' },
+  { key: 'cancelled', label: 'Cancelled' },
 ];
 const formatMoney = (value, currency = 'PEN') => `${currency} ${Number(value || 0).toFixed(2)}`;
+
+function paymentState(status) {
+  const normalized = String(status || 'pending').toLowerCase();
+  if (['paid', 'confirmed'].includes(normalized)) return 'paid';
+  if (['failed', 'rejected'].includes(normalized)) return 'failed';
+  if (normalized === 'cancelled') return 'cancelled';
+  if (normalized === 'processing') return 'processing';
+  return 'pending';
+}
+
+function paymentStateClass(status) {
+  return {
+    pending: 'badge-amber',
+    processing: 'badge-blue',
+    paid: 'badge-green',
+    failed: 'badge-red',
+    cancelled: 'badge-gray',
+  }[paymentState(status)] || 'badge-amber';
+}
 
 async function selectPaymentMethod(method) {
   updatingMethodId.value = method.id;
@@ -123,7 +143,7 @@ async function addPaymentMethod() {
   <div class="payment-page">
     <div class="page-header">
       <div>
-        <div class="page-title">Payments</div>
+        <div class="page-title">{{ $t('portal.nav.payments') }}</div>
         <div class="page-subtitle">Credit line, pending balance, payment history and preferred payment references for this buyer account.</div>
       </div>
     </div>
@@ -168,6 +188,8 @@ async function addPaymentMethod() {
         <div class="kpi-sub">Workspace payment records</div>
       </div>
     </div>
+
+    <StripePaymentFoundation :payment="nextDue" />
 
     <section class="payment-insights-grid" aria-label="Payment insights">
       <article class="flow-panel payment-chart-panel">
@@ -237,8 +259,8 @@ async function addPaymentMethod() {
             <td><span class="mono">{{ payment.orderId || 'Pending relation' }}</span></td>
             <td style="font-weight:700">{{ formatMoney(payment.amount || payment.total, payment.currency) }}</td>
             <td>
-              <span :class="'badge ' + (['paid', 'confirmed'].includes(String(payment.status).toLowerCase()) ? 'badge-green' : 'badge-amber')">
-                {{ payment.status }}
+              <span :class="'badge ' + paymentStateClass(payment.status)">
+                {{ paymentState(payment.status) }}
               </span>
             </td>
           </tr>

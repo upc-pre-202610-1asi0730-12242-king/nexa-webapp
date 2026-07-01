@@ -56,7 +56,7 @@ function deliveryText(order) {
 <template>
   <div class="page-header">
     <div>
-      <div class="page-title">My Orders</div>
+      <div class="page-title">{{ $t('portal.nav.orders') }}</div>
       <div class="page-subtitle">{{ orders.length }} confirmed or historical purchase orders.</div>
     </div>
     <button class="btn btn-primary" @click="router.push('/portal/product-catalog')"><i class="pi pi-plus"></i> New Request</button>

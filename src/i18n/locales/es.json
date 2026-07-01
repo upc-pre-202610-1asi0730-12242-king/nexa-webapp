@@ -798,7 +798,13 @@
     "activeDemandGuard": "Pedidos o solicitudes activas usan este producto",
     "outStockGuard": "El producto sin stock solo puede revisarse",
     "readyMaintenance": "Listo para mantenimiento de catálogo",
-    "remove": "Retirar"
+    "remove": "Retirar",
+    "category": {
+      "cheese": "Quesos",
+      "charcuterie": "Charcutería",
+      "butter": "Mantequilla",
+      "dessert": "Postres"
+    }
   },
   "inventory": {
     "subtitle": "Actualizado hoy",
@@ -948,7 +954,48 @@
     "notifDesc": "Recibe alertas de stock crítico y pedidos pendientes",
     "langEs": "Español",
     "langEn": "English",
-    "avatarHint": "Iniciales automáticas"
+    "avatarHint": "Iniciales automáticas",
+    "workspace": {
+      "subtitle": "Identidad del workspace, alcance del rol y preferencias de notificación de la sesión actual de Nexa.",
+      "switchAccount": "Cambiar cuenta",
+      "identity": "Identidad del workspace",
+      "identityDescription": "Tu rol, tenant, workspace y membresía se validan antes de crear esta sesión.",
+      "accountDescription": "Los datos de la cuenta se guardan en el workspace actual de Nexa; el rol es de solo lectura.",
+      "editAccount": "Editar cuenta",
+      "workspaceSlug": "Identificador del workspace",
+      "membershipStatus": "Estado de membresía",
+      "saving": "Guardando...",
+      "preferencesTitle": "Preferencias del workspace",
+      "preferencesDescription": "Comportamiento del workspace para esta sesión.",
+      "editPreferences": "Editar preferencias",
+      "savePreferences": "Guardar preferencias",
+      "criticalNotifications": "Notificaciones críticas",
+      "enabled": "Activadas",
+      "disabled": "Desactivadas",
+      "planAccess": "Acceso del plan",
+      "operationalScope": "Alcance operativo",
+      "scopeDescription": "Resumen de permisos del perfil actual del workspace.",
+      "roles": {
+        "owner": "Propietario de la compañía",
+        "commercial": "Ventas",
+        "logistics": "Responsable de logística",
+        "buyer": "Comprador B2B"
+      },
+      "permissions": {
+        "inventory": "Control de inventario",
+        "dispatch": "Órdenes de despacho",
+        "deliveryEvidence": "Evidencias de entrega",
+        "analytics": "Analítica operativa",
+        "companyAdministration": "Administración de la compañía",
+        "workspaceSetup": "Configuración del workspace",
+        "teammates": "Compañeros de equipo",
+        "businessRules": "Reglas de negocio",
+        "catalog": "Catálogo de productos",
+        "orders": "Órdenes de compra",
+        "manualOrder": "Registro manual de pedido",
+        "documents": "Documentos comerciales"
+      }
+    }
   },
   "portal": {
     "nav": {
@@ -956,11 +1003,11 @@
       "catalog": "Catálogo",
       "requestBuilder": "Crear solicitud",
       "requests": "Mis solicitudes",
-      "orders": "Mis órdenes",
+      "orders": "Mis pedidos",
       "documents": "Documentos",
       "payments": "Pagos",
-      "premium": "Premium",
-      "profile": "Perfil",
+      "premium": "Acceso premium",
+      "profile": "Mi perfil",
       "more": "Menú"
     },
     "home": "Inicio",
@@ -983,6 +1030,7 @@
     "orderNotFound": "Pedido no encontrado",
     "orderNotFoundDesc": "No hay una orden válida para confirmar en esta sesión.",
     "backToCatalog": "Volver al catálogo",
+    "backToRequests": "Volver a mis solicitudes",
     "orderNumber": "Número de pedido",
     "products": "Productos",
     "whatsNext": "¿Qué sigue?",

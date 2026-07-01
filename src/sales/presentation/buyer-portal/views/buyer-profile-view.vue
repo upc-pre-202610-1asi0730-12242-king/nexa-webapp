@@ -156,7 +156,7 @@ function endSession() {
     <section class="page-header">
       <div>
         <span class="eyebrow">Buyer Portal</span>
-        <h1>Buyer Profile</h1>
+        <h1>{{ $t('portal.nav.profile') }}</h1>
         <p>Buyer identity comes from authenticated access; client profile details are shown for the current workspace.</p>
       </div>
     </section>

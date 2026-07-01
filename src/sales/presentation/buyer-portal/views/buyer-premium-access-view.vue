@@ -1,7 +1,7 @@
 <template>
   <div class="page-header">
     <div>
-      <div class="page-title">Premium</div>
+      <div class="page-title">{{ $t('portal.nav.premium') }}</div>
       <div class="page-subtitle">Advanced buyer capabilities for visual catalog, route tracking, temperature visibility and assisted ordering.</div>
     </div>
     <span class="premium-lock"><i class="pi pi-lock"></i> Future capability</span>

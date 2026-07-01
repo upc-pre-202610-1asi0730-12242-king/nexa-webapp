@@ -68,7 +68,7 @@ function deliveryText(request) {
   <div>
     <div class="page-header">
       <div>
-        <div class="page-title">My Requests</div>
+        <div class="page-title">{{ $t('portal.nav.requests') }}</div>
         <div class="page-subtitle">{{ requests.length }} buyer request(s) from the active workspace.</div>
       </div>
       <button class="btn btn-primary" @click="router.push('/portal/product-catalog')">

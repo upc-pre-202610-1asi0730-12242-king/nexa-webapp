@@ -51,11 +51,13 @@ const isInCart = (id) => cart.items.some(item => item.productId === id);
 const cartItemFor = (id) => cart.items.find(item => item.productId === id);
 
 function handleVisualClick(product) {
-  if (isInCart(product.id)) {
-    cart.remove(product.id);
-  } else {
-    router.push('/portal/product-catalog/' + product.id);
-  }
+  router.push('/portal/product-catalog/' + product.id);
+}
+
+function categoryLabel(value) {
+  const key = `catalog.category.${String(value || '').trim().toLowerCase()}`;
+  const translated = t(key);
+  return translated === key ? value : translated;
 }
 
 function toggleCartProduct(product) {
@@ -102,7 +104,7 @@ function statusBadge(status) {
       <section class="catalog-filter-section">
         <div class="catalog-filter-title">{{ t('catalog.categories') }}</div>
         <button v-for="item in categories" :key="item" class="catalog-filter-option" :class="{ active: category === item }" @click="category = item">
-          {{ item === 'all' ? t('catalog.allCategories') : item }}
+          {{ item === 'all' ? t('catalog.allCategories') : categoryLabel(item) }}
         </button>
       </section>
 
@@ -163,10 +165,6 @@ function statusBadge(status) {
             <span v-if="cartProductIds.has(product.id)" class="flow-pill flow-pill-blue catalog-card-selected">
               {{ t('catalog.selected') }}
             </span>
-            <div v-if="cartProductIds.has(product.id)" class="catalog-card-selected-overlay">
-              <i class="pi pi-trash"></i>
-              <span>{{ t('catalog.remove') || 'Quitar' }}</span>
-            </div>
           </button>
           <div class="catalog-card-body">
             <div class="catalog-card-title-row">
@@ -252,10 +250,6 @@ function statusBadge(status) {
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, .14);
 }
-.catalog-management-card.selected:hover {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, .14);
-}
 .catalog-management-card.selected:hover .add-btn-added {
   background: #fee2e2;
   border-color: #fecaca;
@@ -267,32 +261,6 @@ function statusBadge(status) {
   border: 0;
   min-height: 190px;
   overflow: hidden;
-}
-.catalog-card-selected-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(220, 38, 38, 0.08);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  z-index: 2;
-}
-.catalog-management-card.selected:hover .catalog-card-selected-overlay {
-  opacity: 1;
-}
-.catalog-card-selected-overlay i {
-  font-size: 28px;
-  color: #dc2626;
-}
-.catalog-card-selected-overlay span {
-  font-size: 12px;
-  font-weight: 800;
-  color: #dc2626;
-  text-transform: uppercase;
 }
 .catalog-card-offer {
   position: absolute;

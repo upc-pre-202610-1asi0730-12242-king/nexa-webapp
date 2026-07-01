@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import {
   requestStatusLabel,
@@ -14,6 +15,7 @@ import { formatAddress } from '@/shared/utils/address.utils';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const ds = useDataStore();
 const request = computed(() => ds.purchaseRequestById(route.params.id));
 const client = computed(() => request.value ? ds.clientById(request.value.clientId) || {} : {});
@@ -79,6 +81,9 @@ function deliveryText(requestRecord) {
         <div class="page-subtitle">Buyer request workflow with Sales validation, documents and conversation history.</div>
       </div>
       <div class="flow-row">
+        <button class="btn btn-ghost btn-sm" type="button" @click="router.push('/portal/purchase-requests')">
+          <i class="pi pi-arrow-left"></i> {{ t('portal.backToRequests') }}
+        </button>
         <button
           v-if="convertedOrder"
           class="btn btn-secondary btn-sm"

@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { iamApplication } from '@/iam/application/iam.application';
 
 const router = useRouter();
+const { t } = useI18n();
 const auth = useAuthStore();
 const ds = useDataStore();
 const editingAccount = ref(false);
@@ -16,7 +18,7 @@ const saveError = ref('');
 const draft = reactive({ name: '', jobTitle: '', phone: '', preferredLanguage: 'en', defaultWorkspace: 'icisa', notifications: true });
 
 const roleKey = computed(() => auth.user?.roleKey || 'commercial');
-const roleTitle = computed(() => auth.user?.roleName || (roleKey.value === 'logistics' ? 'Logistics Manager' : 'Sales'));
+const roleTitle = computed(() => t(`profile.workspace.roles.${roleKey.value}`));
 const roleToneClass = computed(() => roleKey.value === 'logistics' ? 'role-pill-logistics' : 'flow-pill-blue');
 const company = computed(() => auth.tenant || ds.D.company);
 const membership = computed(() => auth.membership || {});
@@ -24,15 +26,16 @@ const workspaceName = computed(() => company.value?.name || company.value?.legal
 const workspaceUrl = computed(() => company.value?.workspaceUrl || '');
 const workspaceSlug = computed(() => membership.value.workspaceSlug || company.value?.slug || '');
 const permissions = computed(() => {
-  if (roleKey.value === 'logistics') return ['Inventory Control', 'Dispatch Orders', 'Proof of Delivery', 'Operational Analytics'];
-  return ['Product Catalog', 'Purchase Orders', 'Manual Order Entry', 'Business Documents'];
+  if (roleKey.value === 'logistics') return ['inventory', 'dispatch', 'deliveryEvidence', 'analytics'];
+  if (roleKey.value === 'owner') return ['companyAdministration', 'workspaceSetup', 'teammates', 'businessRules'];
+  return ['catalog', 'orders', 'manualOrder', 'documents'];
 });
 const preferences = computed(() => [
-  { key: 'language', label: 'Language', value: auth.user?.preferredLanguage || draft.preferredLanguage || 'en', editable: true, control: 'language' },
-  { key: 'notifications', label: 'Critical notifications', value: draft.notifications ? 'Enabled' : 'Disabled', editable: true, control: 'notifications' },
-  { key: 'role', label: 'Role', value: roleTitle.value },
-  { key: 'plan', label: 'Plan access', value: auth.user?.planAccess || 'standard' },
-  { key: 'workspace', label: 'Workspace slug', value: workspaceSlug.value },
+  { key: 'language', label: t('profile.language'), value: auth.user?.preferredLanguage || draft.preferredLanguage || 'en', editable: true, control: 'language' },
+  { key: 'notifications', label: t('profile.workspace.criticalNotifications'), value: t(draft.notifications ? 'profile.workspace.enabled' : 'profile.workspace.disabled'), editable: true, control: 'notifications' },
+  { key: 'role', label: t('profile.role'), value: roleTitle.value },
+  { key: 'plan', label: t('profile.workspace.planAccess'), value: auth.user?.planAccess || 'standard' },
+  { key: 'workspace', label: t('profile.workspace.workspaceSlug'), value: workspaceSlug.value },
 ]);
 
 function syncDraft(user = auth.user) {
@@ -110,12 +113,12 @@ function endSession() {
   <div>
     <div class="page-header">
       <div>
-        <div class="page-title">My Profile</div>
-        <div class="page-subtitle">Workspace identity, role scope, and persisted notification preferences for the current Nexa session.</div>
+        <div class="page-title">{{ t('profile.title') }}</div>
+        <div class="page-subtitle">{{ t('profile.workspace.subtitle') }}</div>
       </div>
       <div class="profile-account-actions">
-        <button class="btn btn-secondary" type="button" @click="endSession"><i class="pi pi-users"></i> Switch Account</button>
-        <button class="btn btn-ghost" type="button" @click="endSession"><i class="pi pi-sign-out"></i> Log Out</button>
+        <button class="btn btn-secondary" type="button" @click="endSession"><i class="pi pi-users"></i> {{ t('profile.workspace.switchAccount') }}</button>
+        <button class="btn btn-ghost" type="button" @click="endSession"><i class="pi pi-sign-out"></i> {{ t('common.logout') }}</button>
       </div>
     </div>
 
@@ -133,33 +136,33 @@ function endSession() {
     <section class="scenario-card">
       <div class="scenario-icon"><i class="pi pi-user"></i></div>
       <div>
-        <strong>Workspace identity</strong>
-    <p>Your role, tenant, workspace and membership are validated before this session is created.</p>
+        <strong>{{ t('profile.workspace.identity') }}</strong>
+        <p>{{ t('profile.workspace.identityDescription') }}</p>
       </div>
     </section>
 
-    <div v-if="saved" class="flow-note saved-note">Profile changes saved.</div>
+    <div v-if="saved" class="flow-note saved-note">{{ t('profile.savedSuccess') }}</div>
     <div v-if="saveError" class="flow-note profile-error">{{ saveError }}</div>
 
     <div class="profile-grid">
       <section class="flow-panel span-8 profile-account-panel" :class="{ editing: editingAccount }">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Account Information</div>
-            <div class="flow-subtitle">Account fields persist in the current Nexa workspace; role remains read-only.</div>
+            <div class="flow-title">{{ t('profile.personalInfo') }}</div>
+            <div class="flow-subtitle">{{ t('profile.workspace.accountDescription') }}</div>
           </div>
-          <button v-if="!editingAccount" class="btn btn-secondary" type="button" @click="editingAccount = true">Edit account</button>
+          <button v-if="!editingAccount" class="btn btn-secondary" type="button" @click="editingAccount = true">{{ t('profile.workspace.editAccount') }}</button>
         </div>
         <form class="flow-panel-pad form-grid profile-account-grid" @submit.prevent="saveProfile">
-          <label class="field"><span class="field-label">Full name</span><input v-model="draft.name" class="plain-input" :disabled="!editingAccount" /></label>
-          <label class="field"><span class="field-label">Email</span><input class="plain-input" :value="auth.user?.email" disabled /></label>
-          <label class="field"><span class="field-label">Role</span><input class="plain-input" :value="roleTitle" disabled /></label>
-          <label class="field"><span class="field-label">Phone</span><input v-model="draft.phone" class="plain-input" :disabled="!editingAccount" /></label>
-          <label class="field"><span class="field-label">Workspace slug</span><input class="plain-input" :value="workspaceSlug" disabled /></label>
-          <label class="field"><span class="field-label">Membership status</span><input class="plain-input" :value="membership.status || 'active'" disabled /></label>
+          <label class="field"><span class="field-label">{{ t('profile.name') }}</span><input v-model="draft.name" class="plain-input" :disabled="!editingAccount" /></label>
+          <label class="field"><span class="field-label">{{ t('profile.email') }}</span><input class="plain-input" :value="auth.user?.email" disabled /></label>
+          <label class="field"><span class="field-label">{{ t('profile.role') }}</span><input class="plain-input" :value="roleTitle" disabled /></label>
+          <label class="field"><span class="field-label">{{ t('profile.phone') }}</span><input v-model="draft.phone" class="plain-input" :disabled="!editingAccount" /></label>
+          <label class="field"><span class="field-label">{{ t('profile.workspace.workspaceSlug') }}</span><input class="plain-input" :value="workspaceSlug" disabled /></label>
+          <label class="field"><span class="field-label">{{ t('profile.workspace.membershipStatus') }}</span><input class="plain-input" :value="membership.status || 'active'" disabled /></label>
           <div v-if="editingAccount" class="profile-form-actions span-full">
-            <button class="btn btn-secondary" type="button" @click="cancelEdit">Cancel</button>
-            <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Saving...' : 'Save changes' }}</button>
+            <button class="btn btn-secondary" type="button" @click="cancelEdit">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? t('profile.workspace.saving') : t('profile.saveChanges') }}</button>
           </div>
         </form>
       </section>
@@ -167,21 +170,21 @@ function endSession() {
       <section class="flow-panel span-4 profile-preferences-panel" :class="{ editing: editingPreferences }">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Workspace Preferences</div>
-            <div class="flow-subtitle">Sales workspace behavior for this session.</div>
+            <div class="flow-title">{{ t('profile.workspace.preferencesTitle') }}</div>
+            <div class="flow-subtitle">{{ t('profile.workspace.preferencesDescription') }}</div>
           </div>
-          <button v-if="!editingPreferences" class="btn btn-secondary" type="button" @click="editingPreferences = true">Edit preferences</button>
+          <button v-if="!editingPreferences" class="btn btn-secondary" type="button" @click="editingPreferences = true">{{ t('profile.workspace.editPreferences') }}</button>
         </div>
         <form class="flow-panel-pad flow-stack" @submit.prevent="savePreferences">
           <div v-for="preference in preferences" :key="preference.key" class="mini-row preference-row" :class="{ editing: editingPreferences && preference.editable }">
             <span>{{ preference.label }}</span>
-            <select v-if="editingPreferences && preference.control === 'language'" v-model="draft.preferredLanguage" class="plain-input inline-preference-control"><option value="en">English</option><option value="es">Español</option></select>
-            <select v-else-if="editingPreferences && preference.control === 'notifications'" v-model="draft.notifications" class="plain-input inline-preference-control"><option :value="true">Enabled</option><option :value="false">Disabled</option></select>
+            <select v-if="editingPreferences && preference.control === 'language'" v-model="draft.preferredLanguage" class="plain-input inline-preference-control"><option value="en">{{ t('profile.langEn') }}</option><option value="es">{{ t('profile.langEs') }}</option></select>
+            <select v-else-if="editingPreferences && preference.control === 'notifications'" v-model="draft.notifications" class="plain-input inline-preference-control"><option :value="true">{{ t('profile.workspace.enabled') }}</option><option :value="false">{{ t('profile.workspace.disabled') }}</option></select>
             <strong v-else>{{ preference.value }}</strong>
           </div>
           <div v-if="editingPreferences" class="profile-form-actions">
-            <button class="btn btn-secondary" type="button" @click="cancelEdit">Cancel</button>
-            <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Saving...' : 'Save preferences' }}</button>
+            <button class="btn btn-secondary" type="button" @click="cancelEdit">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? t('profile.workspace.saving') : t('profile.workspace.savePreferences') }}</button>
           </div>
         </form>
       </section>
@@ -189,13 +192,13 @@ function endSession() {
       <section class="flow-panel span-12">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Operational Scope</div>
-            <div class="flow-subtitle">Permission summary for the current workspace profile.</div>
+            <div class="flow-title">{{ t('profile.workspace.operationalScope') }}</div>
+            <div class="flow-subtitle">{{ t('profile.workspace.scopeDescription') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad permission-grid">
           <div v-for="permission in permissions" :key="permission" class="permission-chip">
-            <i class="pi pi-check-circle"></i>{{ permission }}
+            <i class="pi pi-check-circle"></i>{{ t(`profile.workspace.permissions.${permission}`) }}
           </div>
         </div>
       </section>
