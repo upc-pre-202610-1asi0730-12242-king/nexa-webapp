@@ -30,9 +30,12 @@ export const useCartStore = defineStore('cart', () => {
   const total = computed(() => items.value.reduce((s, i) => s + i.qty * i.price, 0));
 
   function add(product) {
+    const available = Math.max(0, Number(product.stock || 0) - Number(product.reserved || 0));
+    if (product.status === 'out' || available <= 0) return false;
     const existing = items.value.find(i => i.productId === product.id);
     if (existing) {
-      existing.qty += 1;
+      existing.qty = Math.min(existing.qty + 1, available);
+      existing.max = available;
       existing.backendId = existing.backendId || product.backendId;
       existing.catalogItemBackendId = existing.catalogItemBackendId || product.backendId || product.catalogItemBackendId;
       existing.catalogItemId = existing.catalogItemId || product.catalogItemId;
@@ -41,7 +44,7 @@ export const useCartStore = defineStore('cart', () => {
       existing.presentation = existing.presentation || product.presentation;
     }
     else items.value.push({
-      productId: product.id, qty: 1, price: product.price,
+      productId: product.id, qty: 1, price: product.price, max: available,
       backendId: product.backendId,
       catalogItemBackendId: product.backendId || product.catalogItemBackendId,
       catalogItemId: product.catalogItemId,
@@ -52,12 +55,13 @@ export const useCartStore = defineStore('cart', () => {
       imageUrl: product.imageUrl,
       presentation: product.presentation,
     });
+    return true;
   }
   function remove(productId) { items.value = items.value.filter(i => i.productId !== productId); }
   function setQty(productId, qty) {
     const it = items.value.find(i => i.productId === productId);
     if (!it) return;
-    it.qty = Math.max(1, qty);
+    it.qty = Math.max(1, Math.min(Number(it.max || Number.MAX_SAFE_INTEGER), Number(qty || 1)));
   }
   function clear() {
     items.value = [];

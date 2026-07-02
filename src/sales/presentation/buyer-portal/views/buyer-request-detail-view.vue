@@ -6,6 +6,7 @@ import { useDataStore } from '@/app/application/stores/data.store';
 import {
   requestStatusLabel,
   requestStatusBadge,
+  paymentMethodLabel,
   displayCode,
   formatCalendarDate,
   formatRecordDateTime,
@@ -50,10 +51,10 @@ const decisionSteps = computed(() => {
   const status = request.value?.status || 'pending';
   const orderCreated = Boolean(convertedOrder.value || status === 'converted_to_order');
   return [
-    { label: 'Request sent', state: 'done' },
-    { label: 'Sales validation', state: ['submitted', 'in_review', 'needs_adjustment', 'approved', 'converted_to_order'].includes(status) ? (['approved', 'converted_to_order'].includes(status) ? 'done' : 'active') : 'pending' },
-    { label: 'Buyer adjustment', state: status === 'needs_adjustment' ? 'active' : ['approved', 'converted_to_order'].includes(status) ? 'done' : 'pending' },
-    { label: 'Purchase order', state: orderCreated ? 'done' : status === 'approved' ? 'active' : 'pending' },
+    { label: t('portal.requestDetail.steps.sent'), state: 'done' },
+    { label: t('portal.requestDetail.steps.salesValidation'), state: ['submitted', 'in_review', 'needs_adjustment', 'approved', 'converted_to_order'].includes(status) ? (['approved', 'converted_to_order'].includes(status) ? 'done' : 'active') : 'pending' },
+    { label: t('portal.requestDetail.steps.buyerAdjustment'), state: status === 'needs_adjustment' ? 'active' : ['approved', 'converted_to_order'].includes(status) ? 'done' : 'pending' },
+    { label: t('portal.requestDetail.steps.purchaseOrder'), state: orderCreated ? 'done' : status === 'approved' ? 'active' : 'pending' },
   ];
 });
 
@@ -63,22 +64,26 @@ function deliveryText(requestRecord) {
     requestRecord.deliveryDistrict,
     requestRecord.deliveryCity,
     requestRecord.deliveryProvince,
-  ) || requestRecord.deliveryAddressId || 'Delivery address pending';
+  ) || requestRecord.deliveryAddressId || t('portal.requests.deliveryPending');
+}
+
+function paymentLabel() {
+  return paymentMethodLabel(request.value?.paymentOption || client.value?.paymentCondition || '') || t('common.toConfirm');
 }
 </script>
 
 <template>
   <div v-if="!request" class="empty-state">
     <div class="empty-state-icon"><i class="pi pi-file"></i></div>
-    <div class="empty-state-title">Request not found</div>
-    <button class="btn btn-primary" @click="router.push('/portal/purchase-requests')">Back to requests</button>
+    <div class="empty-state-title">{{ t('portal.requestDetail.notFound') }}</div>
+    <button class="btn btn-primary" @click="router.push('/portal/purchase-requests')">{{ t('portal.backToRequests') }}</button>
   </div>
 
   <div v-else>
     <div class="page-header">
       <div>
         <div class="page-title">{{ displayCode(request) }}</div>
-        <div class="page-subtitle">Buyer request workflow with Sales validation, documents and conversation history.</div>
+        <div class="page-subtitle">{{ t('portal.requestDetail.subtitle') }}</div>
       </div>
       <div class="flow-row">
         <button class="btn btn-ghost btn-sm" type="button" @click="router.push('/portal/purchase-requests')">
@@ -90,7 +95,7 @@ function deliveryText(requestRecord) {
           type="button"
           @click="router.push('/portal/purchase-orders/' + convertedOrder.id)"
         >
-          <i class="pi pi-truck"></i> View order
+          <i class="pi pi-truck"></i> {{ t('portal.requestDetail.viewOrder') }}
         </button>
         <span :class="'badge ' + requestStatusBadge(request.status)">{{ requestStatusLabel(request.status) }}</span>
       </div>
@@ -100,14 +105,14 @@ function deliveryText(requestRecord) {
       <section class="flow-panel span-7">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Requested products</div>
-            <div class="flow-subtitle">{{ items.length }} line item(s) · S/ {{ total.toFixed(2) }} estimated total</div>
+            <div class="flow-title">{{ t('portal.requestDetail.requestedProducts') }}</div>
+            <div class="flow-subtitle">{{ t('portal.requestDetail.itemsSubtitle', { count: items.length, total: total.toFixed(2) }) }}</div>
           </div>
         </div>
         <div class="flow-panel-pad flow-stack">
           <article class="buyer-note">
-            <strong>Buyer specifications</strong>
-            <p>{{ request.comments || 'No buyer specifications provided.' }}</p>
+            <strong>{{ t('portal.requestDetail.buyerSpecifications') }}</strong>
+            <p>{{ request.comments || t('portal.requests.noSpecifications') }}</p>
           </article>
 
           <div class="request-product-grid">
@@ -129,21 +134,21 @@ function deliveryText(requestRecord) {
       <section class="flow-panel span-5">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Request details</div>
+            <div class="flow-title">{{ t('portal.requestDetail.details') }}</div>
             <div class="flow-subtitle">{{ request.comments }}</div>
           </div>
         </div>
         <div class="flow-panel-pad flow-stack">
           <div class="request-detail-meta">
-            <div><span>Credit</span><strong :class="'badge ' + credit.badgeClass">{{ credit.statusLabel }}</strong></div>
-            <div><span>Available</span><strong>S/ {{ credit.available.toLocaleString('en-US') }}</strong></div>
-            <div><span>Created</span><strong>{{ formatRecordDateTime(request.createdAt) }}</strong></div>
-            <div><span>Requested delivery</span><strong>{{ formatCalendarDate(request.requestedDeliveryDate) }}</strong></div>
-            <div><span>Payment</span><strong>{{ request.paymentOption || client.paymentCondition || 'To confirm' }}</strong></div>
-            <div><span>Last update</span><strong>{{ formatRecordDateTime(request.updatedAt || request.createdAt) }}</strong></div>
+            <div><span>{{ t('portal.homePanel.credit') }}</span><strong :class="'badge ' + credit.badgeClass">{{ credit.statusLabel }}</strong></div>
+            <div><span>{{ t('common.available') }}</span><strong>S/ {{ credit.available.toLocaleString('en-US') }}</strong></div>
+            <div><span>{{ t('common.created') }}</span><strong>{{ formatRecordDateTime(request.createdAt) }}</strong></div>
+            <div><span>{{ t('common.requestedDelivery') }}</span><strong>{{ formatCalendarDate(request.requestedDeliveryDate) }}</strong></div>
+            <div><span>{{ t('common.payment') }}</span><strong>{{ paymentLabel() }}</strong></div>
+            <div><span>{{ t('common.lastUpdate') }}</span><strong>{{ formatRecordDateTime(request.updatedAt || request.createdAt) }}</strong></div>
           </div>
-          <div class="mini-row"><span>Address</span><strong>{{ deliveryText(request) }}</strong></div>
-          <div class="mini-row"><span>Reference</span><strong>{{ request.deliveryReference || 'No reference registered' }}</strong></div>
+          <div class="mini-row"><span>{{ t('common.address') }}</span><strong>{{ deliveryText(request) }}</strong></div>
+          <div class="mini-row"><span>{{ t('common.reference') }}</span><strong>{{ request.deliveryReference || t('portal.requestDetail.noReference') }}</strong></div>
           <div class="doc-chip-row">
             <span v-for="doc in requiredDocs" :key="doc" class="badge badge-blue">{{ doc }}</span>
           </div>
@@ -153,8 +158,8 @@ function deliveryText(requestRecord) {
       <section class="flow-panel span-12">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Request progress</div>
-            <div class="flow-subtitle">Buyer-visible handoff from request to purchase order.</div>
+            <div class="flow-title">{{ t('portal.requestDetail.progress') }}</div>
+            <div class="flow-subtitle">{{ t('portal.requestDetail.progressSubtitle') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad">
@@ -173,7 +178,7 @@ function deliveryText(requestRecord) {
 
       <section class="flow-panel span-12">
         <div class="flow-panel-head">
-          <div class="flow-title">Conversation</div>
+          <div class="flow-title">{{ t('portal.requestDetail.conversation') }}</div>
         </div>
         <div class="flow-panel-pad flow-stack">
           <div v-for="message in messages" :key="message.id" class="message-row">
@@ -184,8 +189,8 @@ function deliveryText(requestRecord) {
             <p>{{ message.body }}</p>
           </div>
           <div v-if="!messages.length" class="empty-state compact">
-            <div class="empty-state-title">No conversation messages</div>
-            <div class="empty-state-desc">Sales observations and adjustment requests will appear here.</div>
+            <div class="empty-state-title">{{ t('portal.requestDetail.noMessages') }}</div>
+            <div class="empty-state-desc">{{ t('portal.requestDetail.noMessagesDesc') }}</div>
           </div>
         </div>
       </section>

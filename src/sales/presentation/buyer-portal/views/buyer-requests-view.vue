@@ -1,13 +1,15 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
 import {
   requestStatusLabel,
   requestStatusBadge,
+  paymentMethodLabel,
+  priorityLabel,
   displayCode,
-  recordTimestamp,
   formatCalendarDate,
   formatRecordDateTime,
 } from '@/shared/status';
@@ -15,6 +17,7 @@ import { creditSummary } from '@/shared/credit';
 import { formatAddress } from '@/shared/utils/address.utils';
 
 const router = useRouter();
+const { t } = useI18n();
 const auth = useAuthStore();
 const ds = useDataStore();
 const requests = computed(() =>
@@ -60,7 +63,11 @@ function deliveryText(request) {
     request.deliveryDistrict,
     request.deliveryCity,
     request.deliveryProvince,
-  ) || request.deliveryAddressId || 'Delivery address pending';
+  ) || request.deliveryAddressId || t('portal.requests.deliveryPending');
+}
+
+function paymentLabel(request) {
+  return paymentMethodLabel(request.paymentOption || client.value.paymentCondition || '') || t('common.toConfirm');
 }
 </script>
 
@@ -69,35 +76,35 @@ function deliveryText(request) {
     <div class="page-header">
       <div>
         <div class="page-title">{{ $t('portal.nav.requests') }}</div>
-        <div class="page-subtitle">{{ requests.length }} buyer request(s) from the active workspace.</div>
+        <div class="page-subtitle">{{ t('portal.requests.subtitle', { count: requests.length }) }}</div>
       </div>
       <button class="btn btn-primary" @click="router.push('/portal/product-catalog')">
-        <i class="pi pi-plus"></i> New request
+        <i class="pi pi-plus"></i> {{ t('portal.requests.newRequest') }}
       </button>
     </div>
 
     <div class="grid-3 buyer-request-kpis">
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-inbox" style="color:#2563EB"></i> Open requests</div>
+        <div class="kpi-label"><i class="pi pi-inbox" style="color:#2563EB"></i> {{ t('portal.requests.openRequests') }}</div>
         <div class="kpi-value" style="color:#2563EB">{{ openRequests }}</div>
-        <div class="kpi-sub">Requests awaiting Sales validation or buyer adjustment.</div>
+        <div class="kpi-sub">{{ t('portal.requests.openRequestsSub') }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-credit-card" style="color:#16A34A"></i> Available credit</div>
+        <div class="kpi-label"><i class="pi pi-credit-card" style="color:#16A34A"></i> {{ t('portal.requests.availableCredit') }}</div>
         <div class="kpi-value" style="color:#16A34A">S/ {{ credit.available.toLocaleString('en-US') }}</div>
-        <div class="kpi-sub">{{ credit.statusLabel }} · due {{ credit.dueDate }}</div>
+        <div class="kpi-sub">{{ credit.statusLabel }} · {{ t('portal.requests.due', { date: credit.dueDate }) }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> Latest request</div>
+        <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> {{ t('portal.requests.latestRequest') }}</div>
         <div class="kpi-value buyer-request-latest">{{ latestRequest ? displayCode(latestRequest) : '-' }}</div>
-        <div class="kpi-sub">{{ latestRequest ? requestStatusLabel(latestRequest.status) : 'No request activity yet.' }}</div>
+        <div class="kpi-sub">{{ latestRequest ? requestStatusLabel(latestRequest.status) : t('portal.requests.noActivity') }}</div>
       </div>
     </div>
 
     <div v-if="!requests.length" class="empty-state">
       <div class="empty-state-icon"><i class="pi pi-inbox"></i></div>
-      <div class="empty-state-title">No requests yet</div>
-      <div class="empty-state-desc">Create a request from the product catalog or wait for request records to load.</div>
+      <div class="empty-state-title">{{ t('portal.requests.emptyTitle') }}</div>
+      <div class="empty-state-desc">{{ t('portal.requests.emptyDesc') }}</div>
     </div>
 
     <div v-else class="flow-stack">
@@ -107,20 +114,20 @@ function deliveryText(request) {
             <div class="flow-row" style="margin-bottom:6px">
               <span class="mono" style="font-weight:800;color:#1D4ED8">{{ displayCode(request) }}</span>
               <span :class="'badge ' + requestStatusBadge(request.status)">{{ requestStatusLabel(request.status) }}</span>
-              <span v-if="request.priority" class="flow-pill flow-pill-blue">{{ request.priority }}</span>
+              <span v-if="request.priority" class="flow-pill flow-pill-blue">{{ priorityLabel(request.priority) }}</span>
             </div>
-            <div class="flow-note">{{ request.comments || 'No buyer specifications provided.' }}</div>
+            <div class="flow-note">{{ request.comments || t('portal.requests.noSpecifications') }}</div>
             <div class="buyer-request-address"><i class="pi pi-map-marker"></i> {{ deliveryText(request) }}</div>
           </div>
-          <button class="btn btn-primary btn-sm" @click="router.push('/portal/purchase-requests/' + request.id)">Details</button>
+          <button class="btn btn-primary btn-sm" @click="router.push('/portal/purchase-requests/' + request.id)">{{ t('common.details') }}</button>
         </div>
 
         <div class="buyer-request-meta-grid">
-          <div><span>Created</span><strong>{{ formatRecordDateTime(request.createdAt) }}</strong></div>
-          <div><span>Requested delivery</span><strong>{{ formatCalendarDate(request.requestedDeliveryDate) }}</strong></div>
-          <div><span>Items</span><strong>{{ requestItems(request).length }} line(s)</strong></div>
-          <div><span>Estimated total</span><strong>S/ {{ requestTotal(request).toFixed(2) }}</strong></div>
-          <div><span>Payment</span><strong>{{ request.paymentOption || client.paymentCondition || 'To confirm' }}</strong></div>
+          <div><span>{{ t('common.created') }}</span><strong>{{ formatRecordDateTime(request.createdAt) }}</strong></div>
+          <div><span>{{ t('common.requestedDelivery') }}</span><strong>{{ formatCalendarDate(request.requestedDeliveryDate) }}</strong></div>
+          <div><span>{{ t('common.items') }}</span><strong>{{ t('common.lineCount', { count: requestItems(request).length }) }}</strong></div>
+          <div><span>{{ t('portal.requests.estimatedTotal') }}</span><strong>S/ {{ requestTotal(request).toFixed(2) }}</strong></div>
+          <div><span>{{ t('common.payment') }}</span><strong>{{ paymentLabel(request) }}</strong></div>
         </div>
 
         <div v-if="requestItems(request).length" class="request-product-strip">
@@ -138,8 +145,8 @@ function deliveryText(request) {
 
         <div class="buyer-request-thread">
           <div>
-            <strong>{{ visibleMessages(request).length }} chat update(s)</strong>
-            <span>{{ visibleMessages(request)[0]?.body || 'Sales observations will appear here.' }}</span>
+            <strong>{{ t('common.chatUpdates', { count: visibleMessages(request).length }) }}</strong>
+            <span>{{ visibleMessages(request)[0]?.body || t('portal.requests.salesObservations') }}</span>
           </div>
           <i class="pi pi-comments"></i>
         </div>

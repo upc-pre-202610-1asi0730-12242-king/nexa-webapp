@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { daysUntil } from '@/shared/status';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const ds = useDataStore();
 const D = ds.D;
 const tab = ref('overview');
@@ -36,10 +36,10 @@ const movementForm = ref({
   notes: '',
 });
 const movementTypes = [
-  { value: 'entry', label: 'Entry' },
-  { value: 'exit', label: 'Exit' },
-  { value: 'adjustment', label: 'Adjustment' },
-  { value: 'reservation_release', label: 'Reservation release' },
+  { value: 'entry' },
+  { value: 'exit' },
+  { value: 'adjustment' },
+  { value: 'reservation_release' },
 ];
 
 const filteredStock = computed(() => {
@@ -58,8 +58,8 @@ const lowStockProducts = computed(() =>
   D.products.filter(product => productStatus(product) === 'low')
 );
 const reservationRate = computed(() => {
-  const totalStock = D.products.reduce((sum, product) => sum + Number(product.stock || 0), 0);
-  const reserved = D.products.reduce((sum, product) => sum + Number(product.reserved || 0), 0);
+  const totalStock = D.lots.reduce((sum, lot) => sum + Number(lot.qty || 0), 0);
+  const reserved = D.lots.reduce((sum, lot) => sum + Number(lot.reserved || 0), 0);
   return totalStock ? Math.round((reserved / totalStock) * 100) : 0;
 });
 
@@ -80,18 +80,13 @@ function productStatusClass(product) {
 }
 
 function movementTypeLabel(type) {
-  return {
-    entry: 'Entry',
-    exit: 'Exit',
-    adjustment: 'Adjustment',
-    reservation_release: 'Reservation release',
-    reservation: 'Reservation',
-    review: 'Review',
-    ingreso: 'Inbound',
-    salida: 'Outbound',
-    reserva: 'Reservation',
-    ajuste: 'Adjustment',
-}[type] || type;
+  const key = `inventory.movementType.${type}`;
+  return te(key) ? t(key) : type;
+}
+
+function categoryLabel(category) {
+  const key = `catalog.category.${category}`;
+  return te(key) ? t(key) : category;
 }
 const filteredMovements = computed(() => {
   if (movementFilter.value === 'all') return D.movements;
@@ -152,17 +147,17 @@ async function saveMovement() {
   </div>
 
   <form v-if="showMovementForm" class="flow-panel flow-panel-pad movement-form" @submit.prevent="saveMovement">
-    <div class="editor-heading span-full">
-      <strong>{{ t('inventory.registerMovement') }}</strong>
-      <span>Updates available stock, lot traceability and movement history.</span>
+      <div class="editor-heading span-full">
+        <strong>{{ t('inventory.registerMovement') }}</strong>
+      <span>{{ t('inventory.form.updatesStock') }}</span>
     </div>
     <label>{{ t('inventory.table.product') }}<select v-model="movementForm.productId" required><option v-for="product in D.products" :key="product.id" :value="product.id">{{ product.name }}</option></select></label>
     <label>{{ t('inventory.table.warehouse') }}<select v-model="movementForm.warehouse"><option v-for="warehouse in D.warehouses" :key="warehouse.id || warehouse.name" :value="warehouse.name">{{ warehouse.name }}</option></select></label>
-    <label>{{ t('inventory.table.type') }}<select v-model="movementForm.type"><option v-for="type in movementTypes" :key="type.value" :value="type.value">{{ type.label }}</option></select></label>
+    <label>{{ t('inventory.table.type') }}<select v-model="movementForm.type"><option v-for="type in movementTypes" :key="type.value" :value="type.value">{{ movementTypeLabel(type.value) }}</option></select></label>
     <label>{{ t('inventory.table.qty') }}<input v-model.number="movementForm.quantity" type="number" min="-999" required /></label>
     <label>{{ t('inventory.table.lot') }}<input v-model="movementForm.lotNumber" readonly /></label>
     <label>{{ t('inventory.table.expiry') }}<input v-model="movementForm.expirationDate" type="date" /></label>
-    <label>Temperature reading<input v-model.number="movementForm.temperatureReading" type="number" min="-30" max="20" /></label>
+    <label>{{ t('inventory.form.temperatureReading') }}<input v-model.number="movementForm.temperatureReading" type="number" min="-30" max="20" /></label>
     <label class="span-full">{{ t('inventory.table.note') }}<textarea v-model="movementForm.notes" rows="2"></textarea></label>
     <div class="form-actions span-full">
       <button class="btn btn-secondary" type="button" @click="showMovementForm = false">{{ t('common.cancel') }}</button>
@@ -175,27 +170,27 @@ async function saveMovement() {
 
   <div class="banner banner-danger" v-if="expiringLots.length" role="alert">
     <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
-    <div><strong>{{ expiringLots.length }} lot(s) due soon</strong> —
+    <div><strong>{{ t('inventory.fefo.dueSoon', { count: expiringLots.length }) }}</strong> —
       {{ expiringLots.map(l => ds.productName(l.productId) + ' (' + l.id + ')').join(' · ') }}.
-      Prioritize release according to FEFO.
+      {{ t('inventory.fefo.prioritizeRelease') }}
     </div>
   </div>
 
   <div class="grid-3" style="margin-bottom:18px">
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-lock" style="color:#2563EB"></i> Reserved stock</div>
+      <div class="kpi-label"><i class="pi pi-lock" style="color:#2563EB"></i> {{ t('inventory.kpi.reservedStock') }}</div>
       <div class="kpi-value" style="color:#2563EB">{{ reservationRate }}%</div>
-      <div class="kpi-sub">Reserved across current catalog</div>
+      <div class="kpi-sub">{{ t('inventory.kpi.reservedStockSub') }}</div>
     </div>
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#F97316"></i> Low stock</div>
+      <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#F97316"></i> {{ t('inventory.stockLow') }}</div>
       <div class="kpi-value" style="color:#F97316">{{ lowStockProducts.length }}</div>
-      <div class="kpi-sub">Products below minimum or marked low</div>
+      <div class="kpi-sub">{{ t('inventory.kpi.lowStockSub') }}</div>
     </div>
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-hourglass" style="color:#B91C1C"></i> FEFO risk</div>
+      <div class="kpi-label"><i class="pi pi-hourglass" style="color:#B91C1C"></i> {{ t('inventory.kpi.fefoRisk') }}</div>
       <div class="kpi-value" style="color:#B91C1C">{{ expiringLots.length }}</div>
-      <div class="kpi-sub">Lots due in 10 days or less</div>
+      <div class="kpi-sub">{{ t('inventory.kpi.fefoRiskSub') }}</div>
     </div>
   </div>
 
@@ -291,7 +286,7 @@ async function saveMovement() {
           <tr v-for="p in filteredStock" :key="p.id">
             <td style="font-weight:500;font-size:13px">{{ p.name }}</td>
             <td><span class="mono">{{ p.sku }}</span></td>
-            <td style="font-size:12px;color:#6B7280">{{ p.category }}</td>
+            <td style="font-size:12px;color:#6B7280">{{ categoryLabel(p.category) }}</td>
             <td><span class="badge-temp" style="font-size:10px">{{ p.temp }}</span></td>
             <td style="font-weight:600">{{ p.stock }} <span style="font-size:11px;color:#9CA3AF">{{ p.unit }}</span></td>
             <td><span :style="{ color: p.reserved > 0 ? '#2563EB' : '#9CA3AF', fontWeight: p.reserved > 0 ? '600' : '400' }">{{ p.reserved }} {{ p.unit }}</span></td>
@@ -319,10 +314,10 @@ async function saveMovement() {
         <i class="pi pi-sort-amount-up" aria-hidden="true"></i> {{ t('inventory.fefoTitle') }}
       </div>
       <div style="font-size:14px;font-weight:600;color:#1E3A8A;margin-bottom:5px" v-if="urgentLot">
-        Prioritize outbound stock for {{ ds.productName(urgentLot.productId) }}
+        {{ t('inventory.fefo.prioritize', { product: ds.productName(urgentLot.productId) }) }}
       </div>
       <div style="font-size:12px;color:#3B4E6B;line-height:1.5" v-if="urgentLot">
-        Lot <strong>{{ urgentLot.id }}</strong> is due on <strong>{{ urgentLot.expiry }}</strong>. {{ urgentLot.qty - urgentLot.reserved }} {{ ds.productById(urgentLot.productId)?.unit }} remain available.
+        {{ t('inventory.fefo.lotDue', { lot: urgentLot.id, date: urgentLot.expiry, quantity: urgentLot.qty - urgentLot.reserved, unit: ds.productById(urgentLot.productId)?.unit }) }}
       </div>
     </div>
     <div class="card" style="overflow:hidden">
@@ -360,7 +355,7 @@ async function saveMovement() {
             <td style="font-size:12px;color:#6B7280">{{ lot.entryDate }}</td>
             <td style="font-size:13px" :style="{ color: daysUntil(lot.expiry) <= 7 ? '#B91C1C' : daysUntil(lot.expiry) <= 30 ? '#B45309' : '' }">{{ lot.expiry }}</td>
             <td>
-              <span :class="daysUntil(lot.expiry) <= 7 ? 'badge badge-red' : daysUntil(lot.expiry) <= 30 ? 'badge badge-amber' : 'badge badge-green'">{{ daysUntil(lot.expiry) }} days</span>
+              <span :class="daysUntil(lot.expiry) <= 7 ? 'badge badge-red' : daysUntil(lot.expiry) <= 30 ? 'badge badge-amber' : 'badge badge-green'">{{ t('inventory.fefo.days', { count: daysUntil(lot.expiry) }) }}</span>
             </td>
             <td style="font-weight:600">{{ lot.qty }} {{ ds.productById(lot.productId)?.unit }}</td>
             <td style="color:#2563EB">{{ lot.reserved }} {{ ds.productById(lot.productId)?.unit }}</td>
@@ -378,7 +373,7 @@ async function saveMovement() {
       <span class="card-title">{{ t('inventory.stockMovements') }}</span>
       <div class="filter-bar" style="margin-bottom:0">
         <button v-for="type in ['all','entry','exit','adjustment','reservation_release','reservation','review']" :key="type" class="filter-chip" :class="{ active: movementFilter === type }" @click="movementFilter = type">
-          {{ type === 'all' ? 'All movements' : movementTypeLabel(type) }}
+          {{ type === 'all' ? t('inventory.movementType.all') : movementTypeLabel(type) }}
         </button>
         <button class="btn btn-secondary btn-sm" type="button" @click="openMovementForm">
           <i class="pi pi-plus" aria-hidden="true"></i> {{ t('inventory.register') }}
@@ -420,7 +415,7 @@ async function saveMovement() {
           <td colspan="8">
             <div class="empty-state" style="padding:24px">
               <div class="empty-state-icon"><i class="pi pi-filter"></i></div>
-              <div class="empty-state-title">No stock movements for this filter</div>
+              <div class="empty-state-title">{{ t('inventory.lotDrawer.noFilterMovements') }}</div>
             </div>
           </td>
         </tr>
@@ -443,13 +438,13 @@ async function saveMovement() {
     :class="{ open: lotDrawer.open }"
     role="dialog"
     aria-modal="true"
-    aria-label="Lot Details"
+    :aria-label="t('inventory.lotDrawer.title')"
   >
     <div class="drawer-header">
       <div class="drawer-title">
         <span class="mono">{{ lotDrawer.lot?.id }}</span>
       </div>
-      <button class="btn btn-ghost btn-sm" @click="closeLot" aria-label="Close">
+      <button class="btn btn-ghost btn-sm" @click="closeLot" :aria-label="t('common.close')">
         <i class="pi pi-times"></i>
       </button>
     </div>
@@ -463,22 +458,22 @@ async function saveMovement() {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Inbound</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('inventory.lotDrawer.inbound') }}</div>
           <div style="font-size:13px;font-weight:500">{{ lotDrawer.lot.entryDate }}</div>
         </div>
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Expiration</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('inventory.lotDrawer.expiration') }}</div>
           <div style="font-size:13px;font-weight:500" :style="{ color: daysUntil(lotDrawer.lot.expiry) <= 7 ? '#B91C1C' : daysUntil(lotDrawer.lot.expiry) <= 30 ? '#B45309' : '#111827' }">
             {{ lotDrawer.lot.expiry }}
-            <span style="font-size:11px;margin-left:4px">({{ daysUntil(lotDrawer.lot.expiry) }} days)</span>
+            <span style="font-size:11px;margin-left:4px">({{ t('inventory.fefo.days', { count: daysUntil(lotDrawer.lot.expiry) }) }})</span>
           </div>
         </div>
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Qty total</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('inventory.lotDrawer.qtyTotal') }}</div>
           <div style="font-size:15px;font-weight:700">{{ lotDrawer.lot.qty }} {{ ds.productById(lotDrawer.lot.productId)?.unit }}</div>
         </div>
         <div style="background:#F9FAFB;border-radius:8px;padding:10px">
-          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">Available</div>
+          <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:4px">{{ t('common.available') }}</div>
           <div style="font-size:15px;font-weight:700;color:#15803D">{{ lotDrawer.lot.qty - lotDrawer.lot.reserved }} {{ ds.productById(lotDrawer.lot.productId)?.unit }}</div>
         </div>
       </div>
@@ -491,11 +486,11 @@ async function saveMovement() {
       <div class="divider" style="margin:16px 0"></div>
 
       <div style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">
-        Registered Movements
+        {{ t('inventory.lotDrawer.registeredMovements') }}
       </div>
 
       <div v-if="!lotMovements.length" style="font-size:12px;color:#9CA3AF;text-align:center;padding:20px 0">
-        No movements for this lot
+        {{ t('inventory.lotDrawer.noMovements') }}
       </div>
       <div v-for="m in lotMovements" :key="m.id" style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #e8eef7;align-items:flex-start">
         <span :style="{

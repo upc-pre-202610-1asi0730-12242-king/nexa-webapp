@@ -1,11 +1,13 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { creditSummary } from '@/shared/credit';
 
 const ds = useDataStore();
 const router = useRouter();
+const { t } = useI18n();
 const clients = computed(() => ds.D.clients);
 const activeCount = computed(() => clients.value.filter(client => client.status === 'active').length);
 const creditRiskCount = computed(() => clients.value.filter(client => creditSummary(client).status !== 'ok').length);
@@ -32,17 +34,17 @@ const form = reactive({
 
 const segmentOptions = ['Gourmet / refrigerated', 'Food service', 'Retail chilled', 'Distributor', 'Seafood buyer'];
 const creditOptions = [
-  { value: 'cash', label: 'Cash before dispatch' },
-  { value: 'credit_15', label: 'Credit 15 days' },
-  { value: 'credit_30', label: 'Credit 30 days' },
+  { value: 'cash', labelKey: 'clients.view.payment.cash' },
+  { value: 'credit_15', labelKey: 'clients.view.payment.credit15' },
+  { value: 'credit_30', labelKey: 'clients.view.payment.credit30' },
 ];
 const readinessStatuses = [
-  { value: 'ok', label: 'Credit OK' },
-  { value: 'attention', label: 'Credit attention' },
-  { value: 'document_pending', label: 'Document pending' },
-  { value: 'blocked', label: 'Credit blocked' },
-  { value: 'overdue', label: 'Overdue balance' },
-  { value: 'inactive', label: 'Inactive' },
+  { value: 'ok', labelKey: 'clients.view.readiness.ok' },
+  { value: 'attention', labelKey: 'clients.view.readiness.attention' },
+  { value: 'document_pending', labelKey: 'clients.view.readiness.documentPending' },
+  { value: 'blocked', labelKey: 'clients.view.readiness.blocked' },
+  { value: 'overdue', labelKey: 'clients.view.readiness.overdue' },
+  { value: 'inactive', labelKey: 'clients.view.readiness.inactive' },
 ];
 const deliveryWindows = ['Morning cold-chain window', 'Afternoon cold-chain window', 'Callao route', 'Lima Metropolitana route'];
 const workspaceEmailDomain = computed(() => ds.D.company.emailDomain || 'icisa.pe');
@@ -93,7 +95,7 @@ async function save() {
     reset();
     viewMode.value = 'overview';
   } catch (error) {
-    saveError.value = error?.response?.data?.message || error?.message || 'The client could not be saved.';
+    saveError.value = error?.response?.data?.message || error?.message || t('clients.view.errors.save');
   } finally {
     saving.value = false;
   }
@@ -124,7 +126,7 @@ async function generateSellerEmail(client) {
   try {
     await ds.updateClient(client.id, { sellerWorkspaceEmail: email });
   } catch (error) {
-    saveError.value = error?.response?.data?.message || error?.message || 'The client could not be updated.';
+    saveError.value = error?.response?.data?.message || error?.message || t('clients.view.errors.update');
   }
 }
 
@@ -133,15 +135,15 @@ async function updateCreditStatus(client, status) {
   try {
     await ds.updateClient(client.id, { monthlyCreditStatus: status });
   } catch (error) {
-    saveError.value = error?.response?.data?.message || error?.message || 'The credit status could not be updated.';
+    saveError.value = error?.response?.data?.message || error?.message || t('clients.view.errors.creditStatus');
   }
 }
 
 function creditHoldAction(client) {
   const status = creditSummary(client).status;
   return status === 'blocked' || status === 'overdue'
-    ? { status: 'ok', label: 'Resume credit', icon: 'pi pi-unlock' }
-    : { status: 'blocked', label: 'Put credit on hold', icon: 'pi pi-lock' };
+    ? { status: 'ok', label: t('clients.view.actions.resumeCredit'), icon: 'pi pi-unlock' }
+    : { status: 'blocked', label: t('clients.view.actions.holdCredit'), icon: 'pi pi-lock' };
 }
 
 async function toggleCreditHold(client) {
@@ -151,10 +153,10 @@ async function toggleCreditHold(client) {
 
 function paymentConditionLabel(value) {
   return {
-    cash: 'Cash before dispatch',
-    credit_15: 'Credit 15 days',
-    credit_30: 'Credit 30 days',
-  }[value] || value || 'Not configured';
+    cash: t('clients.view.payment.cash'),
+    credit_15: t('clients.view.payment.credit15'),
+    credit_30: t('clients.view.payment.credit30'),
+  }[value] || value || t('common.notConfigured');
 }
 </script>
 
@@ -164,23 +166,23 @@ function paymentConditionLabel(value) {
     <template v-if="viewMode === 'new'">
       <div class="page-header client-builder-header">
         <button class="btn btn-secondary" type="button" @click="cancelCreate">
-          <i class="pi pi-arrow-left"></i> B2B Clients
+          <i class="pi pi-arrow-left"></i> {{ t('clients.view.title') }}
         </button>
         <div>
-          <div class="page-title">Register B2B client</div>
-          <div class="page-subtitle">Create a buyer account, credit rule and portal identity for ICISA operations.</div>
+          <div class="page-title">{{ t('clients.view.registerTitle') }}</div>
+          <div class="page-subtitle">{{ t('clients.view.registerSubtitle') }}</div>
         </div>
       </div>
 
       <section class="builder-hero">
         <div>
-          <span class="eyebrow">Sales readiness</span>
-          <h2>One client setup, connected to credit, delivery and buyer portal.</h2>
-          <p>Use selectable business rules where possible. Seller workspace email is generated at no extra charge for buyer trust.</p>
+          <span class="eyebrow">{{ t('clients.view.salesReadiness') }}</span>
+          <h2>{{ t('clients.view.builderTitle') }}</h2>
+          <p>{{ t('clients.view.builderDesc') }}</p>
         </div>
         <div class="hero-metrics">
-          <div><strong>{{ clients.length + 1 }}</strong><span>accounts after save</span></div>
-          <div><strong>@{{ workspaceEmailDomain }}</strong><span>seller identity</span></div>
+          <div><strong>{{ clients.length + 1 }}</strong><span>{{ t('clients.view.accountsAfterSave') }}</span></div>
+          <div><strong>@{{ workspaceEmailDomain }}</strong><span>{{ t('clients.view.sellerIdentity') }}</span></div>
         </div>
       </section>
 
@@ -188,72 +190,72 @@ function paymentConditionLabel(value) {
         <aside class="builder-side">
           <article class="side-card side-card-blue">
             <i class="pi pi-check-circle"></i>
-            <strong>Validation path</strong>
-            <span>Credit state decides whether purchase requests pass directly to Sales validation.</span>
+            <strong>{{ t('clients.view.validationPath') }}</strong>
+            <span>{{ t('clients.view.validationPathDesc') }}</span>
           </article>
           <article class="side-card side-card-green">
             <i class="pi pi-envelope"></i>
-            <strong>Workspace email</strong>
-            <span>No additional charge. It gives the seller a branded identity for this buyer relationship.</span>
+            <strong>{{ t('clients.view.workspaceEmail') }}</strong>
+            <span>{{ t('clients.view.workspaceEmailDesc') }}</span>
           </article>
           <article class="side-card side-card-ice">
             <i class="pi pi-truck"></i>
-            <strong>Delivery promise</strong>
-            <span>Delivery window feeds portal expectations and operations planning.</span>
+            <strong>{{ t('clients.view.deliveryPromise') }}</strong>
+            <span>{{ t('clients.view.deliveryPromiseDesc') }}</span>
           </article>
         </aside>
 
         <section class="builder-form">
           <div class="form-section-title">
-            <span>Account identity</span>
-            <strong>Legal, commercial and tax information</strong>
+            <span>{{ t('clients.view.accountIdentity') }}</span>
+            <strong>{{ t('clients.view.accountIdentityDesc') }}</strong>
           </div>
           <div class="form-grid">
-            <label>Legal name<input v-model="form.businessName" required placeholder="Importaciones y Comercio Internacional S.A." /></label>
-            <label>Trade name<input v-model="form.commercialName" required placeholder="ICISA" /></label>
-            <label>RUC / Tax ID<input v-model="form.ruc" required minlength="8" maxlength="16" placeholder="20600000001" /></label>
-            <label>Segment<select v-model="form.segment"><option v-for="option in segmentOptions" :key="option">{{ option }}</option></select></label>
+            <label>{{ t('clients.view.fields.legalName') }}<input v-model="form.businessName" required placeholder="Importaciones y Comercio Internacional S.A." /></label>
+            <label>{{ t('clients.view.fields.tradeName') }}<input v-model="form.commercialName" required placeholder="ICISA" /></label>
+            <label>{{ t('clients.view.fields.taxId') }}<input v-model="form.ruc" required minlength="8" maxlength="16" placeholder="20600000001" /></label>
+            <label>{{ t('clients.view.fields.segment') }}<select v-model="form.segment"><option v-for="option in segmentOptions" :key="option">{{ option }}</option></select></label>
           </div>
 
           <div class="form-section-title">
-            <span>Buyer contact</span>
-            <strong>Portal owner and commercial contact</strong>
+            <span>{{ t('clients.view.buyerContact') }}</span>
+            <strong>{{ t('clients.view.buyerContactDesc') }}</strong>
           </div>
           <div class="form-grid">
-            <label>Contact name<input v-model="form.contact" placeholder="Contact full name" /></label>
-            <label>Contact email<input v-model="form.contactEmail" type="email" placeholder="compras@cliente.pe" /></label>
-            <label>Phone<input v-model="form.phone" placeholder="+51 987 654 321" /></label>
-            <label>Delivery window<select v-model="form.deliveryPreference"><option v-for="option in deliveryWindows" :key="option">{{ option }}</option></select></label>
+            <label>{{ t('clients.view.fields.contactName') }}<input v-model="form.contact" :placeholder="t('clients.view.placeholders.contactName')" /></label>
+            <label>{{ t('clients.view.fields.contactEmail') }}<input v-model="form.contactEmail" type="email" placeholder="compras@cliente.pe" /></label>
+            <label>{{ t('clients.view.fields.phone') }}<input v-model="form.phone" placeholder="+51 987 654 321" /></label>
+            <label>{{ t('clients.view.fields.deliveryWindow') }}<select v-model="form.deliveryPreference"><option v-for="option in deliveryWindows" :key="option">{{ option }}</option></select></label>
           </div>
 
           <div class="email-generator">
             <div>
-              <span>Seller workspace email</span>
+              <span>{{ t('clients.view.sellerWorkspaceEmail') }}</span>
               <strong>{{ form.sellerWorkspaceEmail || workspaceSellerEmail() }}</strong>
-              <small>This branded email is free for the seller identity inside ICISA/Nexa.</small>
+              <small>{{ t('clients.view.sellerWorkspaceEmailHelp') }}</small>
             </div>
-            <button class="btn btn-secondary" type="button" @click="generateFormSellerEmail">Generate email</button>
+            <button class="btn btn-secondary" type="button" @click="generateFormSellerEmail">{{ t('clients.view.actions.generateEmail') }}</button>
           </div>
 
           <div class="form-section-title">
-            <span>Sales controls</span>
-            <strong>Credit and portal access</strong>
+            <span>{{ t('clients.view.salesControls') }}</span>
+            <strong>{{ t('clients.view.salesControlsDesc') }}</strong>
           </div>
           <div class="form-grid">
-            <label>Credit condition<select v-model="form.paymentCondition"><option v-for="option in creditOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
-            <label>Credit limit<input v-model.number="form.monthlyCreditLimit" type="number" min="0" step="500" /></label>
-            <label>Readiness<select v-model="form.monthlyCreditStatus"><option v-for="status in readinessStatuses" :key="status.value" :value="status.value">{{ status.label }}</option></select></label>
+            <label>{{ t('clients.view.fields.creditCondition') }}<select v-model="form.paymentCondition"><option v-for="option in creditOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option></select></label>
+            <label>{{ t('clients.view.fields.creditLimit') }}<input v-model.number="form.monthlyCreditLimit" type="number" min="0" step="500" /></label>
+            <label>{{ t('clients.view.fields.readiness') }}<select v-model="form.monthlyCreditStatus"><option v-for="status in readinessStatuses" :key="status.value" :value="status.value">{{ t(status.labelKey) }}</option></select></label>
             <div class="toggle-row">
-              <span>Buyer portal access</span>
+              <span>{{ t('clients.view.fields.portalAccess') }}</span>
               <button type="button" class="toggle-button" :class="{ on: form.portalAccess }" @click="form.portalAccess = !form.portalAccess">
-                {{ form.portalAccess ? 'Enabled' : 'Disabled' }}
+                {{ form.portalAccess ? t('common.enabled') : t('common.disabled') }}
               </button>
             </div>
           </div>
 
           <div class="form-actions">
-            <button class="btn btn-secondary" type="button" @click="cancelCreate">Cancel</button>
-            <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Saving...' : 'Save client' }}</button>
+            <button class="btn btn-secondary" type="button" @click="cancelCreate">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? t('common.saving') : t('clients.view.actions.saveClient') }}</button>
           </div>
         </section>
       </form>
@@ -262,49 +264,49 @@ function paymentConditionLabel(value) {
     <template v-else>
       <div class="page-header">
         <div>
-          <div class="page-title">B2B Clients</div>
-          <div class="page-subtitle">Sales account workspace for B2B buyers, credit attention, and validation readiness.</div>
+          <div class="page-title">{{ t('clients.view.title') }}</div>
+          <div class="page-subtitle">{{ t('clients.view.subtitleLong') }}</div>
         </div>
-        <button class="btn btn-primary" type="button" @click="openCreate"><i class="pi pi-plus"></i> Add B2B client</button>
+        <button class="btn btn-primary" type="button" @click="openCreate"><i class="pi pi-plus"></i> {{ t('clients.view.actions.addClient') }}</button>
       </div>
 
       <section class="scenario-card">
         <div class="scenario-icon"><i class="pi pi-id-card"></i></div>
         <div>
-          <strong>B2B account readiness</strong>
-          <p>Client status, credit condition and portal access guide whether purchase requests can move into Sales validation.</p>
+          <strong>{{ t('clients.view.readinessTitle') }}</strong>
+          <p>{{ t('clients.view.readinessDesc') }}</p>
         </div>
       </section>
 
       <div class="grid-3 metrics-grid">
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-users"></i> Accounts</div>
+          <div class="kpi-label"><i class="pi pi-users"></i> {{ t('clients.view.kpi.accounts') }}</div>
           <div class="kpi-value">{{ clients.length }}</div>
-          <div class="kpi-sub">B2B buyers in commercial portfolio</div>
+          <div class="kpi-sub">{{ t('clients.view.kpi.accountsSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-check-circle" style="color:#16A34A"></i> Active</div>
+          <div class="kpi-label"><i class="pi pi-check-circle" style="color:#16A34A"></i> {{ t('clients.active') }}</div>
           <div class="kpi-value" style="color:#16A34A">{{ activeCount }}</div>
-          <div class="kpi-sub">Ready for request validation</div>
+          <div class="kpi-sub">{{ t('clients.view.kpi.activeSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#F59E0B"></i> Credit review</div>
+          <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#F59E0B"></i> {{ t('clients.view.kpi.creditReview') }}</div>
           <div class="kpi-value" style="color:#F59E0B">{{ creditRiskCount }}</div>
-          <div class="kpi-sub">Need commercial attention</div>
+          <div class="kpi-sub">{{ t('clients.view.kpi.creditReviewSub') }}</div>
         </div>
       </div>
 
       <div v-if="!clients.length" class="empty-state">
         <div class="empty-state-icon"><i class="pi pi-database"></i></div>
-        <div class="empty-state-title">No B2B clients yet</div>
-        <div class="empty-state-desc">Add the first client account to prepare commercial request validation.</div>
+        <div class="empty-state-title">{{ t('clients.view.emptyTitle') }}</div>
+        <div class="empty-state-desc">{{ t('clients.view.emptyDesc') }}</div>
       </div>
 
       <div v-else class="grid-3 client-grid">
         <article v-for="client in clients" :key="client.id" class="flow-panel flow-panel-pad client-card" :class="{ editing: editingId === client.id }">
           <div class="flow-row-between card-top">
             <div>
-              <div class="meta-label">Client</div>
+              <div class="meta-label">{{ t('clients.table.client') }}</div>
               <h2>{{ client.commercialName || client.businessName }}</h2>
               <p class="muted-text">RUC {{ client.ruc }} · {{ client.segment }}</p>
             </div>
@@ -312,50 +314,50 @@ function paymentConditionLabel(value) {
           </div>
           <div class="divider"></div>
           <div class="flow-stack client-facts">
-            <div class="mini-row"><span>Contact</span><strong>{{ client.contact }}</strong></div>
-            <div class="mini-row"><span>Condition</span><strong>{{ paymentConditionLabel(client.paymentCondition || client.condition) }}</strong></div>
-            <div class="mini-row"><span>Credit available</span><strong>S/ {{ Number(client.monthlyCreditAvailable || 0).toLocaleString() }}</strong></div>
-            <div class="mini-row"><span>Delivery window</span><strong>{{ client.deliveryPreference }}</strong></div>
-            <div class="mini-row"><span>Portal</span><strong>{{ client.portalAccess === false ? 'Disabled' : 'Enabled' }}</strong></div>
+            <div class="mini-row"><span>{{ t('clients.view.fields.contactName') }}</span><strong>{{ client.contact }}</strong></div>
+            <div class="mini-row"><span>{{ t('clients.view.fields.condition') }}</span><strong>{{ paymentConditionLabel(client.paymentCondition || client.condition) }}</strong></div>
+            <div class="mini-row"><span>{{ t('clients.view.fields.creditAvailable') }}</span><strong>S/ {{ Number(client.monthlyCreditAvailable || 0).toLocaleString() }}</strong></div>
+            <div class="mini-row"><span>{{ t('clients.view.fields.deliveryWindow') }}</span><strong>{{ client.deliveryPreference }}</strong></div>
+            <div class="mini-row"><span>{{ t('clients.view.fields.portal') }}</span><strong>{{ client.portalAccess === false ? t('common.disabled') : t('common.enabled') }}</strong></div>
             <div class="seller-email-card">
               <div>
-                <span>Seller workspace email</span>
+                <span>{{ t('clients.view.sellerWorkspaceEmail') }}</span>
                 <strong>{{ client.sellerWorkspaceEmail || workspaceSellerEmail(client) }}</strong>
-                <small>No additional charge. It identifies the seller inside the ICISA workspace.</small>
+                <small>{{ t('clients.view.sellerEmailCardHelp') }}</small>
               </div>
-              <button class="btn btn-secondary" type="button" @click="generateSellerEmail(client)">Generate</button>
+              <button class="btn btn-secondary" type="button" @click="generateSellerEmail(client)">{{ t('clients.view.actions.generate') }}</button>
             </div>
           </div>
           <div class="form-actions">
-            <button class="btn btn-primary" type="button" @click="router.push('/ops/commercial/client-accounts/' + client.id)">Open profile</button>
-            <button class="btn btn-secondary" type="button" @click="edit(client)">Edit</button>
+            <button class="btn btn-primary" type="button" @click="router.push('/ops/commercial/client-accounts/' + client.id)">{{ t('clients.view.actions.openProfile') }}</button>
+            <button class="btn btn-secondary" type="button" @click="edit(client)">{{ t('common.edit') }}</button>
             <button class="btn btn-ghost" type="button" @click="toggleCreditHold(client)">
               <i :class="creditHoldAction(client).icon"></i> {{ creditHoldAction(client).label }}
             </button>
-            <button class="btn btn-ghost" type="button" @click="updateCreditStatus(client, 'document_pending')">Doc pending</button>
+            <button class="btn btn-ghost" type="button" @click="updateCreditStatus(client, 'document_pending')">{{ t('clients.view.actions.docPending') }}</button>
           </div>
           <form v-if="editingId === client.id" class="client-inline-editor" @submit.prevent="save">
-            <label>Legal name<input v-model="form.businessName" required /></label>
-            <label>Trade name<input v-model="form.commercialName" required /></label>
-            <label>RUC / Tax ID<input v-model="form.ruc" required /></label>
-            <label>Segment<select v-model="form.segment"><option v-for="option in segmentOptions" :key="option">{{ option }}</option></select></label>
-            <label>Contact name<input v-model="form.contact" /></label>
-            <label>Contact email<input v-model="form.contactEmail" type="email" /></label>
-            <label>Seller workspace email<input v-model="form.sellerWorkspaceEmail" :placeholder="workspaceSellerEmail()" /></label>
-            <label>Phone<input v-model="form.phone" /></label>
-            <label>Credit condition<select v-model="form.paymentCondition"><option v-for="option in creditOptions" :key="option.value" :value="option.value">{{ option.label }}</option></select></label>
-            <label>Credit limit<input v-model.number="form.monthlyCreditLimit" type="number" min="0" /></label>
-            <label>Readiness<select v-model="form.monthlyCreditStatus"><option v-for="status in readinessStatuses" :key="status.value" :value="status.value">{{ status.label }}</option></select></label>
-            <label>Delivery window<select v-model="form.deliveryPreference"><option v-for="option in deliveryWindows" :key="option">{{ option }}</option></select></label>
+            <label>{{ t('clients.view.fields.legalName') }}<input v-model="form.businessName" required /></label>
+            <label>{{ t('clients.view.fields.tradeName') }}<input v-model="form.commercialName" required /></label>
+            <label>{{ t('clients.view.fields.taxId') }}<input v-model="form.ruc" required /></label>
+            <label>{{ t('clients.view.fields.segment') }}<select v-model="form.segment"><option v-for="option in segmentOptions" :key="option">{{ option }}</option></select></label>
+            <label>{{ t('clients.view.fields.contactName') }}<input v-model="form.contact" /></label>
+            <label>{{ t('clients.view.fields.contactEmail') }}<input v-model="form.contactEmail" type="email" /></label>
+            <label>{{ t('clients.view.sellerWorkspaceEmail') }}<input v-model="form.sellerWorkspaceEmail" :placeholder="workspaceSellerEmail()" /></label>
+            <label>{{ t('clients.view.fields.phone') }}<input v-model="form.phone" /></label>
+            <label>{{ t('clients.view.fields.creditCondition') }}<select v-model="form.paymentCondition"><option v-for="option in creditOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option></select></label>
+            <label>{{ t('clients.view.fields.creditLimit') }}<input v-model.number="form.monthlyCreditLimit" type="number" min="0" /></label>
+            <label>{{ t('clients.view.fields.readiness') }}<select v-model="form.monthlyCreditStatus"><option v-for="status in readinessStatuses" :key="status.value" :value="status.value">{{ t(status.labelKey) }}</option></select></label>
+            <label>{{ t('clients.view.fields.deliveryWindow') }}<select v-model="form.deliveryPreference"><option v-for="option in deliveryWindows" :key="option">{{ option }}</option></select></label>
             <div class="toggle-row span-2">
-              <span>Buyer portal access</span>
+              <span>{{ t('clients.view.fields.portalAccess') }}</span>
               <button type="button" class="toggle-button" :class="{ on: form.portalAccess }" @click="form.portalAccess = !form.portalAccess">
-                {{ form.portalAccess ? 'Enabled' : 'Disabled' }}
+                {{ form.portalAccess ? t('common.enabled') : t('common.disabled') }}
               </button>
             </div>
             <div class="form-actions span-2">
-              <button class="btn btn-secondary" type="button" @click="reset">Cancel</button>
-              <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? 'Saving...' : 'Save client' }}</button>
+              <button class="btn btn-secondary" type="button" @click="reset">{{ t('common.cancel') }}</button>
+              <button class="btn btn-primary" type="submit" :disabled="saving">{{ saving ? t('common.saving') : t('clients.view.actions.saveClient') }}</button>
             </div>
           </form>
         </article>

@@ -409,23 +409,23 @@ function useCurrentLocation() {
               </select>
             </label>
             <label v-if="addressFieldsVisible" class="field">
-              <span class="field-label">{{ t('buyerRequestBuilder.city') || 'City' }}</span>
+              <span class="field-label">{{ t('buyerRequestBuilder.city') }}</span>
               <select v-model="city" class="plain-input" @change="selectCity">
-                <option value="">Select city</option>
+                <option value="">{{ t('buyerRequestBuilder.selectCity') }}</option>
                 <option v-for="item in cityOptions" :key="item.code" :value="item.code">{{ item.label }}</option>
               </select>
             </label>
             <label v-if="addressFieldsVisible" class="field">
-              <span class="field-label">{{ t('buyerRequestBuilder.province') || 'Province' }}</span>
+              <span class="field-label">{{ t('buyerRequestBuilder.province') }}</span>
               <select v-model="province" class="plain-input" :disabled="!city" @change="selectProvince">
-                <option value="">Select province</option>
+                <option value="">{{ t('buyerRequestBuilder.selectProvince') }}</option>
                 <option v-for="item in provinceOptions" :key="item.code" :value="item.code">{{ item.label }}</option>
               </select>
             </label>
             <label v-if="addressFieldsVisible" class="field">
-              <span class="field-label">{{ t('buyerRequestBuilder.district') || 'District' }}</span>
+              <span class="field-label">{{ t('buyerRequestBuilder.district') }}</span>
               <select v-model="district" class="plain-input" :disabled="!province">
-                <option value="">Select district</option>
+                <option value="">{{ t('buyerRequestBuilder.selectDistrict') }}</option>
                 <option v-for="item in districtOptions" :key="item.code" :value="item.code">{{ item.label }}</option>
               </select>
             </label>
@@ -477,8 +477,8 @@ function useCurrentLocation() {
         <aside class="flow-panel route-map-card" style="margin-bottom:0">
           <div class="flow-panel-head">
             <div>
-              <div class="flow-title">{{ t('buyerRequestBuilder.routePreview') || 'Route preview' }}</div>
-              <p style="font-size:12px;color:#64748b;margin-top:4px">{{ t('buyerRequestBuilder.routePreviewDescription') || 'Map centers on the selected delivery destination. Open map shows driving route.' }}</p>
+              <div class="flow-title">{{ t('buyerRequestBuilder.routePreview') }}</div>
+              <p style="font-size:12px;color:#64748b;margin-top:4px">{{ t('buyerRequestBuilder.routePreviewDescription') }}</p>
             </div>
             <a v-if="mapReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer">
               <i class="pi pi-external-link"></i> {{ t('buyerRequestBuilder.openMaps') }}
@@ -494,7 +494,7 @@ function useCurrentLocation() {
             </div>
             
             <iframe v-if="mapReady" :title="t('buyerRequestBuilder.routePreview')" :src="mapEmbedUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" style="width:100%;height:300px;border:1px solid #e2e8f0;border-radius:12px;margin:0"></iframe>
-            <div v-else class="empty-state compact">{{ t('buyerRequestBuilder.completeAddressToPreview') || 'Complete delivery details to preview the route.' }}</div>
+            <div v-else class="empty-state compact">{{ t('buyerRequestBuilder.completeAddressToPreview') }}</div>
             
             <div class="span-full request-cost-card" style="margin:0">
               <div><span>{{ t('buyerRequestBuilder.products') }}</span><strong>S/ {{ subtotal.toFixed(2) }}</strong></div>

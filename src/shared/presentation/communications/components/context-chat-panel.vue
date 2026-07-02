@@ -1,13 +1,16 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
+
 defineProps({ messages: { type: Array, default: () => [] } });
+const { t } = useI18n();
 </script>
 
 <template>
   <section class="flow-panel">
     <div class="flow-panel-head">
       <div>
-        <h2>Comentarios</h2>
-        <p>Contextual communication between S1, S2 and S3.</p>
+        <h2>{{ t('communications.comments') }}</h2>
+        <p>{{ t('communications.contextual') }}</p>
       </div>
     </div>
     <div class="flow-stack">
@@ -16,7 +19,7 @@ defineProps({ messages: { type: Array, default: () => [] } });
         <p>{{ message.body }}</p>
       </div>
       <div v-if="!messages.length" class="empty-state">
-        <div class="empty-state-title">Sin mensajes</div>
+        <div class="empty-state-title">{{ t('communications.noMessages') }}</div>
       </div>
     </div>
   </section>

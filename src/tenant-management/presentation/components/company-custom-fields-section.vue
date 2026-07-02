@@ -68,7 +68,7 @@ function save() {
         <label>{{ $t('tenant.companyAdmin.form.label') }}<input v-model="form.label" required /></label>
         <label>{{ $t('tenant.companyAdmin.form.target') }}<select v-model="form.target"><option>Product</option><option>Warehouse</option><option>Purchase Request</option><option>Dispatch</option><option>Client</option></select></label>
         <label>{{ $t('tenant.companyAdmin.form.type') }}<select v-model="form.type"><option>Text</option><option>Number</option><option>Date</option><option>Select</option><option>Boolean</option></select></label>
-        <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option><option value="review">{{ $t('tenant.companyAdmin.status.review') }}</option></select></label>
+        <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option></select></label>
         <div class="toggle-row span-2">
           <span>{{ $t('tenant.companyAdmin.form.required') }}</span>
           <button type="button" class="toggle-button" :class="{ on: form.required }" @click="form.required = !form.required">
@@ -109,7 +109,7 @@ function save() {
           <label>{{ $t('tenant.companyAdmin.form.label') }}<input v-model="form.label" required /></label>
           <label>{{ $t('tenant.companyAdmin.form.target') }}<select v-model="form.target"><option>Product</option><option>Warehouse</option><option>Purchase Request</option><option>Dispatch</option><option>Client</option></select></label>
           <label>{{ $t('tenant.companyAdmin.form.type') }}<select v-model="form.type"><option>Text</option><option>Number</option><option>Date</option><option>Select</option><option>Boolean</option></select></label>
-          <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option><option value="review">{{ $t('tenant.companyAdmin.status.review') }}</option></select></label>
+          <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option></select></label>
           <div class="toggle-row span-2">
             <span>{{ $t('tenant.companyAdmin.form.required') }}</span>
             <button type="button" class="toggle-button" :class="{ on: form.required }" @click="form.required = !form.required">

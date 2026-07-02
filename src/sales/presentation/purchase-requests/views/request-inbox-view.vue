@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { usePurchaseRequestsStore } from '@/sales/application/purchase-requests/purchase-requests.store';
 import {
@@ -16,6 +17,7 @@ import { formatAddress } from '@/shared/utils/address.utils';
 const ds = useDataStore();
 const purchaseRequestsStore = usePurchaseRequestsStore();
 const router = useRouter();
+const { t } = useI18n();
 const readModelRequests = computed(() => purchaseRequestsStore.inbox.map(request => ({
   id: request.id,
   backendId: request.id,
@@ -42,7 +44,7 @@ function docsFor(request) {
 
 function deliverySummary(request) {
   const address = formatAddress(request.deliveryAddress, request.deliveryDistrict, request.deliveryCity, request.deliveryProvince);
-  return [address, request.deliveryReference].filter(Boolean).join(' · ') || 'Pending delivery details';
+  return [address, request.deliveryReference].filter(Boolean).join(' · ') || t('portal.requests.deliveryPending');
 }
 
 function requestLines(request) {
@@ -79,23 +81,23 @@ onMounted(() => {
   <div>
     <div class="page-header">
       <div>
-        <div class="page-title">Purchase Requests</div>
-        <div class="page-subtitle">Buyer request inbox for Sales review before confirmed purchase orders.</div>
+        <div class="page-title">{{ t('nav.requests') }}</div>
+        <div class="page-subtitle">{{ t('commercialDashboard.requestInboxSub') }}</div>
       </div>
     </div>
 
     <section class="scenario-card">
       <div class="scenario-icon"><i class="pi pi-inbox"></i></div>
       <div>
-        <strong>Request-to-order scenario</strong>
-        <p>B2B buyers build requests from the catalog. Sales reviews viability, answers with an observation, and accepts or rejects from the request detail view.</p>
+        <strong>{{ t('portal.requestDetail.progress') }}</strong>
+        <p>{{ t('portal.requestDetail.progressSubtitle') }}</p>
       </div>
     </section>
 
     <div v-if="!requests.length" class="empty-state">
       <div class="empty-state-icon"><i class="pi pi-inbox"></i></div>
-      <div class="empty-state-title">No buyer requests yet</div>
-      <div class="empty-state-desc">B2B Buyer requests created from the portal cart will appear here for Sales review.</div>
+      <div class="empty-state-title">{{ t('portal.requests.emptyTitle') }}</div>
+      <div class="empty-state-desc">{{ t('portal.requests.emptyDesc') }}</div>
     </div>
 
     <div v-else class="flow-stack">
@@ -113,21 +115,21 @@ onMounted(() => {
         </div>
         <div class="divider" style="margin:12px 0"></div>
         <div class="flow-row" style="justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <span>Created: <strong>{{ formatRecordDateTime(request.createdAt) }}</strong></span>
-          <span>Requested delivery: <strong>{{ formatCalendarDate(request.requestedDeliveryDate) }}</strong></span>
-          <span>Items: <strong>{{ ds.requestItemsFor(request.id).length }}</strong></span>
-          <span>Destination: <strong>{{ deliverySummary(request) }}</strong></span>
+          <span>{{ t('common.created') }}: <strong>{{ formatRecordDateTime(request.createdAt) }}</strong></span>
+          <span>{{ t('common.requestedDelivery') }}: <strong>{{ formatCalendarDate(request.requestedDeliveryDate) }}</strong></span>
+          <span>{{ t('common.items') }}: <strong>{{ ds.requestItemsFor(request.id).length }}</strong></span>
+          <span>{{ t('common.destination') }}: <strong>{{ deliverySummary(request) }}</strong></span>
         </div>
         <div class="doc-chip-row">
           <span v-for="doc in docsFor(request)" :key="doc" class="badge badge-blue">{{ doc }}</span>
         </div>
         <div class="form-actions">
           <button v-if="canRespond(request)" class="btn btn-primary" type="button" @click="router.push('/ops/commercial/purchase-requests/' + request.id)">
-            <i class="pi pi-comments"></i> Review and respond
+            <i class="pi pi-comments"></i> {{ t('common.review') }}
           </button>
           <span v-else :class="'badge ' + requestStatusBadge(request.status)">{{ requestStatusLabel(request.status) }}</span>
           <button class="btn btn-secondary" type="button" @click="openDetails(request)">
-            <i class="pi pi-eye"></i> Quick view
+            <i class="pi pi-eye"></i> {{ t('common.quickView') }}
           </button>
         </div>
       </article>
@@ -142,17 +144,17 @@ onMounted(() => {
               <h2>{{ ds.clientName(selectedRequest.clientId) }}</h2>
               <p>{{ selectedRequest.comments || deliverySummary(selectedRequest) }}</p>
             </div>
-            <button class="btn btn-ghost btn-sm" type="button" @click="selectedRequest = null" aria-label="Close">
+            <button class="btn btn-ghost btn-sm" type="button" @click="selectedRequest = null" :aria-label="t('common.close')">
               <i class="pi pi-times"></i>
             </button>
           </header>
 
           <div class="request-detail-meta">
-            <div><span>Status</span><strong>{{ requestStatusLabel(selectedRequest.status) }}</strong></div>
-            <div><span>Created</span><strong>{{ formatRecordDateTime(selectedRequest.createdAt) }}</strong></div>
-            <div><span>Requested delivery</span><strong>{{ formatCalendarDate(selectedRequest.requestedDeliveryDate) }}</strong></div>
-            <div><span>Priority</span><strong>{{ selectedRequest.priority || 'normal' }}</strong></div>
-            <div><span>Documents</span><strong>{{ docsFor(selectedRequest).length }}</strong></div>
+            <div><span>{{ t('common.status') }}</span><strong>{{ requestStatusLabel(selectedRequest.status) }}</strong></div>
+            <div><span>{{ t('common.created') }}</span><strong>{{ formatRecordDateTime(selectedRequest.createdAt) }}</strong></div>
+            <div><span>{{ t('common.requestedDelivery') }}</span><strong>{{ formatCalendarDate(selectedRequest.requestedDeliveryDate) }}</strong></div>
+            <div><span>{{ t('common.priority') }}</span><strong>{{ selectedRequest.priority || 'normal' }}</strong></div>
+            <div><span>{{ t('common.documents') }}</span><strong>{{ docsFor(selectedRequest).length }}</strong></div>
           </div>
 
           <div class="request-product-grid">
@@ -171,8 +173,8 @@ onMounted(() => {
 
           <div v-if="!requestLines(selectedRequest).length" class="empty-state compact-empty">
             <div class="empty-state-icon"><i class="pi pi-box"></i></div>
-            <div class="empty-state-title">No product lines registered</div>
-            <div class="empty-state-desc">This request exists, but no item payload was returned for its detail view.</div>
+            <div class="empty-state-title">{{ t('portal.requestDetail.requestedProducts') }}</div>
+            <div class="empty-state-desc">{{ t('common.noRecords') }}</div>
           </div>
         </section>
       </div>

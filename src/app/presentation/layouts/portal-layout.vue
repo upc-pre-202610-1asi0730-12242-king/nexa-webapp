@@ -76,7 +76,7 @@ function goRequestBuilder() {
       <button
         type="button"
         class="portal-logo-button"
-        aria-label="Nexa home"
+        :aria-label="t('portal.home')"
         @click="goPortal('/portal/home')"
       >
         <img :src="logo" alt="Nexa" style="width:82px;height:auto;display:block" />
@@ -126,7 +126,7 @@ function goRequestBuilder() {
     <!-- Terms footer -->
     <footer class="portal-footer" role="contentinfo">
       <span>{{ t('footer.rights') }}</span>
-      <nav class="portal-footer-links" aria-label="Portal legal links">
+      <nav class="portal-footer-links" :aria-label="t('footer.legalLinks')">
         <button
           v-for="link in footerLinks"
           :key="link.to"

@@ -131,8 +131,29 @@ const coldTypeLabels = {
 };
 
 const priorityLabels = {
-  en: { high: 'High', medium: 'Medium', low: 'Low' },
-  es: { high: 'Alta', medium: 'Media', low: 'Baja' },
+  en: { urgent: 'Urgent', high: 'High', medium: 'Medium', normal: 'Normal', low: 'Low' },
+  es: { urgent: 'Urgente', high: 'Alta', medium: 'Media', normal: 'Normal', low: 'Baja' },
+};
+
+const paymentMethodLabels = {
+  en: {
+    credit_line: 'Credit line',
+    credit_15: '15-day credit',
+    credit_30: '30-day credit',
+    transfer: 'Bank transfer',
+    card: 'Card',
+    cash: 'Cash',
+    cash_on_delivery: 'Cash on delivery',
+  },
+  es: {
+    credit_line: 'Línea de crédito',
+    credit_15: 'Crédito a 15 días',
+    credit_30: 'Crédito a 30 días',
+    transfer: 'Transferencia bancaria',
+    card: 'Tarjeta',
+    cash: 'Efectivo',
+    cash_on_delivery: 'Pago contra entrega',
+  },
 };
 
 const currentLocale = () => {
@@ -173,6 +194,8 @@ export const orderStatusBadge = (s) => 'badge-' + ({
 }[s] || 'gray');
 
 export const priorityLabel = (p, locale) => labelFrom(priorityLabels, p, locale);
+
+export const paymentMethodLabel = (p, locale) => labelFrom(paymentMethodLabels, p, locale);
 
 export const orderStepState = (status, step) => {
   if (['blocked', 'cancelled', 'rejected'].includes(status)) {

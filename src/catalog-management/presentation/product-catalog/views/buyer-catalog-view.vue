@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
 import { coldTypeLabel, coldTypeBadge } from '@/shared/status';
@@ -9,6 +10,7 @@ import { CATALOG_BRANDS, brandForProduct, logoForProduct } from '@/catalog-manag
 
 const router = useRouter();
 const { t } = useI18n();
+const toast = useToast();
 const ds = useDataStore();
 const cart = useCartStore();
 const D = ds.D;
@@ -24,10 +26,10 @@ const brandExpanded = ref(false);
 const categories = computed(() => ['all', ...new Set(D.products.filter(p => p.isVisibleToBuyer !== false).map(p => p.category).filter(Boolean))]);
 const coldTypes = computed(() => ['all', ...new Set(D.products.filter(p => p.isVisibleToBuyer !== false).map(p => p.coldType).filter(Boolean))]);
 const brands = computed(() => ['all', ...CATALOG_BRANDS, ...new Set(D.products.map(product => brandForProduct(product)).filter(item => item && item !== 'Brand pending' && !CATALOG_BRANDS.includes(item)))]);
-const stockOptions = ['all', 'ok', 'low'];
+const stockOptions = ['all', 'ok', 'low', 'out'];
 
 const filtered = computed(() => {
-  let rows = D.products.filter(product => product.isVisibleToBuyer !== false && product.status !== 'out');
+  let rows = D.products.filter(product => product.isVisibleToBuyer !== false);
   if (category.value !== 'all') rows = rows.filter(product => product.category === category.value);
   if (stockFilter.value !== 'all') rows = rows.filter(product => product.status === stockFilter.value);
   if (coldType.value !== 'all') rows = rows.filter(product => product.coldType === coldType.value);
@@ -65,11 +67,18 @@ function toggleCartProduct(product) {
     cart.remove(product.id);
     return;
   }
-  cart.add(product);
+  if (!cart.add(product)) showOutOfStock();
+}
+
+function showOutOfStock() {
+  toast.add({ severity: 'warn', summary: t('catalog.outOfStock'), detail: t('catalog.outOfStockMessage'), life: 3500 });
 }
 
 function setCartQuantity(product, quantity) {
-  if (!isInCart(product.id)) cart.add(product);
+  if (!isInCart(product.id) && !cart.add(product)) {
+    showOutOfStock();
+    return;
+  }
   const max = Math.max(1, Number(product.stock || 0) - Number(product.reserved || 0));
   cart.setQty(product.id, Math.min(max, Number(quantity || 1)));
 }
@@ -177,8 +186,9 @@ function statusBadge(status) {
               <button
                 :class="'add-btn ' + (isInCart(product.id) ? 'add-btn-added' : 'add-btn-default')"
                 type="button"
+                :disabled="product.status === 'out'"
                 @click="toggleCartProduct(product)"
-                :title="isInCart(product.id) ? t('catalog.remove') : t('catalog.addToRequest')"
+                :title="product.status === 'out' ? t('catalog.outOfStockMessage') : isInCart(product.id) ? t('catalog.remove') : t('catalog.addToRequest')"
                 :aria-label="isInCart(product.id) ? t('catalog.remove') : t('catalog.addToRequest')"
               >
                 <i :class="isInCart(product.id) ? 'pi pi-trash' : 'pi pi-plus'"></i>
@@ -193,6 +203,7 @@ function statusBadge(status) {
               <strong>S/ {{ product.price.toFixed(2) }}</strong>
               <span>{{ Math.max(0, Number(product.stock || 0) - Number(product.reserved || 0)) }} {{ product.unit }}</span>
             </div>
+            <small v-if="product.status === 'out'" class="catalog-stock-message" role="status">{{ t('catalog.outOfStockMessage') }}</small>
             <div v-if="isInCart(product.id)" class="catalog-card-qty" @click.stop>
               <button class="btn btn-ghost btn-sm" type="button" @click="setCartQuantity(product, cartItemFor(product.id)?.qty - 1)">-</button>
               <input
@@ -216,6 +227,10 @@ function statusBadge(status) {
 </template>
 
 <style scoped>
+.catalog-stock-message {
+  color: #b91c1c;
+  font-weight: 800;
+}
 .buyer-catalog-layout {
   grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
   align-items: stretch;

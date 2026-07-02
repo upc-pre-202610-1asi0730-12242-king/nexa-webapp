@@ -1,11 +1,13 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { displayCode, documentStatusBadge, documentStatusLabel, orderStatusBadge, orderStatusLabel } from '@/shared/status';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const ds = useDataStore();
 const requiredTypes = ['factura_xml', 'factura_pdf', 'guia_pdf'];
 const activeKey = ref('');
@@ -21,23 +23,27 @@ const documents = computed(() => requiredTypes.map(type => ({
     : null,
 })));
 const readyCount = computed(() => documents.value.filter(row => ['ready', 'uploaded', 'accepted'].includes(row.document?.status)).length);
-const deliveryDate = computed(() => order.value?.delivery?.requestedDate || order.value?.requestedDeliveryDate || 'Pending');
+const deliveryDate = computed(() => order.value?.delivery?.requestedDate || order.value?.requestedDeliveryDate || t('common.pending'));
 const deliveryAddress = computed(() => {
   const delivery = order.value?.delivery || {};
   const street = [delivery.addressType, delivery.address].filter(Boolean).join(' ');
-  return [street, delivery.district, delivery.province, delivery.city].filter(Boolean).join(', ') || 'Address pending';
+  return [street, delivery.district, delivery.province, delivery.city].filter(Boolean).join(', ') || t('common.addressPending');
 });
 const backPath = computed(() => route.path.includes('/operations/')
   ? '/ops/operations/business-documents'
   : '/ops/commercial/business-documents');
 
 function typeLabel(type) {
-  return { factura_xml: 'Factura XML', factura_pdf: 'Factura PDF', guia_pdf: 'Guia de remision PDF' }[type] || type;
+  return t(`businessDocuments.types.${type}`);
 }
 
 function actionLabel(type, exists) {
-  if (exists) return 'Regenerate file';
-  return type === 'factura_xml' ? 'Generate invoice XML' : type === 'factura_pdf' ? 'Generate invoice PDF' : 'Generate guide PDF';
+  if (exists) return t('businessDocuments.detail.regenerateFile');
+  return type === 'factura_xml'
+    ? t('businessDocuments.detail.generateInvoiceXml')
+    : type === 'factura_pdf'
+      ? t('businessDocuments.detail.generateInvoicePdf')
+      : t('businessDocuments.detail.generateGuidePdf');
 }
 
 async function generate(type) {
@@ -47,7 +53,7 @@ async function generate(type) {
   try {
     await ds.generateBusinessDocument({ orderId: order.value.id, type });
   } catch (error) {
-    actionError.value = error?.response?.data?.message || error?.message || 'Document could not be generated.';
+    actionError.value = error?.response?.data?.message || error?.message || t('businessDocuments.errors.generate');
   } finally {
     activeKey.value = '';
   }
@@ -66,7 +72,7 @@ async function download(document) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    actionError.value = error?.response?.data?.message || error?.message || 'Document content is not available.';
+    actionError.value = error?.response?.data?.message || error?.message || t('businessDocuments.detail.contentUnavailable');
   } finally {
     activeKey.value = '';
   }
@@ -76,16 +82,16 @@ async function download(document) {
 <template>
   <div v-if="!order" class="empty-state">
     <div class="empty-state-icon"><i class="pi pi-folder-open"></i></div>
-    <div class="empty-state-title">Purchase order not found</div>
-    <button class="btn btn-primary" type="button" @click="router.push(backPath)">Back to documents</button>
+    <div class="empty-state-title">{{ t('businessDocuments.detail.orderNotFound') }}</div>
+    <button class="btn btn-primary" type="button" @click="router.push(backPath)">{{ t('businessDocuments.detail.back') }}</button>
   </div>
 
   <div v-else>
     <div class="page-header">
       <div>
-        <button class="btn btn-ghost btn-sm detail-back" type="button" @click="router.push(backPath)"><i class="pi pi-arrow-left"></i> Business Documents</button>
-        <div class="page-title">{{ displayCode(order) }} documents</div>
-        <div class="page-subtitle">{{ client?.commercialName || client?.businessName }} · generated files stored in this tenant workspace.</div>
+        <button class="btn btn-ghost btn-sm detail-back" type="button" @click="router.push(backPath)"><i class="pi pi-arrow-left"></i> {{ t('businessDocuments.title') }}</button>
+        <div class="page-title">{{ t('businessDocuments.detail.orderDocuments', { code: displayCode(order) }) }}</div>
+        <div class="page-subtitle">{{ t('businessDocuments.detail.subtitle', { client: client?.commercialName || client?.businessName }) }}</div>
       </div>
       <span :class="'badge ' + orderStatusBadge(order.status)">{{ orderStatusLabel(order.status) }}</span>
     </div>
@@ -93,9 +99,9 @@ async function download(document) {
     <div v-if="actionError" class="banner banner-danger"><i class="pi pi-exclamation-triangle"></i><div>{{ actionError }}</div></div>
 
     <section class="document-detail-hero">
-      <div><span>Document readiness</span><strong>{{ readyCount }}/{{ requiredTypes.length }}</strong><small>Factura XML, factura PDF and dispatch guide</small></div>
-      <div><span>Order total</span><strong>S/ {{ Number(order.total || order.totalAmount || 0).toFixed(2) }}</strong><small>{{ items.length }} product line(s)</small></div>
-      <div><span>Delivery</span><strong>{{ deliveryDate }}</strong><small>{{ deliveryAddress }}</small></div>
+      <div><span>{{ t('businessDocuments.detail.readiness') }}</span><strong>{{ readyCount }}/{{ requiredTypes.length }}</strong><small>{{ t('businessDocuments.detail.requiredDocuments') }}</small></div>
+      <div><span>{{ t('businessDocuments.detail.orderTotal') }}</span><strong>S/ {{ Number(order.total || order.totalAmount || 0).toFixed(2) }}</strong><small>{{ t('businessDocuments.detail.productLines', { count: items.length }) }}</small></div>
+      <div><span>{{ t('businessDocuments.detail.delivery') }}</span><strong>{{ deliveryDate }}</strong><small>{{ deliveryAddress }}</small></div>
     </section>
 
     <section class="document-detail-grid">
@@ -106,26 +112,26 @@ async function download(document) {
         </header>
         <div>
           <h2>{{ typeLabel(row.type) }}</h2>
-          <p>{{ row.document?.fileName || 'Generate file from current order, client, delivery and line data.' }}</p>
+          <p>{{ row.document?.fileName || t('businessDocuments.detail.generateHelp') }}</p>
         </div>
         <dl>
-          <div><dt>Client</dt><dd>{{ client?.commercialName || client?.businessName }}</dd></div>
-          <div><dt>Order</dt><dd class="mono">{{ displayCode(order) }}</dd></div>
-          <div><dt>Buyer visibility</dt><dd>{{ row.document?.visibleToBuyer ? 'Enabled' : 'After generation' }}</dd></div>
+          <div><dt>{{ t('clients.table.client') }}</dt><dd>{{ client?.commercialName || client?.businessName }}</dd></div>
+          <div><dt>{{ t('orders.table.order') }}</dt><dd class="mono">{{ displayCode(order) }}</dd></div>
+          <div><dt>{{ t('businessDocuments.detail.buyerVisibility') }}</dt><dd>{{ row.document?.visibleToBuyer ? t('common.enabled') : t('businessDocuments.detail.afterGeneration') }}</dd></div>
         </dl>
         <footer>
           <button class="btn btn-primary" type="button" :disabled="Boolean(activeKey)" @click="generate(row.type)">
             <i :class="activeKey === row.type ? 'pi pi-spin pi-spinner' : 'pi pi-cog'"></i> {{ actionLabel(row.type, Boolean(row.document?.fileName)) }}
           </button>
           <button class="btn btn-secondary" type="button" :disabled="!row.document?.fileName || Boolean(activeKey)" @click="download(row.document)">
-            <i class="pi pi-download"></i> Download
+            <i class="pi pi-download"></i> {{ t('common.download') }}
           </button>
         </footer>
       </article>
     </section>
 
     <section class="flow-panel order-lines-panel">
-      <div class="flow-panel-head"><div><div class="flow-title">Document source data</div><div class="flow-subtitle">Current purchase-order lines used for generated files.</div></div></div>
+      <div class="flow-panel-head"><div><div class="flow-title">{{ t('businessDocuments.detail.sourceData') }}</div><div class="flow-subtitle">{{ t('businessDocuments.detail.sourceDataDesc') }}</div></div></div>
       <div class="flow-panel-pad order-line-grid">
         <div v-for="item in items" :key="item.id" class="mini-row"><span>{{ item.itemName || ds.productName(item.productId) }}</span><strong>{{ item.quantity || item.qty }} · S/ {{ Number(item.subtotal || item.price || 0).toFixed(2) }}</strong></div>
       </div>

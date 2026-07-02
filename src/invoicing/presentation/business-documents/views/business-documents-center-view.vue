@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { documentStatusLabel, documentStatusBadge, displayCode } from '@/shared/status';
@@ -7,6 +8,7 @@ import { documentStatusLabel, documentStatusBadge, displayCode } from '@/shared/
 const ds = useDataStore();
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const D = ds.D;
 const statusFilter = ref('all');
 const typeFilter = ref('all');
@@ -30,9 +32,9 @@ const documentTypes = ['factura_xml', 'factura_pdf', 'guia_pdf'];
 const documentSources = ['internal', 'buyer_portal', 'logistics_upload'];
 const documentStatuses = ['pending', 'uploaded', 'ready', 'missing', 'accepted'];
 const documentTemplates = [
-  { title: 'Factura XML', type: 'factura_xml', status: 'pending', source: 'internal', notes: 'SUNAT-compatible factura XML for this order.' },
-  { title: 'Factura PDF', type: 'factura_pdf', status: 'pending', source: 'internal', notes: 'Readable factura PDF for buyer and dispatch.' },
-  { title: 'Guia PDF', type: 'guia_pdf', status: 'pending', source: 'logistics_upload', notes: 'Guia PDF linked to logistics handoff.' },
+  { titleKey: 'businessDocuments.types.factura_xml', type: 'factura_xml', status: 'pending', source: 'internal', notesKey: 'businessDocuments.templates.facturaXmlNotes' },
+  { titleKey: 'businessDocuments.types.factura_pdf', type: 'factura_pdf', status: 'pending', source: 'internal', notesKey: 'businessDocuments.templates.facturaPdfNotes' },
+  { titleKey: 'businessDocuments.types.guia_pdf', type: 'guia_pdf', status: 'pending', source: 'logistics_upload', notesKey: 'businessDocuments.templates.guiaPdfNotes' },
 ];
 const requiredDocumentTypes = ['factura_xml', 'factura_pdf', 'guia_pdf'];
 
@@ -72,19 +74,19 @@ const orderDocumentCards = computed(() => {
 
 function typeLabel(type) {
   return {
-    factura_xml: 'Factura XML',
-    factura_pdf: 'Factura PDF',
-    guia_pdf: 'Guia PDF',
+    factura_xml: t('businessDocuments.types.factura_xml'),
+    factura_pdf: t('businessDocuments.types.factura_pdf'),
+    guia_pdf: t('businessDocuments.types.guia_pdf'),
   }[type] || type;
 }
 
 function sourceLabel(source) {
   return {
-    internal: 'Sales desk',
-    buyer_portal: 'Buyer portal',
-    logistics_upload: 'Logistics desk',
-    'nexa-platform': 'Workspace record',
-  }[source] || source || 'Sales desk';
+    internal: t('businessDocuments.sources.internal'),
+    buyer_portal: t('businessDocuments.sources.buyer_portal'),
+    logistics_upload: t('businessDocuments.sources.logistics_upload'),
+    'nexa-platform': t('businessDocuments.sources.nexaPlatform'),
+  }[source] || source || t('businessDocuments.sources.internal');
 }
 
 function resetForm() {
@@ -108,7 +110,7 @@ function openForm() {
 
 async function save() {
   if (!form.orderId || !form.clientId) {
-    formError.value = 'Select a real order and client from the database before saving.';
+    formError.value = t('businessDocuments.errors.selectOrderClient');
     return;
   }
   saving.value = true;
@@ -121,7 +123,7 @@ async function save() {
     showForm.value = false;
     resetForm();
   } catch (error) {
-    formError.value = error?.message || 'Document could not be saved.';
+    formError.value = error?.message || t('businessDocuments.errors.save');
   } finally {
     saving.value = false;
   }
@@ -131,7 +133,7 @@ function applyDocumentTemplate(flow) {
   form.type = flow.type;
   form.status = flow.status;
   form.source = flow.source;
-  form.notes = flow.notes;
+  form.notes = t(flow.notesKey);
   form.fileName = `${flow.type.replaceAll('_', '-')}.${flow.type === 'factura_xml' ? 'xml' : 'pdf'}`;
 }
 
@@ -156,7 +158,7 @@ async function generateDocumentForOrder(order, type) {
   try {
     await ds.generateBusinessDocument({ orderId: order.id, type });
   } catch (error) {
-    formError.value = error?.message || 'Document could not be generated.';
+    formError.value = error?.message || t('businessDocuments.errors.generate');
   } finally {
     generatingKey.value = '';
   }
@@ -169,10 +171,10 @@ function openOrderDocuments(order) {
 
 function generationLabel(type) {
   return {
-    factura_xml: 'Generar XML factura',
-    factura_pdf: 'Generar PDF factura',
-    guia_pdf: 'Generar PDF guia',
-  }[type] || `Generate ${typeLabel(type)}`;
+    factura_xml: t('businessDocuments.actions.generateXml'),
+    factura_pdf: t('businessDocuments.actions.generateFacturaPdf'),
+    guia_pdf: t('businessDocuments.actions.generateGuiaPdf'),
+  }[type] || t('businessDocuments.actions.generateType', { type: typeLabel(type) });
 }
 
 function generationIcon(type) {
@@ -213,55 +215,55 @@ function compareDocument(a, b) {
   <div>
     <div class="page-header">
       <div>
-        <div class="page-title">Business Documents</div>
-        <div class="page-subtitle">Operational document center for factura XML, factura PDF and guia PDF records from Nexa orders.</div>
+        <div class="page-title">{{ t('businessDocuments.title') }}</div>
+        <div class="page-subtitle">{{ t('businessDocuments.subtitle') }}</div>
       </div>
-      <button class="btn btn-primary" type="button" @click="openForm"><i class="pi pi-plus"></i> Add document</button>
+      <button class="btn btn-primary" type="button" @click="openForm"><i class="pi pi-plus"></i> {{ t('businessDocuments.addDocument') }}</button>
     </div>
 
     <section v-if="showForm" class="document-builder-screen">
       <div class="builder-topbar">
-        <button class="btn btn-secondary" type="button" @click="showForm = false; resetForm()"><i class="pi pi-arrow-left"></i> Document center</button>
+        <button class="btn btn-secondary" type="button" @click="showForm = false; resetForm()"><i class="pi pi-arrow-left"></i> {{ t('businessDocuments.documentCenter') }}</button>
         <div>
-          <strong>New business document</strong>
-          <span>Create a document record with client, order, source, and operational status.</span>
+          <strong>{{ t('businessDocuments.newDocument') }}</strong>
+          <span>{{ t('businessDocuments.newDocumentDesc') }}</span>
         </div>
       </div>
 
       <div class="document-layout">
         <aside class="document-template-panel">
           <div class="catalog-heading">
-            <span>Document templates</span>
-            <strong>{{ D.purchaseOrders.length }} orders</strong>
+            <span>{{ t('businessDocuments.documentTemplates') }}</span>
+            <strong>{{ t('businessDocuments.ordersCount', { count: D.purchaseOrders.length }) }}</strong>
           </div>
-          <button v-for="flow in documentTemplates" :key="flow.title" type="button" @click="applyDocumentTemplate(flow)">
-            <strong>{{ flow.title }}</strong>
+          <button v-for="flow in documentTemplates" :key="flow.type" type="button" @click="applyDocumentTemplate(flow)">
+            <strong>{{ t(flow.titleKey) }}</strong>
             <small>{{ typeLabel(flow.type) }} · {{ documentStatusLabel(flow.status) }}</small>
-            <span>{{ flow.notes }}</span>
+            <span>{{ t(flow.notesKey) }}</span>
           </button>
           <div class="linked-products">
-            <span>Linked orders</span>
+            <span>{{ t('businessDocuments.linkedOrders') }}</span>
             <small v-for="order in D.purchaseOrders.slice(0, 4)" :key="order.id">{{ displayCode(order) }} · {{ ds.clientName(order.clientId) }}</small>
-            <small v-if="!D.purchaseOrders.length">No orders yet. Create or accept an order first.</small>
+            <small v-if="!D.purchaseOrders.length">{{ t('businessDocuments.noOrdersYet') }}</small>
           </div>
         </aside>
 
         <form class="flow-panel flow-panel-pad action-form" @submit.prevent="save">
           <div class="editor-heading span-2">
-            <strong>Document details</strong>
-            <span>Document metadata is saved for the active Nexa workspace.</span>
+            <strong>{{ t('businessDocuments.documentDetails') }}</strong>
+            <span>{{ t('businessDocuments.documentDetailsDesc') }}</span>
           </div>
-          <label>Document type<select v-model="form.type"><option v-for="type in documentTypes" :key="type" :value="type">{{ typeLabel(type) }}</option></select></label>
-          <label>Client<select v-model="form.clientId"><option v-for="client in D.clients" :key="client.id" :value="client.id">{{ client.commercialName || client.businessName }}</option></select></label>
-          <label class="span-2">Related order<select v-model="form.orderId"><option value="" disabled>Select real order</option><option v-for="order in D.purchaseOrders" :key="order.id" :value="order.id">{{ displayCode(order) }} · {{ ds.clientName(order.clientId) }}</option></select></label>
-          <label>Source<select v-model="form.source"><option v-for="source in documentSources" :key="source" :value="source">{{ sourceLabel(source) }}</option></select></label>
-          <label>Status<select v-model="form.status"><option v-for="status in documentStatuses" :key="status" :value="status">{{ documentStatusLabel(status) }}</option></select></label>
-          <label class="span-2">File reference<input v-model="form.fileName" placeholder="dispatch-guide.pdf" /></label>
-          <label class="span-2">Notes<textarea v-model="form.notes" rows="2" placeholder="Document condition, validation notes, or buyer portal requirement."></textarea></label>
+          <label>{{ t('businessDocuments.form.type') }}<select v-model="form.type"><option v-for="type in documentTypes" :key="type" :value="type">{{ typeLabel(type) }}</option></select></label>
+          <label>{{ t('businessDocuments.form.client') }}<select v-model="form.clientId"><option v-for="client in D.clients" :key="client.id" :value="client.id">{{ client.commercialName || client.businessName }}</option></select></label>
+          <label class="span-2">{{ t('businessDocuments.form.relatedOrder') }}<select v-model="form.orderId"><option value="" disabled>{{ t('businessDocuments.form.selectRealOrder') }}</option><option v-for="order in D.purchaseOrders" :key="order.id" :value="order.id">{{ displayCode(order) }} · {{ ds.clientName(order.clientId) }}</option></select></label>
+          <label>{{ t('businessDocuments.form.source') }}<select v-model="form.source"><option v-for="source in documentSources" :key="source" :value="source">{{ sourceLabel(source) }}</option></select></label>
+          <label>{{ t('portal.table.status') }}<select v-model="form.status"><option v-for="status in documentStatuses" :key="status" :value="status">{{ documentStatusLabel(status) }}</option></select></label>
+          <label class="span-2">{{ t('businessDocuments.form.fileReference') }}<input v-model="form.fileName" placeholder="dispatch-guide.pdf" /></label>
+          <label class="span-2">{{ t('businessDocuments.form.notes') }}<textarea v-model="form.notes" rows="2" :placeholder="t('businessDocuments.form.notesPlaceholder')"></textarea></label>
           <div v-if="formError" class="banner banner-danger span-2"><i class="pi pi-exclamation-triangle"></i><div>{{ formError }}</div></div>
           <div class="form-actions span-2">
-            <button class="btn btn-secondary" type="button" @click="showForm = false; resetForm()">Cancel</button>
-            <button class="btn btn-primary" type="submit" :disabled="saving || !form.orderId || !form.clientId">{{ saving ? 'Saving...' : 'Save document' }}</button>
+            <button class="btn btn-secondary" type="button" @click="showForm = false; resetForm()">{{ t('common.cancel') }}</button>
+            <button class="btn btn-primary" type="submit" :disabled="saving || !form.orderId || !form.clientId">{{ saving ? t('common.saving') : t('businessDocuments.saveDocument') }}</button>
           </div>
         </form>
       </div>
@@ -271,40 +273,40 @@ function compareDocument(a, b) {
       <section class="scenario-card">
         <div class="scenario-icon"><i class="pi pi-file-check"></i></div>
         <div>
-          <strong>Dispatch document readiness</strong>
-          <p>Sales tracks only Nexa order documents required for dispatch: factura XML, factura PDF and guia PDF.</p>
+          <strong>{{ t('businessDocuments.readinessTitle') }}</strong>
+          <p>{{ t('businessDocuments.readinessDesc') }}</p>
         </div>
       </section>
 
       <div class="grid-4" style="margin-bottom:18px">
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> Pending</div>
+          <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> {{ t('common.pending') }}</div>
           <div class="kpi-value" style="color:#F59E0B">{{ pendingCount }}</div>
-          <div class="kpi-sub">Documents awaiting upload or review</div>
+          <div class="kpi-sub">{{ t('businessDocuments.kpi.pendingSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-search" style="color:#F97316"></i> Review</div>
+          <div class="kpi-label"><i class="pi pi-search" style="color:#F97316"></i> {{ t('businessDocuments.kpi.review') }}</div>
           <div class="kpi-value" style="color:#F97316">{{ reviewCount }}</div>
-          <div class="kpi-sub">Need operations validation</div>
+          <div class="kpi-sub">{{ t('businessDocuments.kpi.reviewSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-truck" style="color:#2563EB"></i> Linked</div>
+          <div class="kpi-label"><i class="pi pi-truck" style="color:#2563EB"></i> {{ t('businessDocuments.kpi.linked') }}</div>
           <div class="kpi-value" style="color:#2563EB">{{ linkedCount }}</div>
-          <div class="kpi-sub">Linked shipments or orders</div>
+          <div class="kpi-sub">{{ t('businessDocuments.kpi.linkedSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#B91C1C"></i> Missing</div>
+          <div class="kpi-label"><i class="pi pi-exclamation-triangle" style="color:#B91C1C"></i> {{ t('businessDocuments.kpi.missing') }}</div>
           <div class="kpi-value" style="color:#B91C1C">{{ missingCount }}</div>
-          <div class="kpi-sub">Must be resolved before closure</div>
+          <div class="kpi-sub">{{ t('businessDocuments.kpi.missingSub') }}</div>
         </div>
       </div>
 
       <div class="filter-bar">
         <button v-for="status in ['all', 'pending', 'uploaded', 'ready', 'missing', 'accepted']" :key="status" class="filter-chip" :class="{ active: statusFilter === status }" @click="statusFilter = status">
-          {{ status === 'all' ? 'All statuses' : documentStatusLabel(status) }}
+          {{ status === 'all' ? t('businessDocuments.filters.allStatuses') : documentStatusLabel(status) }}
         </button>
-        <select v-model="typeFilter" class="compact-filter"><option value="all">All document types</option><option v-for="type in documentTypes" :key="type" :value="type">{{ typeLabel(type) }}</option></select>
-        <select v-model="clientFilter" class="compact-filter"><option value="all">All clients</option><option v-for="client in D.clients" :key="client.id" :value="client.id">{{ client.commercialName || client.businessName }}</option></select>
+        <select v-model="typeFilter" class="compact-filter"><option value="all">{{ t('businessDocuments.filters.allTypes') }}</option><option v-for="type in documentTypes" :key="type" :value="type">{{ typeLabel(type) }}</option></select>
+        <select v-model="clientFilter" class="compact-filter"><option value="all">{{ t('businessDocuments.filters.allClients') }}</option><option v-for="client in D.clients" :key="client.id" :value="client.id">{{ client.commercialName || client.businessName }}</option></select>
       </div>
 
       <section class="order-document-grid">
@@ -313,17 +315,17 @@ function compareDocument(a, b) {
             <div>
               <div class="mono order-code">{{ displayCode(card.order) }}</div>
               <h2>{{ ds.clientName(card.order.clientId) }}</h2>
-              <p class="muted-text">Documents required before dispatch closure.</p>
+              <p class="muted-text">{{ t('businessDocuments.requiredBeforeDispatch') }}</p>
             </div>
             <span :class="['badge', card.missingCount ? 'badge-amber' : 'badge-green']">
-              {{ card.readyCount }}/{{ requiredDocumentTypes.length }} ready
+              {{ t('businessDocuments.readyCount', { ready: card.readyCount, total: requiredDocumentTypes.length }) }}
             </span>
           </div>
           <div class="document-checklist">
             <div v-for="item in card.required" :key="item.type" class="document-check-row">
               <span>
                 <strong>{{ typeLabel(item.type) }}</strong>
-                <small>{{ item.document?.fileName || 'Pending file reference' }}</small>
+                <small>{{ item.document?.fileName || t('businessDocuments.pendingFileReference') }}</small>
               </span>
               <span :class="'badge ' + documentStatusBadge(item.status)">{{ documentStatusLabel(item.status) }}</span>
               <button
@@ -333,26 +335,26 @@ function compareDocument(a, b) {
                 @click="generateDocumentForOrder(card.order, item.type)"
               >
                 <i :class="'pi ' + generationIcon(item.type)"></i>
-                {{ item.document ? 'Regenerate' : generationLabel(item.type) }}
+                {{ item.document ? t('businessDocuments.actions.regenerate') : generationLabel(item.type) }}
               </button>
             </div>
           </div>
           <button class="btn btn-primary order-detail-button" type="button" @click="openOrderDocuments(card.order)">
-            <i class="pi pi-folder-open"></i> View document details
+            <i class="pi pi-folder-open"></i> {{ t('businessDocuments.viewDetails') }}
           </button>
         </article>
         <div v-if="!orderDocumentCards.length" class="empty-state compact">
           <div class="empty-state-icon"><i class="pi pi-shopping-cart"></i></div>
-          <div class="empty-state-title">No orders available</div>
-          <div class="empty-state-desc">Accepted or manual orders will appear here for document preparation.</div>
+          <div class="empty-state-title">{{ t('businessDocuments.noOrdersTitle') }}</div>
+          <div class="empty-state-desc">{{ t('businessDocuments.noOrdersDesc') }}</div>
         </div>
       </section>
 
       <section class="flow-panel document-card-queue">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Document records</div>
-            <div class="flow-subtitle">Document records filtered and sorted from the active tenant workspace.</div>
+            <div class="flow-title">{{ t('businessDocuments.recordsTitle') }}</div>
+            <div class="flow-subtitle">{{ t('businessDocuments.recordsSubtitle') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad document-record-grid">
@@ -363,14 +365,14 @@ function compareDocument(a, b) {
             <div class="document-record-body">
               <strong>{{ document.label || typeLabel(document.type) }}</strong>
               <span>{{ ds.clientName(document.clientId) }} · <span class="mono">{{ document.orderId }}</span></span>
-              <small>{{ document.fileName || 'File reference pending' }} · {{ sourceLabel(document.source) }}</small>
+              <small>{{ document.fileName || t('businessDocuments.fileReferencePending') }} · {{ sourceLabel(document.source) }}</small>
             </div>
             <span :class="'badge ' + documentStatusBadge(document.status)">{{ documentStatusLabel(document.status) }}</span>
           </article>
           <div v-if="!documents.length" class="empty-state compact">
             <div class="empty-state-icon"><i class="pi pi-file"></i></div>
-            <div class="empty-state-title">No documents found</div>
-            <div class="empty-state-desc">No operational document records match this filter.</div>
+            <div class="empty-state-title">{{ t('businessDocuments.emptyTitle') }}</div>
+            <div class="empty-state-desc">{{ t('businessDocuments.emptyDesc') }}</div>
           </div>
         </div>
       </section>

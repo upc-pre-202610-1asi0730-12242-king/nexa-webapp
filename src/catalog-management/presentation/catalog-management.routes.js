@@ -9,7 +9,7 @@ export const catalogManagementRoutes = [
     path: 'commercial/promotions',
     name: 'commercial-promotions',
     component: () => import('@/catalog-management/presentation/promotions/views/promotions-manager-view.vue'),
-    meta: { roles: ['owner', 'commercial', 'logistics'] },
+    meta: { roles: ['owner'] },
   },
   { path: 'catalog', redirect: '/ops/product-catalog' },
   { path: 'operations/promotions', redirect: '/ops/commercial/promotions' },

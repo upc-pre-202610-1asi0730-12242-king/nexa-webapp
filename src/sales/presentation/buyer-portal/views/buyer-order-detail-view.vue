@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useBuyerPortalStore } from '@/sales/application/buyer-portal/buyer-portal.store';
@@ -9,6 +10,7 @@ import { formatAddress } from '@/shared/utils/address.utils';
 
 const route = useRoute();
 const router = useRouter();
+const { t, locale } = useI18n();
 const auth = useAuthStore();
 const ds = useDataStore();
 const buyerPortal = useBuyerPortalStore();
@@ -71,7 +73,7 @@ async function downloadDocument(document) {
     anchor.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    documentError.value = error?.message || 'Document download failed.';
+    documentError.value = error?.message || t('portal.orderDetail.downloadFailed');
   } finally {
     downloadingDocumentId.value = null;
   }
@@ -85,19 +87,19 @@ watch(orderReadModelId, (id) => {
 <template>
   <div v-if="!order" class="empty-state">
     <div class="empty-state-icon"><i class="pi pi-search"></i></div>
-    <div class="empty-state-title">Purchase Order not available</div>
-    <button class="btn btn-primary" @click="router.push('/portal/purchase-orders')">My Orders</button>
+    <div class="empty-state-title">{{ t('portal.orderDetail.notAvailable') }}</div>
+    <button class="btn btn-primary" @click="router.push('/portal/purchase-orders')">{{ t('portal.nav.orders') }}</button>
   </div>
 
   <template v-else>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-      <button class="btn btn-ghost btn-sm" @click="router.push('/portal/purchase-orders')"><i class="pi pi-arrow-left"></i> Purchase Orders</button>
+      <button class="btn btn-ghost btn-sm" @click="router.push('/portal/purchase-orders')"><i class="pi pi-arrow-left"></i> {{ t('portal.orderDetail.purchaseOrders') }}</button>
       <div style="flex:1">
         <div class="flow-row">
           <span class="page-title mono">{{ displayCode(order) }}</span>
           <span :class="'badge ' + orderStatusBadge(trackedOrder.status)">{{ orderStatusLabel(trackedOrder.status) }}</span>
         </div>
-        <div class="page-subtitle">Delivery {{ order.requestedDeliveryDate }} - {{ dispatch?.routeName || 'Route not assigned yet' }}</div>
+        <div class="page-subtitle">{{ t('portal.orderDetail.delivery') }} {{ order.requestedDeliveryDate }} - {{ dispatch?.routeName || t('portal.orderList.notAssigned') }}</div>
       </div>
     </div>
 
@@ -105,15 +107,15 @@ watch(orderReadModelId, (id) => {
       <div style="position:relative;z-index:1">
         <div class="buyer-title">{{ orderStatusLabel(trackedOrder.status) }}</div>
         <div class="buyer-subtitle" style="margin-top:8px">
-          {{ deliveryAddressText || 'Delivery address not configured' }}.
-          Status updates come from the S2 Dispatch Orders board and are stored as Nexa dispatch events.
+          {{ deliveryAddressText || t('portal.orderDetail.addressNotConfigured') }}.
+          {{ t('portal.orderDetail.statusSource') }}
         </div>
       </div>
     </section>
 
     <div class="flow-grid-12">
       <section class="flow-panel span-12">
-        <div class="flow-panel-head"><div class="flow-title">Purchase Order Timeline</div></div>
+        <div class="flow-panel-head"><div class="flow-title">{{ t('portal.orderDetail.timeline') }}</div></div>
         <div class="flow-panel-pad">
           <div class="flow-timeline-horizontal">
             <div v-for="step in steps" :key="step.key" class="flow-track-step" :class="step.state">
@@ -126,9 +128,9 @@ watch(orderReadModelId, (id) => {
       </section>
 
       <section class="flow-panel span-6">
-        <div class="flow-panel-head"><div class="flow-title">Products</div></div>
+        <div class="flow-panel-head"><div class="flow-title">{{ t('portal.products') }}</div></div>
         <table class="data-table">
-          <thead><tr><th>Product</th><th>Cold Chain</th><th>Quantity</th></tr></thead>
+          <thead><tr><th>{{ t('orderDetail.product') }}</th><th>{{ t('portal.orderDetail.coldChain') }}</th><th>{{ t('orderDetail.quantity') }}</th></tr></thead>
           <tbody>
             <tr v-for="item in items" :key="item.id">
               <td>
@@ -150,7 +152,7 @@ watch(orderReadModelId, (id) => {
 
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
-          <div class="flow-title">Available Business Documents</div>
+          <div class="flow-title">{{ t('portal.orderDetail.documents') }}</div>
         </div>
         <div class="flow-panel-pad">
           <div v-for="doc in docs" :key="doc.id" class="document-check">
@@ -161,7 +163,7 @@ watch(orderReadModelId, (id) => {
             <div class="flow-row">
               <span :class="'badge ' + documentStatusBadge(doc.status)">{{ documentStatusLabel(doc.status) }}</span>
               <button class="btn btn-secondary btn-sm" :disabled="!doc.visibleToBuyer || !doc.fileName || downloadingDocumentId === doc.id" @click="downloadDocument(doc)">
-                {{ downloadingDocumentId === doc.id ? 'Downloading...' : 'Download' }}
+                {{ downloadingDocumentId === doc.id ? t('portal.orderDetail.downloading') : t('portal.orderDetail.download') }}
               </button>
             </div>
           </div>
@@ -170,7 +172,7 @@ watch(orderReadModelId, (id) => {
       </section>
 
       <section class="flow-panel span-6">
-        <div class="flow-panel-head"><div class="flow-title">Visible Events</div></div>
+        <div class="flow-panel-head"><div class="flow-title">{{ t('portal.orderDetail.visibleEvents') }}</div></div>
         <div class="flow-panel-pad">
           <div class="timeline">
             <div v-for="event in visibleEvents" :key="event.id" class="tl-item">
@@ -178,18 +180,18 @@ watch(orderReadModelId, (id) => {
               <div class="tl-dot" style="background:#DBEAFE;color:#1D4ED8"><i class="pi pi-check"></i></div>
               <div class="tl-content">
                 <div class="tl-title">{{ event.label }}</div>
-                <div class="tl-meta">{{ new Date(event.timestamp).toLocaleString('en-US') }}</div>
+                <div class="tl-meta">{{ new Date(event.timestamp).toLocaleString(locale === 'es' ? 'es-PE' : 'en-US') }}</div>
               </div>
             </div>
-            <div v-if="!visibleEvents.length" class="empty-state compact">No buyer-visible dispatch events yet.</div>
+            <div v-if="!visibleEvents.length" class="empty-state compact">{{ t('portal.orderDetail.noVisibleEvents') }}</div>
           </div>
         </div>
       </section>
 
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
-          <div class="flow-title">Map / temperature</div>
-          <a v-if="mapReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer"><i class="pi pi-external-link"></i> Open map</a>
+          <div class="flow-title">{{ t('portal.orderDetail.mapTemperature') }}</div>
+          <a v-if="mapReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer"><i class="pi pi-external-link"></i> {{ t('portal.orderDetail.openMap') }}</a>
         </div>
         <div class="flow-panel-pad flow-stack">
           <div v-if="mapReady" class="route-preview-box">
@@ -201,10 +203,10 @@ watch(orderReadModelId, (id) => {
           </div>
           <div class="banner banner-info" style="margin-bottom:0">
             <i class="pi pi-map"></i>
-            <div>Map is an external Google Maps embed. Route, dispatch status and POD references are registered in Nexa through dispatch orders and visible events.</div>
+            <div>{{ t('portal.orderDetail.mapDescription') }}</div>
           </div>
           <div v-for="log in temps" :key="log.id" class="flow-row-between">
-            <span>{{ new Date(log.timestamp).toLocaleTimeString('en-US') }}</span>
+            <span>{{ new Date(log.timestamp).toLocaleTimeString(locale === 'es' ? 'es-PE' : 'en-US') }}</span>
             <strong>{{ log.temperatureC }} C - {{ log.status }}</strong>
           </div>
         </div>

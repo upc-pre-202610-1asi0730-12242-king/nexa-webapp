@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 
+const { t } = useI18n();
 const ds = useDataStore();
 const totalOrders = computed(() => ds.D.purchaseOrders.length);
 const ordersByStatus = computed(() => ds.D.purchaseOrders.reduce((acc, order) => {
@@ -27,7 +29,7 @@ const statusRows = computed(() => Object.entries(ordersByStatus.value).map(([sta
   tone: statusTone(status),
 })).sort((a, b) => b.count - a.count));
 const routeRows = computed(() => Object.entries(ds.D.dispatchOrders.reduce((acc, dispatch) => {
-  const route = dispatch.routeName || 'Route pending';
+  const route = dispatch.routeName || t('operationalAnalytics.routePending');
   acc[route] = (acc[route] || 0) + 1;
   return acc;
 }, {})).map(([route, count]) => ({
@@ -37,23 +39,23 @@ const routeRows = computed(() => Object.entries(ds.D.dispatchOrders.reduce((acc,
 })).sort((a, b) => b.count - a.count));
 const controlMetrics = computed(() => [
   {
-    label: 'Fulfillment',
+    label: t('operationalAnalytics.fulfillment'),
     value: `${fulfillmentRate.value}%`,
-    detail: `${deliveredOrders.value}/${totalOrders.value} orders delivered`,
+    detail: t('operationalAnalytics.fulfillmentDetail', { delivered: deliveredOrders.value, total: totalOrders.value }),
     score: fulfillmentRate.value,
     icon: 'pi pi-check-circle',
   },
   {
-    label: 'Document readiness',
+    label: t('operationalAnalytics.documentReadiness'),
     value: `${documentReadiness.value}%`,
-    detail: `${documentsReady.value}/${ds.D.businessDocuments.length} documents ready`,
+    detail: t('operationalAnalytics.documentReadinessDetail', { ready: documentsReady.value, total: ds.D.businessDocuments.length }),
     score: documentReadiness.value,
     icon: 'pi pi-file-check',
   },
   {
-    label: 'Temperature health',
+    label: t('operationalAnalytics.temperatureHealth'),
     value: `${tempHealthRate.value}%`,
-    detail: `${tempAttention.value.length} records need attention`,
+    detail: t('operationalAnalytics.temperatureHealthDetail', { count: tempAttention.value.length }),
     score: tempHealthRate.value,
     icon: 'pi pi-thermometer',
   },
@@ -62,7 +64,19 @@ const stockMovementPreview = computed(() => ds.D.stockMovements.slice(0, 8));
 const stockProductsTouched = computed(() => new Set(ds.D.stockMovements.map(movement => movement.productId)).size);
 
 function statusLabel(status) {
-  return String(status || 'unknown').replaceAll('_', ' ');
+  return {
+    pending: t('operationalAnalytics.status.pending'),
+    submitted: t('operationalAnalytics.status.submitted'),
+    approved: t('operationalAnalytics.status.approved'),
+    ready: t('operationalAnalytics.status.ready'),
+    ready_for_dispatch: t('operationalAnalytics.status.readyForDispatch'),
+    in_progress: t('operationalAnalytics.status.inProgress'),
+    delivered: t('operationalAnalytics.status.delivered'),
+    completed: t('operationalAnalytics.status.completed'),
+    cancelled: t('operationalAnalytics.status.cancelled'),
+    rejected: t('operationalAnalytics.status.rejected'),
+    blocked: t('operationalAnalytics.status.blocked'),
+  }[status] || String(status || 'unknown').replaceAll('_', ' ');
 }
 
 function statusTone(status) {
@@ -81,16 +95,16 @@ function maxBarWidth(count, maxValue) {
   <div>
     <div class="page-header">
       <div>
-        <div class="page-title">Operational Analytics</div>
-        <div class="page-subtitle">Current KPI view reads active workspace records and operational activity.</div>
+        <div class="page-title">{{ t('operationalAnalytics.title') }}</div>
+        <div class="page-subtitle">{{ t('operationalAnalytics.currentKpiSubtitle') }}</div>
       </div>
     </div>
 
     <section class="analytics-hero">
       <div class="analytics-hero-copy">
-        <span>Operations control tower</span>
-        <strong>Cold-chain activity, dispatch workload, documents and order progress in one board.</strong>
-        <p>Use this view to spot whether Sales, warehouse and delivery are aligned before buyer orders move through dispatch.</p>
+        <span>{{ t('operationalAnalytics.controlTower') }}</span>
+        <strong>{{ t('operationalAnalytics.heroTitle') }}</strong>
+        <p>{{ t('operationalAnalytics.heroDesc') }}</p>
       </div>
       <div class="control-metrics">
         <article v-for="metric in controlMetrics" :key="metric.label" class="control-metric">
@@ -108,41 +122,41 @@ function maxBarWidth(count, maxValue) {
 
     <div class="grid-4" style="margin-bottom:18px">
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-box"></i> Catalog items</div>
+        <div class="kpi-label"><i class="pi pi-box"></i> {{ t('operationalAnalytics.catalogItems') }}</div>
         <div class="kpi-value">{{ ds.D.products.length }}</div>
-        <div class="kpi-sub">Workspace catalog records</div>
+        <div class="kpi-sub">{{ t('operationalAnalytics.catalogItemsSub') }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-shopping-cart"></i> Orders</div>
+        <div class="kpi-label"><i class="pi pi-shopping-cart"></i> {{ t('operationalAnalytics.orders') }}</div>
         <div class="kpi-value">{{ ds.D.purchaseOrders.length }}</div>
-        <div class="kpi-sub">Workspace purchase orders</div>
+        <div class="kpi-sub">{{ t('operationalAnalytics.ordersSub') }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-truck"></i> Shipments</div>
+        <div class="kpi-label"><i class="pi pi-truck"></i> {{ t('operationalAnalytics.shipments') }}</div>
         <div class="kpi-value">{{ ds.D.dispatchOrders.length }}</div>
-        <div class="kpi-sub">Shipment records linked to orders</div>
+        <div class="kpi-sub">{{ t('operationalAnalytics.shipmentsSub') }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-thermometer" style="color:#F59E0B"></i> Temperature alerts</div>
+        <div class="kpi-label"><i class="pi pi-thermometer" style="color:#F59E0B"></i> {{ t('operationalAnalytics.temperatureAlerts') }}</div>
         <div class="kpi-value" style="color:#F59E0B">{{ tempAttention.length }}</div>
-        <div class="kpi-sub">Operational temperature records</div>
+        <div class="kpi-sub">{{ t('operationalAnalytics.temperatureAlertsSub') }}</div>
       </div>
     </div>
 
     <div class="grid-2" style="margin-bottom:18px">
       <section class="analytics-score-card">
         <div>
-          <span class="meta-label">Fulfillment</span>
+          <span class="meta-label">{{ t('operationalAnalytics.fulfillment') }}</span>
           <strong>{{ fulfillmentRate }}%</strong>
-          <p>Delivered orders over total purchase orders in this workspace.</p>
+          <p>{{ t('operationalAnalytics.fulfillmentScoreDesc') }}</p>
         </div>
         <div class="analytics-meter"><span :style="{ width: fulfillmentRate + '%' }"></span></div>
       </section>
       <section class="analytics-score-card">
         <div>
-          <span class="meta-label">Document readiness</span>
+          <span class="meta-label">{{ t('operationalAnalytics.documentReadiness') }}</span>
           <strong>{{ documentReadiness }}%</strong>
-          <p>Factura XML, factura PDF and guia records ready for buyer/logistics use.</p>
+          <p>{{ t('operationalAnalytics.documentReadinessScoreDesc') }}</p>
         </div>
         <div class="analytics-meter"><span :style="{ width: documentReadiness + '%' }"></span></div>
       </section>
@@ -152,8 +166,8 @@ function maxBarWidth(count, maxValue) {
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Orders by status</div>
-            <div class="flow-subtitle">Real order data grouped for current period.</div>
+            <div class="flow-title">{{ t('operationalAnalytics.byStatus') }}</div>
+            <div class="flow-subtitle">{{ t('operationalAnalytics.byStatusSubtitle') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad flow-stack">
@@ -166,25 +180,25 @@ function maxBarWidth(count, maxValue) {
               <span :class="'tone-' + row.tone" :style="{ width: maxBarWidth(row.count, maxStatusCount) }"></span>
             </div>
           </div>
-          <div v-if="!statusRows.length" class="empty-state compact">No purchase order records available.</div>
+          <div v-if="!statusRows.length" class="empty-state compact">{{ t('operationalAnalytics.noPurchaseOrders') }}</div>
         </div>
       </section>
 
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Stock movements</div>
-            <div class="flow-subtitle">{{ movementCount }} stock movement records from active operations.</div>
+            <div class="flow-title">{{ t('operationalAnalytics.stockMovements') }}</div>
+            <div class="flow-subtitle">{{ t('operationalAnalytics.stockMovementsSubtitle', { count: movementCount }) }}</div>
           </div>
         </div>
         <div class="flow-panel-pad flow-stack">
           <div class="movement-summary">
             <article>
-              <span>Total movements</span>
+              <span>{{ t('operationalAnalytics.totalMovements') }}</span>
               <strong>{{ movementCount }}</strong>
             </article>
             <article>
-              <span>Catalog touched</span>
+              <span>{{ t('operationalAnalytics.catalogTouched') }}</span>
               <strong>{{ stockProductsTouched }}</strong>
             </article>
           </div>
@@ -193,8 +207,8 @@ function maxBarWidth(count, maxValue) {
             <strong>{{ movement.qty }}</strong>
           </div>
           <div v-if="!ds.D.stockMovements.length" class="empty-state compact">
-            <div class="empty-state-title">No stock movement records</div>
-            <div class="empty-state-desc">No stock movement records are available for this workspace.</div>
+            <div class="empty-state-title">{{ t('operationalAnalytics.noMovementsTitle') }}</div>
+            <div class="empty-state-desc">{{ t('operationalAnalytics.noMovementsDesc') }}</div>
           </div>
         </div>
       </section>
@@ -202,8 +216,8 @@ function maxBarWidth(count, maxValue) {
       <section class="flow-panel span-12">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Dispatch workload by route</div>
-            <div class="flow-subtitle">Operational distribution load from active dispatch orders.</div>
+            <div class="flow-title">{{ t('operationalAnalytics.dispatchByRoute') }}</div>
+            <div class="flow-subtitle">{{ t('operationalAnalytics.dispatchByRouteSubtitle') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad route-analytics-grid">
@@ -213,9 +227,9 @@ function maxBarWidth(count, maxValue) {
               <strong>{{ row.count }}</strong>
             </div>
             <div class="analytics-bar"><span :style="{ width: maxBarWidth(row.count, maxRouteCount) }"></span></div>
-            <small>{{ row.percent }}% of dispatch workload</small>
+            <small>{{ t('operationalAnalytics.dispatchWorkloadPercent', { percent: row.percent }) }}</small>
           </div>
-          <div v-if="!routeRows.length" class="empty-state compact">No dispatch route records available.</div>
+          <div v-if="!routeRows.length" class="empty-state compact">{{ t('operationalAnalytics.noDispatchRoutes') }}</div>
         </div>
       </section>
     </div>

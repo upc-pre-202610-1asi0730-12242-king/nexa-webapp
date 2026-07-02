@@ -49,7 +49,7 @@ function save() {
       </div>
       <div class="rules-kpis">
         <span>{{ rules.filter(rule => (rule.status || 'enabled') === 'enabled').length }} {{ $t('common.enabled') }}</span>
-        <span>{{ rules.filter(rule => (rule.status || '') === 'review').length }} {{ $t('common.review') }}</span>
+        <span>{{ rules.filter(rule => (rule.status || 'enabled') === 'disabled').length }} {{ $t('common.disabled') }}</span>
       </div>
     </div>
     <div class="section-toolbar">
@@ -74,7 +74,6 @@ function save() {
         <div class="rule-actions">
           <button type="button" class="admin-button" @click="edit(rule, $t)">{{ $t('common.edit') }}</button>
           <button type="button" class="admin-button" @click="emit('update-rule', rule.key, { status: 'enabled' })">{{ $t('common.enabled') }}</button>
-          <button type="button" class="admin-button ghost" @click="emit('update-rule', rule.key, { status: 'review' })">{{ $t('common.review') }}</button>
           <button type="button" class="admin-button danger" :disabled="rule.status === 'disabled'" @click="emit('update-rule', rule.key, { status: 'disabled' })">{{ $t('tenant.companyAdmin.actions.deactivate') }}</button>
         </div>
         <form v-if="editingKey === rule.key" class="admin-form admin-editor-panel inline-rule-editor" @submit.prevent="save">
@@ -84,7 +83,7 @@ function save() {
           </div>
           <label>{{ $t('tenant.companyAdmin.form.ruleTitle') }}<input v-model="form.title" required /></label>
           <label>{{ $t('tenant.companyAdmin.form.category') }}<select v-model="form.category"><option>Warehouse</option><option>Logistics</option><option>Dispatch</option><option>Commercial</option><option>Buyer Portal</option></select></label>
-          <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option><option value="review">{{ $t('tenant.companyAdmin.status.review') }}</option></select></label>
+          <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option></select></label>
           <label class="span-2">{{ $t('tenant.companyAdmin.form.description') }}<textarea v-model="form.description" rows="3"></textarea></label>
           <div class="section-toolbar span-2">
             <button type="button" @click="reset()">{{ $t('common.cancel') }}</button>
@@ -101,7 +100,7 @@ function save() {
       </div>
       <label>{{ $t('tenant.companyAdmin.form.ruleTitle') }}<input v-model="form.title" required /></label>
       <label>{{ $t('tenant.companyAdmin.form.category') }}<select v-model="form.category"><option>Warehouse</option><option>Logistics</option><option>Dispatch</option><option>Commercial</option><option>Buyer Portal</option></select></label>
-      <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option><option value="review">{{ $t('tenant.companyAdmin.status.review') }}</option></select></label>
+      <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option></select></label>
       <label class="span-2">{{ $t('tenant.companyAdmin.form.description') }}<textarea v-model="form.description" rows="3"></textarea></label>
       <div class="section-toolbar span-2">
         <button type="button" @click="showForm = false; reset()">{{ $t('common.cancel') }}</button>

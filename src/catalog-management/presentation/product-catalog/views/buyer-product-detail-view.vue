@@ -1,6 +1,8 @@
 <script setup>
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
 import { useProductCatalogStore } from '@/catalog-management/application/product-catalog/product-catalog.store';
@@ -9,6 +11,8 @@ import { brandForProduct, logoForProduct } from '@/catalog-management/applicatio
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
+const toast = useToast();
 const ds = useDataStore();
 const cart = useCartStore();
 const productCatalogStore = useProductCatalogStore();
@@ -50,14 +54,17 @@ const related = computed(() => {
 });
 
 function addToRequest(item, openBuilder = false) {
-  cart.add(item);
+  if (!cart.add(item)) {
+    toast.add({ severity: 'warn', summary: t('catalog.outOfStock'), detail: t('catalog.outOfStockMessage'), life: 3500 });
+    return;
+  }
   if (openBuilder) router.push('/portal/request-builder');
 }
 
 function stockLabel(item) {
-  if (item.status === 'low') return 'Low availability';
-  if (item.status === 'out') return 'Unavailable';
-  return item.commercialAvailability || 'Available';
+  if (item.status === 'low') return t('catalog.lowStock');
+  if (item.status === 'out') return t('catalog.outOfStock');
+  return item.commercialAvailability || t('catalog.available');
 }
 
 watch(productReadModelId, (id) => {
@@ -68,16 +75,16 @@ watch(productReadModelId, (id) => {
 <template>
   <div v-if="!product" class="empty-state">
     <div class="empty-state-icon"><i class="pi pi-search"></i></div>
-    <div class="empty-state-title">Product not found</div>
-    <button class="btn btn-primary" @click="router.push('/portal/product-catalog')">Back to Product Catalog</button>
+    <div class="empty-state-title">{{ t('catalog.detail.notFound') }}</div>
+    <button class="btn btn-primary" @click="router.push('/portal/product-catalog')">{{ t('catalog.detail.back') }}</button>
   </div>
 
   <template v-else>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-      <button class="btn btn-ghost btn-sm" @click="router.push('/portal/product-catalog')"><i class="pi pi-arrow-left"></i> Product Catalog</button>
+      <button class="btn btn-ghost btn-sm" @click="router.push('/portal/product-catalog')"><i class="pi pi-arrow-left"></i> {{ t('portal.nav.catalog') }}</button>
       <div>
         <div class="page-title">{{ product.name }}</div>
-        <div class="page-subtitle">{{ product.sku }} - {{ product.category }} - Brand: {{ brandForProduct(product) }}</div>
+        <div class="page-subtitle">{{ product.sku }} - {{ product.category }} - {{ t('catalog.detail.brand') }}: {{ brandForProduct(product) }}</div>
       </div>
     </div>
 
@@ -87,7 +94,7 @@ watch(productReadModelId, (id) => {
           <img v-if="logoForProduct(product)" class="buyer-detail-brand-logo" :src="logoForProduct(product)" :alt="brandForProduct(product)" />
           <img v-if="product.imageUrl" class="buyer-product-image buyer-product-image-large" :src="product.imageUrl" :alt="product.name" />
           <i v-else class="pi pi-box" style="font-size:74px"></i>
-          <span v-if="promos.length" class="flow-pill flow-pill-amber" style="position:absolute;left:16px;top:16px">Active offer</span>
+          <span v-if="promos.length" class="flow-pill flow-pill-amber" style="position:absolute;left:16px;top:16px">{{ t('catalog.detail.activeOffer') }}</span>
         </div>
       </section>
 
@@ -104,25 +111,25 @@ watch(productReadModelId, (id) => {
             <div>
               <span class="flow-eyebrow">{{ product.category }}</span>
               <div class="buyer-title">{{ product.name }}</div>
-              <p>{{ product.description || 'Commercial cold-chain product available for an assisted B2B request.' }}</p>
+              <p>{{ product.description || t('catalog.detail.defaultDescription') }}</p>
             </div>
             <div class="buyer-product-price">
-              <span>Reference price</span>
+              <span>{{ t('catalog.detail.referencePrice') }}</span>
               <strong>S/ {{ product.price.toFixed(2) }}</strong>
-              <small>per {{ product.unit }}</small>
+              <small>{{ t('catalog.detail.perUnit', { unit: product.unit }) }}</small>
             </div>
           </div>
 
           <div class="buyer-product-spec-grid">
-            <div><span>Presentation</span><strong>{{ product.presentation || product.unit }}</strong></div>
-            <div><span>Unit</span><strong>{{ product.unit }}</strong></div>
-            <div><span>Approx. weight</span><strong>{{ product.weightKg || 1 }} kg</strong></div>
-            <div><span>Available stock</span><strong>{{ availableStock }} {{ product.unit }}</strong></div>
-            <div><span>Temperature</span><strong>{{ product.temperatureRange || product.temp }}</strong></div>
-            <div><span>Cold-chain type</span><strong>{{ coldTypeLabel(product.coldType) }}</strong></div>
-            <div><span>Warehouse</span><strong>{{ product.warehouse || 'ICISA Lima Cold Hub' }}</strong></div>
-            <div><span>Storage zone</span><strong>{{ product.zone || product.category }}</strong></div>
-            <div><span>Brand</span><strong>{{ brandForProduct(product) }}</strong></div>
+            <div><span>{{ t('catalog.presentation') }}</span><strong>{{ product.presentation || product.unit }}</strong></div>
+            <div><span>{{ t('catalog.unit') }}</span><strong>{{ product.unit }}</strong></div>
+            <div><span>{{ t('catalog.detail.approxWeight') }}</span><strong>{{ product.weightKg || 1 }} kg</strong></div>
+            <div><span>{{ t('catalog.availableStock') }}</span><strong>{{ availableStock }} {{ product.unit }}</strong></div>
+            <div><span>{{ t('catalog.temperature') }}</span><strong>{{ product.temperatureRange || product.temp }}</strong></div>
+            <div><span>{{ t('catalog.detail.coldType') }}</span><strong>{{ coldTypeLabel(product.coldType) }}</strong></div>
+            <div><span>{{ t('catalog.warehouse') }}</span><strong>{{ product.warehouse || 'ICISA Lima Cold Hub' }}</strong></div>
+            <div><span>{{ t('catalog.detail.storageZone') }}</span><strong>{{ product.zone || product.category }}</strong></div>
+            <div><span>{{ t('catalog.detail.brand') }}</span><strong>{{ brandForProduct(product) }}</strong></div>
             <div><span>SKU</span><strong class="mono">{{ product.sku }}</strong></div>
           </div>
 
@@ -138,23 +145,23 @@ watch(productReadModelId, (id) => {
           <div class="buyer-handling-panel">
             <i class="pi pi-snowflake"></i>
             <div>
-              <strong>Cold-chain handling</strong>
-              <span>Keep product at {{ product.temperatureRange || product.temp }}. Request remains subject to Sales validation, stock reservation and refrigerated route capacity.</span>
+              <strong>{{ t('catalog.detail.handling') }}</strong>
+              <span>{{ t('catalog.detail.handlingDescription', { temperature: product.temperatureRange || product.temp }) }}</span>
             </div>
           </div>
 
           <div v-if="product.knowledge" class="banner banner-info">
             <i class="pi pi-info-circle"></i>
-            <div><strong>Product knowledge:</strong> {{ product.knowledge }}</div>
+            <div><strong>{{ t('catalog.detail.knowledge') }}:</strong> {{ product.knowledge }}</div>
           </div>
 
           <div class="buyer-product-actions">
-            <button class="btn btn-secondary btn-lg" type="button" @click="addToRequest(product)">
+            <button class="btn btn-secondary btn-lg" type="button" :disabled="product.status === 'out'" :title="product.status === 'out' ? t('catalog.outOfStockMessage') : ''" @click="addToRequest(product)">
               <i :class="cartProductIds.has(product.id) ? 'pi pi-check' : 'pi pi-plus'"></i>
-              {{ cartProductIds.has(product.id) ? 'Added to request' : 'Add and keep browsing' }}
+              {{ cartProductIds.has(product.id) ? t('catalog.detail.addedToRequest') : t('catalog.detail.addKeepBrowsing') }}
             </button>
-            <button class="btn btn-primary btn-lg" type="button" @click="addToRequest(product, true)">
-              <i class="pi pi-shopping-cart"></i> Add and open request
+            <button class="btn btn-primary btn-lg" type="button" :disabled="product.status === 'out'" :title="product.status === 'out' ? t('catalog.outOfStockMessage') : ''" @click="addToRequest(product, true)">
+              <i class="pi pi-shopping-cart"></i> {{ t('catalog.detail.addOpenRequest') }}
             </button>
           </div>
         </div>
@@ -163,8 +170,8 @@ watch(productReadModelId, (id) => {
       <section class="flow-panel span-12" v-if="related.length">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Related Products</div>
-            <div class="flow-subtitle">Same category, brand or cold-chain handling profile.</div>
+            <div class="flow-title">{{ t('catalog.detail.relatedProducts') }}</div>
+            <div class="flow-subtitle">{{ t('catalog.detail.relatedDescription') }}</div>
           </div>
         </div>
         <div class="related-product-grid flow-panel-pad">
@@ -173,7 +180,7 @@ watch(productReadModelId, (id) => {
               <img v-if="logoForProduct(item)" class="related-brand-logo" :src="logoForProduct(item)" :alt="brandForProduct(item)" loading="lazy" />
               <img v-if="item.imageUrl" class="buyer-product-image" :src="item.imageUrl" :alt="item.name" loading="lazy" />
               <i v-else class="pi pi-box"></i>
-              <span v-if="cartProductIds.has(item.id)" class="flow-pill flow-pill-blue related-selected">Selected</span>
+              <span v-if="cartProductIds.has(item.id)" class="flow-pill flow-pill-blue related-selected">{{ t('catalog.selected') }}</span>
             </button>
             <div class="flow-panel-pad related-product-body">
               <strong>{{ item.name }}</strong>
@@ -184,10 +191,10 @@ watch(productReadModelId, (id) => {
                 <span>{{ stockLabel(item) }}</span>
               </div>
               <div class="related-actions">
-                <button class="btn btn-ghost btn-sm" type="button" @click="router.push('/portal/product-catalog/' + item.id)">View details</button>
+                <button class="btn btn-ghost btn-sm" type="button" @click="router.push('/portal/product-catalog/' + item.id)">{{ t('catalog.viewDetails') }}</button>
                 <button class="btn btn-secondary btn-sm" type="button" @click="addToRequest(item)">
                   <i :class="cartProductIds.has(item.id) ? 'pi pi-check' : 'pi pi-plus'"></i>
-                  {{ cartProductIds.has(item.id) ? 'Added' : 'Add' }}
+                  {{ cartProductIds.has(item.id) ? t('catalog.detail.added') : t('catalog.detail.add') }}
                 </button>
               </div>
             </div>

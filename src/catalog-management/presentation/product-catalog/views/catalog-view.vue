@@ -2,12 +2,14 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
 import { coldTypeBadge, coldTypeLabel } from '@/shared/status';
 import { CATALOG_BRANDS, brandForProduct, logoForProduct } from '@/catalog-management/application/product-catalog/product-brand';
 
 const { t } = useI18n();
+const toast = useToast();
 const router = useRouter();
 const ds = useDataStore();
 const cart = useCartStore();
@@ -78,7 +80,10 @@ function addToManualOrder(product) {
     detail.value = null;
     return;
   }
-  cart.add(product);
+  if (!cart.add(product)) {
+    toast.add({ severity: 'warn', summary: t('catalog.outOfStock'), detail: t('catalog.outOfStockMessage'), life: 3500 });
+    return;
+  }
   detail.value = null;
 }
 
@@ -165,10 +170,6 @@ function goToOrderCart() {
             <span v-if="cartProductIds.has(product.id)" class="flow-pill flow-pill-blue catalog-card-selected">
               {{ t('catalog.selected') }}
             </span>
-            <div v-if="cartProductIds.has(product.id)" class="catalog-card-selected-overlay">
-              <i class="pi pi-trash"></i>
-              <span>{{ t('catalog.remove') }}</span>
-            </div>
           </div>
           <div class="catalog-card-body">
             <div class="flow-row-between catalog-card-title-row">
@@ -181,6 +182,8 @@ function goToOrderCart() {
             <button
               :class="'add-btn ' + (cartProductIds.has(product.id) ? 'add-btn-added' : 'add-btn-default')"
               type="button"
+              :disabled="product.status === 'out'"
+              :title="product.status === 'out' ? t('catalog.outOfStockMessage') : cartProductIds.has(product.id) ? t('catalog.remove') : t('catalog.manualEntry')"
               @click.stop="addToManualOrder(product)"
               :aria-label="cartProductIds.has(product.id) ? t('catalog.remove') : t('catalog.manualEntry')"
             >
@@ -196,6 +199,7 @@ function goToOrderCart() {
               <strong>S/ {{ product.price.toFixed(2) }}</strong>
               <span>{{ product.stock - product.reserved }} {{ product.unit }} {{ t('catalog.dispUnit') }}</span>
             </div>
+            <small v-if="product.status === 'out'" class="catalog-stock-message" role="status">{{ t('catalog.outOfStockMessage') }}</small>
           </div>
         </article>
       </div>
@@ -241,7 +245,7 @@ function goToOrderCart() {
             <button class="btn btn-danger" type="button" :disabled="hasActiveDemand(detail) || detail.status !== 'out'">
               <i class="pi pi-trash"></i> {{ t('catalog.remove') }}
             </button>
-            <button class="btn btn-primary" type="button" @click="addToManualOrder(detail)">
+            <button class="btn btn-primary" type="button" :disabled="detail.status === 'out'" :title="detail.status === 'out' ? t('catalog.outOfStockMessage') : ''" @click="addToManualOrder(detail)">
               <i class="pi pi-plus"></i> {{ t('catalog.useSelectedProduct') }}
             </button>
           </div>
@@ -252,6 +256,10 @@ function goToOrderCart() {
 </template>
 
 <style scoped>
+.catalog-stock-message {
+  color: #b91c1c;
+  font-weight: 800;
+}
 .catalog-page-header {
   margin-bottom: 18px;
 }
@@ -291,39 +299,8 @@ function goToOrderCart() {
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, .14);
 }
-.catalog-management-card.selected:hover {
-  border-color: #dc2626;
-  box-shadow: 0 0 0 2px rgba(220, 38, 38, .14);
-}
 .catalog-management-card.selected:hover .add-btn-added {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #dc2626;
-}
-.catalog-card-selected-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(220, 38, 38, .08);
-  color: #dc2626;
-  opacity: 0;
-  transition: opacity .2s ease;
-}
-.catalog-management-card.selected:hover .catalog-card-selected-overlay {
-  opacity: 1;
-}
-.catalog-card-selected-overlay i {
-  font-size: 28px;
-}
-.catalog-card-selected-overlay span {
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
+  color: #dc2626 !important;
 }
 .catalog-card-offer {
   position: absolute;

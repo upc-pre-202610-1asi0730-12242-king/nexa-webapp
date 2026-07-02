@@ -1,12 +1,14 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { orderStatusLabel, orderStatusBadge, buildOrderTrackingSteps, displayCode, recordTimestamp, documentStatusLabel, documentStatusBadge, effectiveOrderStatus } from '@/shared/status';
 import { formatAddress } from '@/shared/utils/address.utils';
 
 const router = useRouter();
+const { t } = useI18n();
 const auth = useAuthStore();
 const ds = useDataStore();
 
@@ -49,7 +51,7 @@ function latestTemperature(order) {
 function deliveryText(order) {
   const delivery = order.delivery || {};
   const street = [delivery.addressType, delivery.address].filter(Boolean).join(' ');
-  return formatAddress(street, delivery.district, delivery.city, delivery.province) || order.deliveryAddress || 'Delivery address pending';
+  return formatAddress(street, delivery.district, delivery.city, delivery.province) || order.deliveryAddress || t('portal.orderList.deliveryPending');
 }
 </script>
 
@@ -57,33 +59,33 @@ function deliveryText(order) {
   <div class="page-header">
     <div>
       <div class="page-title">{{ $t('portal.nav.orders') }}</div>
-      <div class="page-subtitle">{{ orders.length }} confirmed or historical purchase orders.</div>
+      <div class="page-subtitle">{{ t('portal.orderList.subtitle', { count: orders.length }) }}</div>
     </div>
-    <button class="btn btn-primary" @click="router.push('/portal/product-catalog')"><i class="pi pi-plus"></i> New Request</button>
+    <button class="btn btn-primary" @click="router.push('/portal/product-catalog')"><i class="pi pi-plus"></i> {{ t('portal.orderList.newRequest') }}</button>
   </div>
 
   <div class="grid-3 buyer-order-kpis">
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-truck" style="color:#2563EB"></i> Active orders</div>
+      <div class="kpi-label"><i class="pi pi-truck" style="color:#2563EB"></i> {{ t('portal.orderList.activeOrders') }}</div>
       <div class="kpi-value" style="color:#2563EB">{{ activeOrders.length }}</div>
-      <div class="kpi-sub">Orders still moving through Sales, documents or dispatch.</div>
+      <div class="kpi-sub">{{ t('portal.orderList.activeOrdersDescription') }}</div>
     </div>
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-file-check" style="color:#F59E0B"></i> Pending documents</div>
+      <div class="kpi-label"><i class="pi pi-file-check" style="color:#F59E0B"></i> {{ t('portal.orderList.pendingDocuments') }}</div>
       <div class="kpi-value" style="color:#F59E0B">{{ totalPendingDocs }}</div>
-      <div class="kpi-sub">Required documents not ready for download.</div>
+      <div class="kpi-sub">{{ t('portal.orderList.pendingDocumentsDescription') }}</div>
     </div>
     <div class="card kpi-card">
-      <div class="kpi-label"><i class="pi pi-clock" style="color:#16A34A"></i> Latest activity</div>
+      <div class="kpi-label"><i class="pi pi-clock" style="color:#16A34A"></i> {{ t('portal.orderList.latestActivity') }}</div>
       <div class="kpi-value buyer-order-latest">{{ nextOrder ? displayCode(nextOrder) : '-' }}</div>
-      <div class="kpi-sub">{{ nextOrder ? orderStatusLabel(statusFor(nextOrder)) : 'No order activity yet.' }}</div>
+      <div class="kpi-sub">{{ nextOrder ? orderStatusLabel(statusFor(nextOrder)) : t('portal.orderList.noActivity') }}</div>
     </div>
   </div>
 
   <div v-if="!orders.length" class="empty-state">
     <div class="empty-state-icon"><i class="pi pi-clipboard"></i></div>
-    <div class="empty-state-title">No confirmed purchase orders yet</div>
-    <div class="empty-state-desc">When Sales accepts a request and creates the order, it will appear here.</div>
+    <div class="empty-state-title">{{ t('portal.orderList.empty') }}</div>
+    <div class="empty-state-desc">{{ t('portal.orderList.emptyDescription') }}</div>
   </div>
 
   <div v-else class="flow-stack">
@@ -95,27 +97,27 @@ function deliveryText(order) {
             <span :class="'badge ' + orderStatusBadge(statusFor(order))">{{ orderStatusLabel(statusFor(order)) }}</span>
             <span v-if="dispatchFor(order)" class="flow-pill flow-pill-blue">{{ dispatchFor(order).code || dispatchFor(order).id }}</span>
           </div>
-          <div class="flow-note">{{ order.createdAt?.slice(0, 10) }} - {{ ds.orderItemsFor(order.id).length }} item(s) - {{ order.totalEstimatedWeightKg || 'pending' }} kg</div>
+          <div class="flow-note">{{ order.createdAt?.slice(0, 10) }} - {{ t('portal.orderList.items', { count: ds.orderItemsFor(order.id).length }) }} - {{ order.totalEstimatedWeightKg || t('common.pending') }} kg</div>
           <div class="buyer-order-address"><i class="pi pi-map-marker"></i> {{ deliveryText(order) }}</div>
         </div>
         <div style="text-align:right">
           <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800">S/ {{ Number(order.total || 0).toFixed(2) }}</div>
-          <button class="btn btn-primary btn-sm" style="margin-top:8px" @click="router.push('/portal/purchase-orders/' + order.id)">Tracking</button>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px" @click="router.push('/portal/purchase-orders/' + order.id)">{{ t('portal.orderList.tracking') }}</button>
         </div>
       </div>
 
       <div class="buyer-order-meta-grid">
         <div>
-          <span>Documents</span>
-          <strong>{{ docsFor(order).filter(doc => doc.status === 'ready').length }}/{{ docsFor(order).length }} ready</strong>
+          <span>{{ t('portal.orderList.documents') }}</span>
+          <strong>{{ t('portal.orderList.readyDocuments', { ready: docsFor(order).filter(doc => doc.status === 'ready').length, total: docsFor(order).length }) }}</strong>
         </div>
         <div>
-          <span>Temperature</span>
-          <strong>{{ latestTemperature(order)?.temperatureC !== undefined ? `${latestTemperature(order).temperatureC} C` : 'Pending' }}</strong>
+          <span>{{ t('catalog.temperature') }}</span>
+          <strong>{{ latestTemperature(order)?.temperatureC !== undefined ? `${latestTemperature(order).temperatureC} C` : t('common.pending') }}</strong>
         </div>
         <div>
-          <span>Route</span>
-          <strong>{{ dispatchFor(order)?.routeName || 'Not assigned yet' }}</strong>
+          <span>{{ t('portal.orderList.route') }}</span>
+          <strong>{{ dispatchFor(order)?.routeName || t('portal.orderList.notAssigned') }}</strong>
         </div>
       </div>
 

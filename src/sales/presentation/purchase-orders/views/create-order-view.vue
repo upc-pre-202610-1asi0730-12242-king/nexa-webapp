@@ -19,11 +19,17 @@ const D = ds.D;
 const manualOrderDraftKey = 'nexa.manualOrder.clientId';
 
 const step = ref(1);
-const steps = ['Client', 'Products', 'Delivery', 'Confirm'];
+const steps = computed(() => [
+  t('manualOrder.steps.client'),
+  t('manualOrder.steps.products'),
+  t('manualOrder.steps.delivery'),
+  t('manualOrder.steps.confirm'),
+]);
 const clientSearch = ref('');
 const manualClientId = ref('');
 const selectedClient = ref(null);
 const lines = ref([]);
+const quantityLimitNotice = ref('');
 const delivery = ref({
   date: minDeliveryISO(),
   addressType: 'Av.',
@@ -107,10 +113,10 @@ function proceedToProducts() {
 }
 function orderCreationErrorMessage(error) {
   const data = error?.response?.data;
-  return data?.detail || data?.message || data?.title || error?.message || 'Nexa did not accept the order request.';
+  return data?.detail || data?.message || data?.title || error?.message || t('manualOrder.errors.notAccepted');
 }
 function clientDisplayName(client) {
-  return client?.businessName || client?.commercialName || client?.name || client?.id || 'B2B client';
+  return client?.businessName || client?.commercialName || client?.name || client?.id || t('manualOrder.b2bClient');
 }
 function clientPrimaryContact(client) {
   return D.clientContacts.find(contact => contact.clientId === client.id) || {};
@@ -120,10 +126,10 @@ function clientCreditSnapshot(client) {
 }
 function clientSelectionMeta(client) {
   const credit = clientCreditSnapshot(client);
-  if (['blocked', 'overdue'].includes(credit.status)) return { label: 'Credit blocked', tone: 'danger' };
-  if (credit.limit && credit.percent >= 80) return { label: `${credit.percent}% credit used`, tone: 'warning' };
-  if (client.status !== 'active') return { label: 'Observed client', tone: 'warning' };
-  return { label: 'Ready for order', tone: 'success' };
+  if (['blocked', 'overdue'].includes(credit.status)) return { label: t('manualOrder.clientMeta.creditBlocked'), tone: 'danger' };
+  if (credit.limit && credit.percent >= 80) return { label: t('manualOrder.clientMeta.creditUsed', { percent: credit.percent }), tone: 'warning' };
+  if (client.status !== 'active') return { label: t('manualOrder.clientMeta.observed'), tone: 'warning' };
+  return { label: t('manualOrder.clientMeta.ready'), tone: 'success' };
 }
 const isCreditBlocked = computed(() => {
   const credit = creditSummary(selectedClient.value || {});
@@ -132,17 +138,17 @@ const isCreditBlocked = computed(() => {
 const selectedCredit = computed(() => creditSummary(selectedClient.value || {}));
 const selectedClientState = computed(() => {
   const c = selectedClient.value;
-  if (!c) return { tone: 'neutral', label: 'No client selected', message: 'Select a client to validate Sales conditions.' };
+  if (!c) return { tone: 'neutral', label: t('manualOrder.clientState.none'), message: t('manualOrder.clientState.noneMessage') };
   if (isCreditBlocked.value) {
-    return { tone: 'danger', label: 'Blocked', message: 'Credit limit is exhausted. Order cannot continue.' };
+    return { tone: 'danger', label: t('manualOrder.clientState.blocked'), message: t('manualOrder.clientState.blockedMessage') };
   }
   if (selectedCredit.value.percent >= 80) {
-    return { tone: 'warning', label: 'Review credit', message: 'Credit usage is high. Confirm condition before order entry.' };
+    return { tone: 'warning', label: t('manualOrder.clientState.reviewCredit'), message: t('manualOrder.clientState.reviewCreditMessage') };
   }
   if (c.status !== 'active') {
-    return { tone: 'warning', label: 'Observed', message: 'Client is observed. Review Sales notes before confirming.' };
+    return { tone: 'warning', label: t('manualOrder.clientState.observed'), message: t('manualOrder.clientState.observedMessage') };
   }
-  return { tone: 'success', label: 'Validated', message: 'Client can continue to product selection.' };
+  return { tone: 'success', label: t('manualOrder.clientState.validated'), message: t('manualOrder.clientState.validatedMessage') };
 });
 const filteredClients = computed(() => {
   const q = clientSearch.value.trim().toLowerCase();
@@ -167,14 +173,17 @@ const manualClient = computed(() => {
     id,
     name: id,
     status: 'active',
-    condition: 'Direct customer identifier',
-    type: 'Direct order customer',
+    condition: t('manualOrder.directCustomerIdentifier'),
+    type: t('manualOrder.directOrderCustomer'),
     address: '',
   };
 });
 function addLine(p) {
   const max = Math.max(0, p.stock - p.reserved);
-  if (!max) return;
+  if (!max) {
+    toast.add({ severity: 'warn', summary: t('catalog.outOfStock'), detail: t('catalog.outOfStockMessage'), life: 3500 });
+    return;
+  }
   const existing = lines.value.find(l => l.productId === p.id);
   if (existing) existing.qty = Math.min(existing.qty + 1, existing.max);
   else lines.value.push({ productId: p.id, qty: 1, price: p.price, name: p.name, unit: p.unit, imageUrl: p.imageUrl, max });
@@ -202,16 +211,18 @@ function syncLinesFromCart() {
 const total = computed(() => lines.value.reduce((s, l) => s + l.price * l.qty, 0));
 const shippingCost = computed(() => total.value > 0 ? Math.max(18, Math.min(85, total.value * 0.035)) : 0);
 const grandTotal = computed(() => total.value + shippingCost.value);
-const shippingEta = computed(() => delivery.value.date || 'Pending');
+const shippingEta = computed(() => delivery.value.date || t('common.pending'));
 const hasInvalidLines = computed(() => lines.value.some(l => !l.qty || l.qty < 1 || l.qty > l.max));
 function setLineQuantity(line, quantity) {
-  line.qty = Math.max(1, Math.min(line.max, Number(quantity || 1)));
+  const requested = Number(quantity || 1);
+  line.qty = Math.max(1, Math.min(line.max, requested));
+  quantityLimitNotice.value = requested > line.max ? t('manualOrder.stockLimit', { stock: line.max }) : '';
 }
 const deliveryDateWarning = computed(() => {
-  if (!delivery.value.date) return 'Delivery date is required.';
+  if (!delivery.value.date) return t('manualOrder.errors.deliveryDateRequired');
   const selected = new Date(`${delivery.value.date}T00:00:00`);
   const minimum = new Date(`${minDeliveryISO()}T00:00:00`);
-  if (selected < minimum) return 'Delivery date must be at least 3 days after order creation.';
+  if (selected < minimum) return t('manualOrder.errors.deliveryDateMinimum');
   return '';
 });
 const canConfirmOrder = computed(() =>
@@ -241,15 +252,15 @@ const mapEmbedUrl = computed(() => `https://maps.google.com/maps?saddr=${encoded
 const mapDirectionsUrl = computed(() => `https://www.google.com/maps/dir/?api=1&origin=${encodedWarehouseOrigin.value}&destination=${encodedDeliveryAddress.value}&travelmode=driving`);
 const totalUnits = computed(() => lines.value.reduce((sum, line) => sum + Number(line.qty || 0), 0));
 const reviewPriorityLabel = computed(() => ({
-  low: 'Low priority',
-  medium: 'Medium priority',
-  high: 'High priority',
+  low: t('manualOrder.priority.lowLabel'),
+  medium: t('manualOrder.priority.mediumLabel'),
+  high: t('manualOrder.priority.highLabel'),
 }[delivery.value.priority] || delivery.value.priority));
 const reviewChecks = computed(() => [
-  { icon: 'pi-user', label: 'Client validated', value: selectedClient?.value?.commercialName || selectedClient?.value?.businessName || selectedClient?.value?.name || 'Pending', ok: !!selectedClient.value },
-  { icon: 'pi-box', label: 'Products selected', value: `${lines.value.length} SKUs / ${totalUnits.value} units`, ok: !!lines.value.length && !hasInvalidLines.value },
-  { icon: 'pi-map-marker', label: 'Delivery route', value: deliveryDestination.value || 'Pending', ok: deliveryAddressReady.value },
-  { icon: 'pi-calendar', label: 'Requested date', value: delivery.value.date || 'Pending', ok: !deliveryDateWarning.value },
+  { icon: 'pi-user', label: t('manualOrder.review.clientValidated'), value: selectedClient?.value?.commercialName || selectedClient?.value?.businessName || selectedClient?.value?.name || t('common.pending'), ok: !!selectedClient.value },
+  { icon: 'pi-box', label: t('manualOrder.review.productsSelected'), value: t('manualOrder.review.skuUnits', { skus: lines.value.length, units: totalUnits.value }), ok: !!lines.value.length && !hasInvalidLines.value },
+  { icon: 'pi-map-marker', label: t('manualOrder.review.deliveryRoute'), value: deliveryDestination.value || t('common.pending'), ok: deliveryAddressReady.value },
+  { icon: 'pi-calendar', label: t('manualOrder.review.requestedDate'), value: delivery.value.date || t('common.pending'), ok: !deliveryDateWarning.value },
 ]);
 watch(() => cart.items, syncLinesFromCart, { deep: true, immediate: true });
 watch(() => cart.items.length, count => {
@@ -263,7 +274,7 @@ onMounted(async () => {
       referenceDataApi.get('districts'),
     ]);
   } catch (error) {
-    locationError.value = error?.message || 'Delivery locations are unavailable.';
+    locationError.value = error?.message || t('manualOrder.errors.locationsUnavailable');
   }
   const savedClientId = localStorage.getItem(manualOrderDraftKey);
   const savedClient = savedClientId ? D.clients.find(client => client.id === savedClientId) : null;
@@ -273,7 +284,7 @@ onMounted(async () => {
 });
 async function confirm() {
   if (!canConfirmOrder.value) {
-    toast.add({ severity: 'warn', summary: 'Review order data', detail: deliveryDateWarning.value || 'Client, stock and quantities must be valid.', life: 3500 });
+    toast.add({ severity: 'warn', summary: t('manualOrder.errors.reviewData'), detail: deliveryDateWarning.value || t('manualOrder.errors.invalidData'), life: 3500 });
     return;
   }
   const newId = ds.nextOrderId();
@@ -316,19 +327,19 @@ async function confirm() {
     });
     cart.clear();
     localStorage.removeItem(manualOrderDraftKey);
-    toast.add({ severity: 'success', summary: 'Purchase order created', detail: `${created.id} - pending`, life: 3500 });
+    toast.add({ severity: 'success', summary: t('manualOrder.created'), detail: `${created.id} - ${t('common.pending')}`, life: 3500 });
     router.push(`/ops/commercial/purchase-orders/${created.id}`);
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Order was not created', detail: orderCreationErrorMessage(error), life: 5000 });
+    toast.add({ severity: 'error', summary: t('manualOrder.errors.notCreated'), detail: orderCreationErrorMessage(error), life: 5000 });
   }
 }
 </script>
 
 <template>
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-    <button class="btn btn-ghost btn-sm" @click="router.push('/ops/commercial/purchase-orders')"><i class="pi pi-arrow-left"></i> Purchase Orders</button>
+    <button class="btn btn-ghost btn-sm" @click="router.push('/ops/commercial/purchase-orders')"><i class="pi pi-arrow-left"></i> {{ t('nav.orders') }}</button>
     <div style="flex:1">
-      <div class="page-title">Manual Order Entry</div>
+      <div class="page-title">{{ t('manualOrder.title') }}</div>
       <div class="page-subtitle">{{ D.company.name }}</div>
     </div>
   </div>
@@ -346,29 +357,29 @@ async function confirm() {
 
   <!-- STEP 1: Client -->
   <div v-if="step === 1">
-    <div class="card-title" style="margin-bottom:12px">Select Client</div>
+    <div class="card-title" style="margin-bottom:12px">{{ t('manualOrder.selectClient') }}</div>
     <div class="manual-order-client-grid">
       <div class="grid-1" style="display:flex;flex-direction:column;gap:10px">
         <div class="search-input" style="width:100%;min-width:0">
           <i class="pi pi-search"></i>
-          <input v-model="clientSearch" placeholder="Search by company name or RUC" aria-label="Search by company name or RUC" />
+          <input v-model="clientSearch" :placeholder="t('manualOrder.searchPlaceholder')" :aria-label="t('manualOrder.searchPlaceholder')" />
         </div>
         <div v-if="!D.clients.length" class="card card-pad">
           <div class="banner banner-info" style="margin-bottom:12px">
             <i class="pi pi-info-circle"></i>
-            <div>Client account lookup is not available for this workspace. Enter a customer identifier to create an order through the Orders API.</div>
+            <div>{{ t('manualOrder.lookupUnavailable') }}</div>
           </div>
           <label class="field">
-            <span class="field-label">Customer identifier</span>
+            <span class="field-label">{{ t('manualOrder.customerIdentifier') }}</span>
             <input class="plain-input" v-model="manualClientId" placeholder="CUS-0001 or CLI-001" />
           </label>
           <button class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center" :disabled="!manualClient" @click="pickClient(manualClient)">
-            Use customer identifier
+            {{ t('manualOrder.useCustomerIdentifier') }}
           </button>
         </div>
         <div v-else-if="!filteredClients.length" class="empty-state" style="padding:28px">
           <div class="empty-state-icon"><i class="pi pi-search"></i></div>
-          <div class="empty-state-title">No clients found.</div>
+          <div class="empty-state-title">{{ t('manualOrder.noClientsFound') }}</div>
         </div>
         <button
           v-for="c in filteredClients"
@@ -384,16 +395,16 @@ async function confirm() {
               <strong>{{ clientDisplayName(c) }}</strong>
               <i v-if="selectedClient?.id === c.id" class="pi pi-check-circle"></i>
             </div>
-            <small>{{ c.ruc || 'No RUC' }} · {{ c.type || c.segment || 'B2B account' }}</small>
+            <small>{{ c.ruc || t('manualOrder.noRuc') }} · {{ c.type || c.segment || t('manualOrder.b2bAccount') }}</small>
             <div class="manual-client-meta">
-              <span><i class="pi pi-user"></i> {{ clientPrimaryContact(c).name || c.contact || 'Contact pending' }}</span>
-              <span><i class="pi pi-phone"></i> {{ c.phone || clientPrimaryContact(c).phone || 'No phone' }}</span>
-              <span><i class="pi pi-map-marker"></i> {{ c.district || c.address || 'Address pending' }}</span>
+              <span><i class="pi pi-user"></i> {{ clientPrimaryContact(c).name || c.contact || t('manualOrder.contactPending') }}</span>
+              <span><i class="pi pi-phone"></i> {{ c.phone || clientPrimaryContact(c).phone || t('manualOrder.noPhone') }}</span>
+              <span><i class="pi pi-map-marker"></i> {{ c.district || c.address || t('manualOrder.addressPending') }}</span>
             </div>
             <div class="manual-client-footer">
-              <span :class="'badge ' + (c.status === 'active' ? 'badge-green' : 'badge-amber')">{{ c.status === 'active' ? 'Active' : 'Observed' }}</span>
+              <span :class="'badge ' + (c.status === 'active' ? 'badge-green' : 'badge-amber')">{{ c.status === 'active' ? t('clients.active') : t('clients.observed') }}</span>
               <span :class="'manual-client-credit ' + clientSelectionMeta(c).tone">{{ clientSelectionMeta(c).label }}</span>
-              <span v-if="clientCreditSnapshot(c).limit" class="manual-client-amount">Available S/ {{ clientCreditSnapshot(c).available.toLocaleString() }}</span>
+              <span v-if="clientCreditSnapshot(c).limit" class="manual-client-amount">{{ t('manualOrder.availableCredit', { amount: clientCreditSnapshot(c).available.toLocaleString() }) }}</span>
             </div>
           </span>
         </button>
@@ -403,13 +414,13 @@ async function confirm() {
       <div style="position:sticky;top:24px">
         <div v-if="!selectedClient" class="card card-pad" style="text-align:center;color:#9CA3AF">
           <div style="font-size:32px;margin-bottom:12px"><i class="pi pi-user"></i></div>
-          <div style="font-size:13px">Select a client to view Sales conditions</div>
+          <div style="font-size:13px">{{ t('manualOrder.selectClientHelp') }}</div>
         </div>
 
         <template v-else>
           <div class="card card-pad" style="margin-bottom:12px">
             <div style="font-size:10px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;display:flex;align-items:center;gap:5px">
-              <i class="pi pi-file-edit"></i> Sales Conditions
+              <i class="pi pi-file-edit"></i> {{ t('manualOrder.salesConditions') }}
             </div>
             <div
               :class="'banner ' + (selectedClientState.tone === 'danger' ? 'banner-danger' : selectedClientState.tone === 'warning' ? 'banner-warning' : selectedClientState.tone === 'success' ? 'banner-success' : 'banner-info')"
@@ -422,38 +433,38 @@ async function confirm() {
             </div>
 
             <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
-              <span style="color:#6B7280">Payment Condition</span>
+              <span style="color:#6B7280">{{ t('manualOrder.paymentCondition') }}</span>
               <span style="font-weight:600">{{ selectedClient.condition }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">
-              <span style="color:#6B7280">Client Type</span>
+              <span style="color:#6B7280">{{ t('manualOrder.clientType') }}</span>
               <span style="font-weight:600">{{ selectedClient.type }}</span>
             </div>
 
             <template v-if="selectedCredit.limit">
               <div class="divider" style="margin:10px 0"></div>
-              <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:6px">Monthly Credit</div>
+              <div style="font-size:10px;font-weight:600;color:#6B7280;text-transform:uppercase;margin-bottom:6px">{{ t('manualOrder.monthlyCredit') }}</div>
               <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:4px">
-                <span>Used: S/ {{ selectedCredit.used.toLocaleString() }}</span>
-                <span>Available: S/ {{ selectedCredit.available.toLocaleString() }}</span>
+                <span>{{ t('manualOrder.usedCredit', { amount: selectedCredit.used.toLocaleString() }) }}</span>
+                <span>{{ t('manualOrder.availableCredit', { amount: selectedCredit.available.toLocaleString() }) }}</span>
               </div>
               <div class="credit-bar-wrap" style="margin-bottom:6px">
                 <div class="credit-bar" :style="{ width: selectedCredit.percent + '%', background: selectedCredit.barColor }"></div>
               </div>
-              <div class="flow-note">Period {{ selectedCredit.period }} - due {{ selectedCredit.dueDate }}</div>
+              <div class="flow-note">{{ t('manualOrder.periodDue', { period: selectedCredit.period, date: selectedCredit.dueDate }) }}</div>
               <div v-if="isCreditBlocked" class="banner banner-danger" style="margin-top:8px">
                 <i class="pi pi-times-circle"></i>
-                <div>Monthly credit is blocked, overdue or insufficient for this order.</div>
+                <div>{{ t('manualOrder.creditBlockedMessage') }}</div>
               </div>
               <div v-else-if="selectedCredit.percent >= 80" class="banner banner-warning" style="margin-top:8px">
                 <i class="pi pi-exclamation-triangle"></i>
-                <div>Credit at {{ selectedCredit.percent }}%. Verify before confirming.</div>
+                <div>{{ t('manualOrder.creditPercentWarning', { percent: selectedCredit.percent }) }}</div>
               </div>
             </template>
             <template v-else>
               <div class="divider" style="margin:10px 0"></div>
               <div style="font-size:12px;color:#6B7280;display:flex;align-items:center;gap:5px">
-                <i class="pi pi-credit-card"></i> Cash client
+                <i class="pi pi-credit-card"></i> {{ t('manualOrder.cashClient') }}
               </div>
             </template>
           </div>
@@ -464,7 +475,7 @@ async function confirm() {
             :disabled="isCreditBlocked"
             @click="proceedToProducts"
           >
-            Continue <i class="pi pi-arrow-right"></i>
+            {{ t('common.continue') }} <i class="pi pi-arrow-right"></i>
           </button>
         </template>
       </div>
@@ -478,19 +489,19 @@ async function confirm() {
       <div class="card card-pad catalog-picker-card">
         <div class="catalog-picker-icon"><i class="pi pi-box"></i></div>
         <div>
-          <div class="card-title">Product catalog selector</div>
-          <p>Use the shared catalog to add items. Selected products return here automatically in the order summary.</p>
+          <div class="card-title">{{ t('manualOrder.catalogSelector') }}</div>
+          <p>{{ t('manualOrder.catalogSelectorDesc') }}</p>
         </div>
         <button class="btn btn-primary" type="button" @click="router.push('/ops/product-catalog')">
-          <i class="pi pi-arrow-up-right"></i> Open product catalog
+          <i class="pi pi-arrow-up-right"></i> {{ t('manualOrder.openCatalog') }}
         </button>
       </div>
       <div class="card card-pad" style="position:sticky;top:24px">
         <div class="card-title" style="margin-bottom:12px">Summary ({{ lines.length }} items)</div>
         <div v-if="!lines.length" class="empty-state" style="padding:24px">
           <div class="empty-state-icon"><i class="pi pi-shopping-cart"></i></div>
-          <div class="empty-state-title">No products yet</div>
-          <div class="empty-state-desc">Select products from the catalog to build the purchase order</div>
+          <div class="empty-state-title">{{ t('manualOrder.noProducts') }}</div>
+          <div class="empty-state-desc">{{ t('manualOrder.noProductsDesc') }}</div>
         </div>
         <template v-else>
           <div v-for="l in lines" :key="l.productId" class="manual-line-row">
@@ -500,17 +511,22 @@ async function confirm() {
               <div style="font-size:13px;font-weight:500">{{ l.name }}</div>
               <div style="font-size:11px;color:#9CA3AF">S/ {{ l.price.toFixed(2) }} / {{ l.unit }}</div>
             </div>
-            <input type="number" v-model.number="l.qty" :max="l.max" min="1" style="width:50px;border:1px solid #E5E7EB;border-radius:6px;padding:4px;font-size:13px;text-align:center" />
+            <div class="manual-line-quantity">
+              <button class="btn btn-ghost btn-sm" type="button" :disabled="l.qty <= 1" @click="setLineQuantity(l, l.qty - 1)">-</button>
+              <input class="qty-input" type="number" :value="l.qty" :max="l.max" min="1" @input="setLineQuantity(l, $event.target.value)" />
+              <button class="btn btn-ghost btn-sm" type="button" :disabled="l.qty >= l.max" @click="setLineQuantity(l, l.qty + 1)">+</button>
+            </div>
             <button class="btn btn-ghost btn-sm" type="button" :aria-label="t('portal.cartRemove', { name: l.name })" @click="removeLine(l.productId)"><i class="pi pi-trash" aria-hidden="true"></i></button>
           </div>
           <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;margin-top:12px;padding-top:12px;border-top:2px solid #E5E7EB">
-            <span>Total</span><span>S/ {{ total.toFixed(2) }}</span>
+            <span>{{ t('common.total') }}</span><span>S/ {{ total.toFixed(2) }}</span>
           </div>
           <div v-if="hasInvalidLines" class="banner banner-danger" style="margin-top:12px">
             <i class="pi pi-exclamation-triangle"></i>
-            <div>Adjust quantities: they cannot exceed available stock.</div>
+            <div>{{ t('manualOrder.quantityWarning') }}</div>
           </div>
-          <button class="btn btn-primary" style="width:100%;margin-top:16px;justify-content:center" :disabled="hasInvalidLines" @click="step = 3">Continue to Delivery</button>
+          <div v-if="quantityLimitNotice" class="banner banner-warning" style="margin-top:12px">{{ quantityLimitNotice }}</div>
+          <button class="btn btn-primary" style="width:100%;margin-top:16px;justify-content:center" :disabled="hasInvalidLines" @click="step = 3">{{ t('manualOrder.continueDelivery') }}</button>
         </template>
       </div>
     </div>
@@ -520,99 +536,99 @@ async function confirm() {
   <div v-if="step === 3">
     <div class="delivery-grid">
       <div class="card card-pad delivery-form-card">
-        <div class="card-title" style="margin-bottom:16px">Delivery Information</div>
+        <div class="card-title" style="margin-bottom:16px">{{ t('manualOrder.deliveryInformation') }}</div>
         <div class="field" style="margin-bottom:14px">
-          <div class="field-label">Delivery Date</div>
+          <div class="field-label">{{ t('manualOrder.deliveryDate') }}</div>
           <div class="field-input"><i class="pi pi-calendar"></i><input type="date" v-model="delivery.date" :min="minDeliveryISO()" /></div>
           <div v-if="deliveryDateWarning" class="field-error">{{ deliveryDateWarning }}</div>
         </div>
         <div v-if="locationError" class="banner banner-danger" role="alert">{{ locationError }}</div>
         <div class="manual-delivery-grid">
           <label class="field">
-            <span class="field-label">City</span>
+            <span class="field-label">{{ t('manualOrder.city') }}</span>
             <select v-model="delivery.city" class="plain-input" @change="selectCity">
-              <option value="">Select city</option>
+              <option value="">{{ t('manualOrder.selectCity') }}</option>
               <option v-for="item in cityOptions" :key="item.code" :value="item.code">{{ item.label }}</option>
             </select>
           </label>
           <label class="field">
-            <span class="field-label">Province</span>
+            <span class="field-label">{{ t('manualOrder.province') }}</span>
             <select v-model="delivery.province" class="plain-input" :disabled="!delivery.city" @change="selectProvince">
-              <option value="">Select province</option>
+              <option value="">{{ t('manualOrder.selectProvince') }}</option>
               <option v-for="item in provinceOptions" :key="item.code" :value="item.code">{{ item.label }}</option>
             </select>
           </label>
           <label class="field">
-            <span class="field-label">District</span>
+            <span class="field-label">{{ t('manualOrder.district') }}</span>
             <select v-model="delivery.district" class="plain-input" :disabled="!delivery.province">
-              <option value="">Select district</option>
+              <option value="">{{ t('manualOrder.selectDistrict') }}</option>
               <option v-for="item in districtOptions" :key="item.code" :value="item.code">{{ item.label }}</option>
             </select>
           </label>
           <label class="field">
-            <span class="field-label">Reference</span>
-            <input v-model="delivery.reference" class="plain-input" placeholder="Gate, dock, receiver, cold room" />
+            <span class="field-label">{{ t('common.reference') }}</span>
+            <input v-model="delivery.reference" class="plain-input" :placeholder="t('manualOrder.referencePlaceholder')" />
           </label>
         </div>
         <div class="field" style="margin-bottom:14px">
-          <div class="field-label">Street type and address</div>
+          <div class="field-label">{{ t('manualOrder.streetAddress') }}</div>
           <div class="address-line">
             <select v-model="delivery.addressType" class="plain-input address-type"><option value="Av.">Av.</option><option value="Calle">Calle</option><option value="Jr.">Jr.</option></select>
-            <div class="field-input"><i class="pi pi-map-marker"></i><input type="text" v-model="delivery.address" placeholder="Street and number" /></div>
+            <div class="field-input"><i class="pi pi-map-marker"></i><input type="text" v-model="delivery.address" :placeholder="t('manualOrder.streetPlaceholder')" /></div>
           </div>
         </div>
         <div class="field" style="margin-bottom:14px">
-          <div class="field-label">Priority</div>
+          <div class="field-label">{{ t('common.priority') }}</div>
           <div class="nexa-select-grid priority-select-grid">
             <button class="nexa-select-card" :class="{ active: delivery.priority === 'low' }" type="button" @click="delivery.priority = 'low'">
               <i class="pi pi-clock"></i>
-              <span><strong>Low</strong><small>Standard route window.</small></span>
+              <span><strong>{{ t('manualOrder.priority.low') }}</strong><small>{{ t('manualOrder.priority.lowDesc') }}</small></span>
             </button>
             <button class="nexa-select-card" :class="{ active: delivery.priority === 'medium' }" type="button" @click="delivery.priority = 'medium'">
               <i class="pi pi-truck"></i>
-              <span><strong>Medium</strong><small>Normal cold-chain dispatch.</small></span>
+              <span><strong>{{ t('manualOrder.priority.medium') }}</strong><small>{{ t('manualOrder.priority.mediumDesc') }}</small></span>
             </button>
             <button class="nexa-select-card" :class="{ active: delivery.priority === 'high' }" type="button" @click="delivery.priority = 'high'">
               <i class="pi pi-bolt"></i>
-              <span><strong>High</strong><small>Priority Sales route.</small></span>
+              <span><strong>{{ t('manualOrder.priority.high') }}</strong><small>{{ t('manualOrder.priority.highDesc') }}</small></span>
             </button>
           </div>
         </div>
         <div class="field" style="margin-bottom:14px">
-          <div class="field-label">Notes (optional)</div>
+          <div class="field-label">{{ t('manualOrder.notesOptional') }}</div>
           <div class="field-input" style="align-items:flex-start"><i class="pi pi-pencil" style="margin-top:2px"></i>
-            <textarea v-model="delivery.notes" rows="3" style="border:none;outline:none;font-size:13px;flex:1;background:transparent;resize:none" placeholder="Instructions for the driver..."></textarea>
+            <textarea v-model="delivery.notes" rows="3" style="border:none;outline:none;font-size:13px;flex:1;background:transparent;resize:none" :placeholder="t('manualOrder.driverInstructions')"></textarea>
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:20px">
-          <button class="btn btn-ghost" @click="step = 2"><i class="pi pi-arrow-left"></i> Back</button>
-          <button class="btn btn-primary" style="flex:1;justify-content:center" :disabled="!!deliveryDateWarning || !deliveryAddressReady" @click="step = 4">Continue to Review</button>
+          <button class="btn btn-ghost" @click="step = 2"><i class="pi pi-arrow-left"></i> {{ t('common.back') }}</button>
+          <button class="btn btn-primary" style="flex:1;justify-content:center" :disabled="!!deliveryDateWarning || !deliveryAddressReady" @click="step = 4">{{ t('manualOrder.continueReview') }}</button>
         </div>
       </div>
       <aside class="card card-pad route-map-card">
         <div class="route-map-head">
           <div>
-            <div class="card-title">Route preview</div>
-            <p>Map centers on the selected delivery destination. Open map shows the driving route from the active warehouse.</p>
+            <div class="card-title">{{ t('manualOrder.routePreview') }}</div>
+            <p>{{ t('manualOrder.routePreviewDesc') }}</p>
           </div>
           <a v-if="deliveryAddressReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer">
-            <i class="pi pi-external-link"></i> Open map
+            <i class="pi pi-external-link"></i> {{ t('manualOrder.openMap') }}
           </a>
         </div>
         <div class="route-summary">
-          <span><i class="pi pi-warehouse"></i> {{ warehouseOrigin || 'Warehouse origin unavailable' }}</span>
-          <span><i class="pi pi-map-marker"></i> {{ deliveryDestination || 'Delivery address pending' }}</span>
+          <span><i class="pi pi-warehouse"></i> {{ warehouseOrigin || t('manualOrder.warehouseUnavailable') }}</span>
+          <span><i class="pi pi-map-marker"></i> {{ deliveryDestination || t('manualOrder.deliveryAddressPending') }}</span>
         </div>
         <iframe
           v-if="deliveryAddressReady"
           class="route-map-frame"
-          title="Google Maps delivery route"
+          :title="t('manualOrder.mapTitle')"
           :src="mapEmbedUrl"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
         ></iframe>
-        <div v-else class="empty-state compact">Complete city, province, district and address to preview the route.</div>
-        <small class="flow-note">Map is an external Google Maps embed. Delivery address, route reference and dispatch trace are stored in Nexa when the order enters operations.</small>
+        <div v-else class="empty-state compact">{{ t('manualOrder.completeAddress') }}</div>
+        <small class="flow-note">{{ t('manualOrder.mapNotice') }}</small>
       </aside>
     </div>
   </div>
@@ -621,12 +637,12 @@ async function confirm() {
   <div v-if="step === 4">
     <section class="order-review-hero">
       <div>
-        <span class="eyebrow">Order review</span>
-        <h2>Confirm cold-chain purchase order</h2>
+        <span class="eyebrow">{{ t('manualOrder.orderReview') }}</span>
+        <h2>{{ t('manualOrder.confirmColdChainOrder') }}</h2>
         <p>{{ selectedClient?.commercialName || selectedClient?.businessName || selectedClient?.name }} · {{ deliveryDestination }}</p>
       </div>
       <div class="order-review-total">
-        <span>Total</span>
+        <span>{{ t('common.total') }}</span>
         <strong>S/ {{ grandTotal.toFixed(2) }}</strong>
         <small>{{ lines.length }} SKUs · {{ totalUnits }} units</small>
       </div>
@@ -636,8 +652,8 @@ async function confirm() {
       <section class="flow-panel span-8">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Products and totals</div>
-            <div class="flow-subtitle">Final quantities from catalog selection before Sales confirmation.</div>
+            <div class="flow-title">{{ t('manualOrder.productsTotals') }}</div>
+            <div class="flow-subtitle">{{ t('manualOrder.productsTotalsDesc') }}</div>
           </div>
           <span class="flow-pill flow-pill-blue">{{ reviewPriorityLabel }}</span>
         </div>
@@ -656,10 +672,10 @@ async function confirm() {
             </div>
           </div>
           <div class="review-total-row">
-            <span>Products</span><strong>S/ {{ total.toFixed(2) }}</strong>
-            <span>Shipping</span><strong>S/ {{ shippingCost.toFixed(2) }}</strong>
-            <span>Delivery ETA</span><strong>{{ shippingEta }}</strong>
-            <span>Order total</span><strong>S/ {{ grandTotal.toFixed(2) }}</strong>
+            <span>{{ t('manualOrder.steps.products') }}</span><strong>S/ {{ total.toFixed(2) }}</strong>
+            <span>{{ t('manualOrder.shipping') }}</span><strong>S/ {{ shippingCost.toFixed(2) }}</strong>
+            <span>{{ t('manualOrder.deliveryEta') }}</span><strong>{{ shippingEta }}</strong>
+            <span>{{ t('manualOrder.orderTotal') }}</span><strong>S/ {{ grandTotal.toFixed(2) }}</strong>
           </div>
         </div>
       </section>
@@ -667,8 +683,8 @@ async function confirm() {
       <aside class="flow-panel span-4">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Confirmation details</div>
-            <div class="flow-subtitle">Editable fields keep their position before saving.</div>
+            <div class="flow-title">{{ t('manualOrder.confirmationDetails') }}</div>
+            <div class="flow-subtitle">{{ t('manualOrder.confirmationDetailsDesc') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad flow-stack">
@@ -676,20 +692,20 @@ async function confirm() {
             <i :class="'pi ' + check.icon"></i>
             <span><strong>{{ check.label }}</strong><small>{{ check.value }}</small></span>
           </div>
-          <label class="field"><span class="field-label">Priority</span><select v-model="delivery.priority" class="plain-input"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
-          <label class="field"><span class="field-label">Dispatch note</span><textarea v-model="delivery.dispatchNote" class="plain-input" rows="3" placeholder="Cold-chain, receiver, dock, or route notes"></textarea></label>
-          <div v-if="delivery.notes" class="review-note"><strong>Driver notes</strong><span>{{ delivery.notes }}</span></div>
+          <label class="field"><span class="field-label">{{ t('common.priority') }}</span><select v-model="delivery.priority" class="plain-input"><option value="low">{{ t('manualOrder.priority.low') }}</option><option value="medium">{{ t('manualOrder.priority.medium') }}</option><option value="high">{{ t('manualOrder.priority.high') }}</option></select></label>
+          <label class="field"><span class="field-label">{{ t('manualOrder.dispatchNote') }}</span><textarea v-model="delivery.dispatchNote" class="plain-input" rows="3" :placeholder="t('manualOrder.dispatchNotePlaceholder')"></textarea></label>
+          <div v-if="delivery.notes" class="review-note"><strong>{{ t('manualOrder.driverNotes') }}</strong><span>{{ delivery.notes }}</span></div>
           <div class="banner banner-info" style="margin:0">
             <i class="pi pi-info-circle"></i>
-            <div>Order will be stored in Nexa and become visible to Sales, Logistics and Buyer Portal according to tenant access.</div>
+            <div>{{ t('manualOrder.visibilityNotice') }}</div>
           </div>
           <div v-if="!canConfirmOrder" class="banner banner-warning" style="margin:0">
             <i class="pi pi-exclamation-triangle"></i>
-            <div>{{ deliveryDateWarning || 'Review client, quantities and available stock before confirming.' }}</div>
+            <div>{{ deliveryDateWarning || t('manualOrder.reviewBeforeConfirm') }}</div>
           </div>
           <div class="review-actions">
-            <button class="btn btn-ghost" @click="step = 2"><i class="pi pi-arrow-left"></i> Back to products</button>
-            <button class="btn btn-primary" :disabled="!canConfirmOrder" @click="confirm"><i class="pi pi-check"></i> Confirm Purchase Order</button>
+            <button class="btn btn-ghost" @click="step = 2"><i class="pi pi-arrow-left"></i> {{ t('manualOrder.backProducts') }}</button>
+            <button class="btn btn-primary" :disabled="!canConfirmOrder" @click="confirm"><i class="pi pi-check"></i> {{ t('manualOrder.confirmOrder') }}</button>
           </div>
         </div>
       </aside>
@@ -872,6 +888,15 @@ async function confirm() {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 14px;
+}
+.manual-line-quantity {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.manual-line-quantity .qty-input {
+  width: 54px;
+  text-align: center;
 }
 .priority-select-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));

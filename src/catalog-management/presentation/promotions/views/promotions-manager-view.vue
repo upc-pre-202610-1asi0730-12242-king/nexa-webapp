@@ -1,7 +1,9 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 
+const { t, te } = useI18n();
 const ds = useDataStore();
 const promotions = computed(() => ds.D.promotions);
 const activeCount = computed(() => promotions.value.filter(promotion => promotion.status === 'active').length);
@@ -19,24 +21,6 @@ const showForm = ref(false);
 const editingId = ref('');
 const editorStep = ref(0);
 const saving = ref(false);
-const statusLabels = {
-  active: 'Active',
-  scheduled: 'Scheduled',
-  draft: 'Draft',
-  standby: 'Standby',
-  inactive: 'Inactive',
-};
-const visibilityLabels = {
-  buyer_portal: 'Buyer Portal',
-  client_specific: 'Client-specific',
-  internal: 'Internal review',
-};
-const adjustmentLabels = {
-  percentage_discount: 'Percentage discount',
-  tiered_price: 'Tiered price',
-  route_priority: 'Route priority',
-  bundle: 'Bundle',
-};
 const statusOrder = ['active', 'scheduled', 'draft', 'standby', 'inactive'];
 const campaignTemplates = [
   { name: "Mother's Day chilled packs", rule: '8% buyer portal adjustment', segment: 'Food service and retail buyers', scope: 'Chilled products' },
@@ -62,41 +46,46 @@ const form = reactive({
 const statusSegments = computed(() => statusOrder
   .map(status => ({
     key: status,
-    label: statusLabels[status],
+    label: promotionLabel(status),
     count: promotions.value.filter(promotion => promotion.status === status).length,
   }))
   .filter(segment => segment.count > 0));
-const visibilitySegments = computed(() => buildSegments('visibility', visibilityLabels));
-const adjustmentSegments = computed(() => buildSegments('adjustmentType', adjustmentLabels));
+const visibilitySegments = computed(() => buildSegments('visibility'));
+const adjustmentSegments = computed(() => buildSegments('adjustmentType'));
 const readinessRows = computed(() => [
   {
-    label: 'Buyer-visible campaigns',
+    label: t('promotions.readiness.buyerVisible'),
     value: portalReadyCount.value,
-    detail: 'Active and published to Buyer Portal',
+    detail: t('promotions.readiness.buyerVisibleDetail'),
     icon: 'pi pi-eye',
   },
   {
-    label: 'Products with campaign',
+    label: t('promotions.readiness.products'),
     value: uniqueProductsLinked.value,
-    detail: 'Catalog SKUs selected in promotions',
+    detail: t('promotions.readiness.productsDetail'),
     icon: 'pi pi-box',
   },
   {
-    label: 'Needs Sales review',
+    label: t('promotions.readiness.review'),
     value: reviewCount.value,
-    detail: 'Draft, standby, or inactive records',
+    detail: t('promotions.readiness.reviewDetail'),
     icon: 'pi pi-clipboard',
   },
 ]);
 
-function buildSegments(field, labels) {
+function promotionLabel(key) {
+  const labelKey = `promotions.labels.${key}`;
+  return te(labelKey) ? t(labelKey) : String(key || '').replaceAll('_', ' ');
+}
+
+function buildSegments(field) {
   const totals = promotions.value.reduce((acc, promotion) => {
     const key = promotion[field] || 'not_configured';
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
   return Object.entries(totals)
-    .map(([key, count]) => ({ key, label: labels[key] || key.replaceAll('_', ' '), count }))
+    .map(([key, count]) => ({ key, label: promotionLabel(key), count }))
     .sort((a, b) => b.count - a.count);
 }
 
@@ -124,16 +113,16 @@ function promotionProducts(promotion) {
 }
 
 function nextAction(promotion) {
-  if (promotion.status === 'active') return 'Monitor buyer uptake and stock rotation';
-  if (promotion.status === 'scheduled') return 'Confirm dates, stock, and Buyer Portal copy';
-  if (promotion.status === 'standby') return 'Wait for inventory confirmation before activation';
-  if (promotion.status === 'inactive') return 'Reactivate only if Sales and stock still match';
-  return 'Complete rule, catalog scope, and Sales approval';
+  if (promotion.status === 'active') return t('promotions.actions.active');
+  if (promotion.status === 'scheduled') return t('promotions.actions.scheduled');
+  if (promotion.status === 'standby') return t('promotions.actions.standby');
+  if (promotion.status === 'inactive') return t('promotions.actions.inactive');
+  return t('promotions.actions.default');
 }
 
 function displayDateRange(promotion) {
-  const start = promotion.startDate || 'No start';
-  const end = promotion.endDate || 'No end';
+  const start = promotion.startDate || t('promotions.noStart');
+  const end = promotion.endDate || t('promotions.noEnd');
   return `${start} - ${end}`;
 }
 
@@ -180,7 +169,7 @@ function applyTemplate(template) {
 async function save() {
   if (saving.value) return;
   saving.value = true;
-  const payload = { ...form, discountLabel: form.discountLabel || form.commercialRule || 'Manual commercial rule' };
+  const payload = { ...form, discountLabel: form.discountLabel || form.commercialRule || t('promotions.defaultRule') };
   try {
     if (editingId.value) await ds.updatePromotion(editingId.value, payload);
     else await ds.addPromotion(payload);
@@ -204,32 +193,32 @@ function toggleProduct(productId) {
   <div>
     <div class="page-header">
       <div>
-        <div class="page-title">Promotions</div>
-        <div class="page-subtitle">Commercial campaign planning for buyer visibility, pricing rules, and catalog activation.</div>
+        <div class="page-title">{{ t('promotions.title') }}</div>
+        <div class="page-subtitle">{{ t('promotions.subtitle') }}</div>
       </div>
-      <button class="btn btn-primary" type="button" @click="reset(); showForm = true"><i class="pi pi-plus"></i> Add promotion</button>
+      <button class="btn btn-primary" type="button" @click="reset(); showForm = true"><i class="pi pi-plus"></i> {{ t('promotions.add') }}</button>
     </div>
 
     <section v-if="showForm" class="promotion-builder-screen">
       <div class="builder-topbar">
-        <button class="btn btn-secondary" type="button" @click="showForm = false; reset()"><i class="pi pi-arrow-left"></i> Promotions overview</button>
+        <button class="btn btn-secondary" type="button" @click="showForm = false; reset()"><i class="pi pi-arrow-left"></i> {{ t('promotions.overview') }}</button>
         <div>
-          <strong>{{ editingId ? 'Edit promotion' : 'New promotion builder' }}</strong>
-          <span>Build a simple buyer-facing campaign from catalog, segment, and commercial rule.</span>
+          <strong>{{ editingId ? t('promotions.edit') : t('promotions.newBuilder') }}</strong>
+          <span>{{ t('promotions.builderDesc') }}</span>
         </div>
       </div>
 
-      <div class="builder-stepper" aria-label="Promotion setup steps">
-        <button type="button" :class="{ active: editorStep === 0 }" @click="editorStep = 0">1. Campaign</button>
-        <button type="button" :class="{ active: editorStep === 1 }" @click="editorStep = 1">2. Catalog</button>
-        <button type="button" :class="{ active: editorStep === 2 }" @click="editorStep = 2">3. Terms</button>
+      <div class="builder-stepper" :aria-label="t('promotions.setupSteps')">
+        <button type="button" :class="{ active: editorStep === 0 }" @click="editorStep = 0">{{ t('promotions.steps.campaign') }}</button>
+        <button type="button" :class="{ active: editorStep === 1 }" @click="editorStep = 1">{{ t('promotions.steps.catalog') }}</button>
+        <button type="button" :class="{ active: editorStep === 2 }" @click="editorStep = 2">{{ t('promotions.steps.terms') }}</button>
       </div>
 
       <div class="promotion-layout">
         <aside class="builder-catalog">
           <div class="catalog-heading">
-            <span>Choose catalog products</span>
-            <strong>{{ form.productIds.length }} selected</strong>
+            <span>{{ t('promotions.chooseProducts') }}</span>
+            <strong>{{ t('promotions.selected', { count: form.productIds.length }) }}</strong>
           </div>
           <button
             v-for="product in ds.D.products.slice(0, 8)"
@@ -240,7 +229,7 @@ function toggleProduct(productId) {
           >
             <span>
               <strong>{{ product.name }}</strong>
-              <small>{{ product.category }} · {{ product.temp || product.temperatureRange || 'Cold chain' }}</small>
+              <small>{{ product.category }} · {{ product.temp || product.temperatureRange || t('promotions.coldChain') }}</small>
             </span>
             <i :class="form.productIds.includes(product.id) ? 'pi pi-check-circle' : 'pi pi-circle'"></i>
           </button>
@@ -248,8 +237,8 @@ function toggleProduct(productId) {
 
         <form class="flow-panel flow-panel-pad action-form promotion-editor" @submit.prevent="save">
           <div class="editor-heading span-2">
-            <strong>Campaign setup</strong>
-            <span>Use templates or create a controlled commercial rule.</span>
+            <strong>{{ t('promotions.campaignSetup') }}</strong>
+            <span>{{ t('promotions.campaignSetupDesc') }}</span>
           </div>
 
           <div class="template-grid span-2">
@@ -260,23 +249,23 @@ function toggleProduct(productId) {
             </button>
           </div>
 
-          <label>Campaign name<input v-model="form.name" required placeholder="Mother's Day chilled packs" /></label>
-          <label>Status<select v-model="form.status"><option>active</option><option>scheduled</option><option>draft</option><option>standby</option><option>inactive</option></select></label>
-          <label>Buyer scope<select v-model="form.visibility"><option value="buyer_portal">Buyer portal</option><option value="client_specific">Client-specific</option><option value="internal">Internal review only</option></select></label>
-          <label>Commercial type<select v-model="form.adjustmentType"><option value="percentage_discount">Percentage discount</option><option value="tiered_price">Tiered price</option><option value="route_priority">Route priority</option><option value="bundle">Bundle</option></select></label>
-          <label>Commercial rule<input v-model="form.commercialRule" required placeholder="8% for approved B2B buyers" /></label>
-          <label>Catalog/category scope<input v-model="form.catalogScope" placeholder="Chilled dairy / premium cheese" /></label>
-          <label>Target segment<select v-model="form.targetSegment"><option>Gourmet buyers</option><option>Food service and retail buyers</option><option>Hotels and distributors</option><option>Strategic B2B accounts</option></select></label>
-          <label>Campaign collection<select v-model="form.discountLabel"><option value="">Use commercial rule</option><option>Mother's Day campaign</option><option>Father's Day campaign</option><option>Inventory rotation</option><option>Standby until stock confirmation</option></select></label>
-          <label>Start date<input v-model="form.startDate" type="date" /></label>
-          <label>End date<input v-model="form.endDate" type="date" /></label>
-          <label class="span-2">Buyer-facing description<textarea v-model="form.description" rows="3" placeholder="Visible explanation for portal buyers."></textarea></label>
-          <label class="span-2">Internal notes<textarea v-model="form.notes" rows="2" placeholder="Stock, approval, or Sales validation notes."></textarea></label>
+          <label>{{ t('promotions.name') }}<input v-model="form.name" required :placeholder="t('promotions.placeholders.name')" /></label>
+          <label>{{ t('common.status') }}<select v-model="form.status"><option value="active">{{ promotionLabel('active') }}</option><option value="scheduled">{{ promotionLabel('scheduled') }}</option><option value="draft">{{ promotionLabel('draft') }}</option><option value="standby">{{ promotionLabel('standby') }}</option><option value="inactive">{{ promotionLabel('inactive') }}</option></select></label>
+          <label>{{ t('promotions.buyerScope') }}<select v-model="form.visibility"><option value="buyer_portal">{{ promotionLabel('buyer_portal') }}</option><option value="client_specific">{{ promotionLabel('client_specific') }}</option><option value="internal">{{ promotionLabel('internal') }}</option></select></label>
+          <label>{{ t('promotions.commercialType') }}<select v-model="form.adjustmentType"><option value="percentage_discount">{{ promotionLabel('percentage_discount') }}</option><option value="tiered_price">{{ promotionLabel('tiered_price') }}</option><option value="route_priority">{{ promotionLabel('route_priority') }}</option><option value="bundle">{{ promotionLabel('bundle') }}</option></select></label>
+          <label>{{ t('promotions.commercialRule') }}<input v-model="form.commercialRule" required placeholder="8% for approved B2B buyers" /></label>
+          <label>{{ t('promotions.catalogScope') }}<input v-model="form.catalogScope" :placeholder="t('promotions.placeholders.catalogScope')" /></label>
+          <label>{{ t('promotions.targetSegment') }}<select v-model="form.targetSegment"><option>{{ t('promotions.options.gourmetBuyers') }}</option><option>{{ t('promotions.options.foodServiceRetail') }}</option><option>{{ t('promotions.options.hotelsDistributors') }}</option><option>{{ t('promotions.options.strategicAccounts') }}</option></select></label>
+          <label>{{ t('promotions.campaignCollection') }}<select v-model="form.discountLabel"><option value="">{{ t('promotions.useCommercialRule') }}</option><option>{{ t('promotions.options.mothersDay') }}</option><option>{{ t('promotions.options.fathersDay') }}</option><option>{{ t('promotions.options.inventoryRotation') }}</option><option>{{ t('promotions.options.standbyStock') }}</option></select></label>
+          <label>{{ t('promotions.startDate') }}<input v-model="form.startDate" type="date" /></label>
+          <label>{{ t('promotions.endDate') }}<input v-model="form.endDate" type="date" /></label>
+          <label class="span-2">{{ t('promotions.buyerDescription') }}<textarea v-model="form.description" rows="3" :placeholder="t('promotions.placeholders.buyerDescription')"></textarea></label>
+          <label class="span-2">{{ t('promotions.internalNotes') }}<textarea v-model="form.notes" rows="2" :placeholder="t('promotions.placeholders.internalNotes')"></textarea></label>
           <div class="form-actions span-2">
-            <button class="btn btn-secondary" type="button" @click="showForm = false; reset()">Cancel</button>
+            <button class="btn btn-secondary" type="button" @click="showForm = false; reset()">{{ t('common.cancel') }}</button>
             <button class="btn btn-primary" type="submit" :disabled="saving">
               <i :class="saving ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
-              {{ saving ? 'Saving...' : 'Save promotion' }}
+              {{ saving ? t('common.saving') : t('promotions.save') }}
             </button>
           </div>
         </form>
@@ -287,41 +276,41 @@ function toggleProduct(productId) {
       <section class="scenario-card">
         <div class="scenario-icon"><i class="pi pi-megaphone"></i></div>
         <div>
-          <strong>Buyer visibility scenario</strong>
-          <p>Chilled cheese rotation, charcuterie packs, and frozen seafood planning connect Catalog visibility with Sales validation.</p>
+          <strong>{{ t('promotions.scenarioTitle') }}</strong>
+          <p>{{ t('promotions.scenarioDesc') }}</p>
         </div>
       </section>
 
       <div class="grid-4" style="margin-bottom:18px">
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-megaphone"></i> Campaigns</div>
+          <div class="kpi-label"><i class="pi pi-megaphone"></i> {{ t('promotions.campaigns') }}</div>
           <div class="kpi-value">{{ promotions.length }}</div>
-          <div class="kpi-sub">Workspace commercial campaign records</div>
+          <div class="kpi-sub">{{ t('promotions.campaignsSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-check-circle" style="color:#16A34A"></i> Active</div>
+          <div class="kpi-label"><i class="pi pi-check-circle" style="color:#16A34A"></i> {{ promotionLabel('active') }}</div>
           <div class="kpi-value" style="color:#16A34A">{{ activeCount }}</div>
-          <div class="kpi-sub">Visible to buyer or commercial teams</div>
+          <div class="kpi-sub">{{ t('promotions.activeSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> Scheduled</div>
+          <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> {{ t('promotions.scheduled') }}</div>
           <div class="kpi-value" style="color:#F59E0B">{{ scheduledCount }}</div>
-          <div class="kpi-sub">Ready for validity window</div>
+          <div class="kpi-sub">{{ t('promotions.scheduledSub') }}</div>
         </div>
         <div class="card kpi-card">
-          <div class="kpi-label"><i class="pi pi-box" style="color:#2563EB"></i> Real catalog</div>
+          <div class="kpi-label"><i class="pi pi-box" style="color:#2563EB"></i> {{ t('promotions.realCatalog') }}</div>
           <div class="kpi-value" style="color:#2563EB">{{ catalogLinkedCount }}</div>
-          <div class="kpi-sub">Campaigns linked to catalog/category scope</div>
+          <div class="kpi-sub">{{ t('promotions.realCatalogSub') }}</div>
         </div>
       </div>
 
       <section v-if="promotions.length" class="promotion-insights">
         <article class="insight-panel">
           <div class="insight-heading">
-            <span>Campaign status mix</span>
-            <strong>{{ activeCount + scheduledCount }} ready or planned</strong>
+            <span>{{ t('promotions.statusMix') }}</span>
+            <strong>{{ t('promotions.readyPlanned', { count: activeCount + scheduledCount }) }}</strong>
           </div>
-          <div class="status-chart" aria-label="Promotion status distribution">
+          <div class="status-chart" :aria-label="t('promotions.statusDistribution')">
             <div v-for="segment in statusSegments" :key="segment.key" class="status-chart-row">
               <div class="status-chart-label">
                 <span>{{ segment.label }}</span>
@@ -336,8 +325,8 @@ function toggleProduct(productId) {
 
         <article class="insight-panel">
           <div class="insight-heading">
-            <span>Commercial scope</span>
-            <strong>{{ portalReadyCount }} buyer-visible now</strong>
+            <span>{{ t('promotions.commercialScope') }}</span>
+            <strong>{{ t('promotions.buyerVisibleNow', { count: portalReadyCount }) }}</strong>
           </div>
           <div class="donut-list">
             <div v-for="segment in visibilitySegments" :key="segment.key" class="donut-row">
@@ -352,8 +341,8 @@ function toggleProduct(productId) {
 
         <article class="insight-panel">
           <div class="insight-heading">
-            <span>Rule type</span>
-            <strong>Pricing without guessing</strong>
+            <span>{{ t('promotions.ruleType') }}</span>
+            <strong>{{ t('promotions.pricingNoGuess') }}</strong>
           </div>
           <div class="donut-list">
             <div v-for="segment in adjustmentSegments" :key="segment.key" class="donut-row">
@@ -380,61 +369,61 @@ function toggleProduct(productId) {
 
       <div v-if="!promotions.length" class="empty-state">
         <div class="empty-state-icon"><i class="pi pi-database"></i></div>
-        <div class="empty-state-title">No campaigns yet</div>
-        <div class="empty-state-desc">Create the first promotion to prepare buyer-facing commercial campaigns.</div>
+        <div class="empty-state-title">{{ t('promotions.emptyTitle') }}</div>
+        <div class="empty-state-desc">{{ t('promotions.emptyDesc') }}</div>
       </div>
 
       <div v-else class="promotion-grid">
         <article v-for="promotion in promotions" :key="promotion.id" class="promotion-card">
           <div class="promotion-card-top">
             <span :class="'badge ' + statusClass(promotion.status)">
-              {{ statusLabels[promotion.status] || promotion.status }}
+              {{ promotionLabel(promotion.status) }}
             </span>
-            <span class="flow-pill">{{ visibilityLabels[promotion.visibility] || promotion.visibility }}</span>
+            <span class="flow-pill">{{ promotionLabel(promotion.visibility) }}</span>
           </div>
           <div class="promotion-card-title">
             <h2>{{ promotion.name }}</h2>
-            <span>{{ adjustmentLabels[promotion.adjustmentType] || 'Commercial rule' }}</span>
+            <span>{{ promotionLabel(promotion.adjustmentType) || t('promotions.commercialRuleFallback') }}</span>
           </div>
-          <p class="promotion-description">{{ promotion.description || 'No buyer-facing description configured yet.' }}</p>
+          <p class="promotion-description">{{ promotion.description || t('promotions.noDescription') }}</p>
 
           <div class="promotion-rule-box">
-            <span>Rule shown to Sales and Buyer Portal</span>
+            <span>{{ t('promotions.ruleShown') }}</span>
             <strong>{{ promotion.discountLabel || promotion.commercialRule }}</strong>
           </div>
 
           <div class="promotion-detail-grid">
             <div>
-              <span>Catalog scope</span>
-              <strong>{{ promotion.catalogScope || 'Catalog visibility rule' }}</strong>
+              <span>{{ t('promotions.catalogScope') }}</span>
+              <strong>{{ promotion.catalogScope || t('promotions.commercialRuleFallback') }}</strong>
             </div>
             <div>
-              <span>Validity</span>
+              <span>{{ t('promotions.validity') }}</span>
               <strong>{{ displayDateRange(promotion) }}</strong>
             </div>
             <div>
-              <span>Target segment</span>
+              <span>{{ t('promotions.targetSegment') }}</span>
               <strong>{{ promotion.targetSegment || 'Strategic B2B accounts' }}</strong>
             </div>
             <div>
-              <span>Next action</span>
+              <span>{{ t('promotions.nextAction') }}</span>
               <strong>{{ nextAction(promotion) }}</strong>
             </div>
           </div>
 
           <div class="promotion-products">
-            <span>Linked products</span>
+            <span>{{ t('promotions.linkedProducts') }}</span>
             <div v-if="promotionProducts(promotion).length" class="promotion-product-list">
               <small v-for="product in promotionProducts(promotion)" :key="product.id">{{ product.name }}</small>
             </div>
-            <strong v-else>Category scope only</strong>
+            <strong v-else>{{ t('promotions.categoryScopeOnly') }}</strong>
           </div>
 
           <div v-if="promotion.notes" class="flow-note">{{ promotion.notes }}</div>
           <div class="card-actions">
-            <button class="btn btn-secondary" type="button" @click="edit(promotion)">Edit</button>
+            <button class="btn btn-secondary" type="button" @click="edit(promotion)">{{ t('common.edit') }}</button>
             <button class="btn btn-ghost" type="button" @click="ds.updatePromotionStatus(promotion.id, promotion.status === 'active' ? 'inactive' : 'active')">
-              {{ promotion.status === 'active' ? 'Mark inactive' : 'Activate' }}
+              {{ promotion.status === 'active' ? t('promotions.markInactive') : t('promotions.activate') }}
             </button>
           </div>
         </article>

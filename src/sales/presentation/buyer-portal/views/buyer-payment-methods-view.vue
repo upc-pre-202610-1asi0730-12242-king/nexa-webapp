@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
 import ReferenceSelect from '@/shared/presentation/components/reference-select.vue';
@@ -9,6 +10,7 @@ import { creditSummary } from '@/shared/credit';
 
 const auth = useAuthStore();
 const ds = useDataStore();
+const { t } = useI18n();
 const selectedPaymentOption = ref('');
 const statusFilter = ref('all');
 const paymentMethodError = ref('');
@@ -52,8 +54,8 @@ const creditUsagePercent = computed(() => {
 });
 const paymentChart = computed(() => {
   const rows = [
-    { key: 'paid', label: 'Paid', value: totalPaid.value, color: '#16a34a' },
-    { key: 'pending', label: 'Pending', value: totalPending.value, color: '#f59e0b' },
+    { key: 'paid', label: paymentStateLabel('paid'), value: totalPaid.value, color: '#16a34a' },
+    { key: 'pending', label: paymentStateLabel('pending'), value: totalPending.value, color: '#f59e0b' },
   ];
   const max = Math.max(...rows.map(row => row.value), 1);
   return rows.map(row => ({ ...row, percent: Math.max(row.value ? 8 : 0, Math.round((row.value / max) * 100)) }));
@@ -71,12 +73,12 @@ const canAddMethod = computed(() => methodType.value === 'card'
   ? /^\d{4}$/.test(lastFour.value)
   : Boolean(methodLabel.value.trim()));
 const statusOptions = [
-  { key: 'all', label: 'All records' },
-  { key: 'pending', label: 'Pending' },
-  { key: 'processing', label: 'Processing' },
-  { key: 'paid', label: 'Paid' },
-  { key: 'failed', label: 'Failed' },
-  { key: 'cancelled', label: 'Cancelled' },
+  { key: 'all', labelKey: 'portal.payments.filters.all' },
+  { key: 'pending', labelKey: 'portal.payments.status.pending' },
+  { key: 'processing', labelKey: 'portal.payments.status.processing' },
+  { key: 'paid', labelKey: 'portal.payments.status.paid' },
+  { key: 'failed', labelKey: 'portal.payments.status.failed' },
+  { key: 'cancelled', labelKey: 'portal.payments.status.cancelled' },
 ];
 const formatMoney = (value, currency = 'PEN') => `${currency} ${Number(value || 0).toFixed(2)}`;
 
@@ -99,13 +101,17 @@ function paymentStateClass(status) {
   }[paymentState(status)] || 'badge-amber';
 }
 
+function paymentStateLabel(status) {
+  return t(`portal.payments.status.${paymentState(status)}`);
+}
+
 async function selectPaymentMethod(method) {
   updatingMethodId.value = method.id;
   paymentMethodError.value = '';
   try {
     await ds.setDefaultPaymentMethod(method.id);
   } catch (error) {
-    paymentMethodError.value = error?.response?.data?.message || error?.message || 'The default payment method could not be updated.';
+    paymentMethodError.value = error?.response?.data?.message || error?.message || t('portal.payments.errors.defaultUpdate');
   } finally {
     updatingMethodId.value = '';
   }
@@ -132,7 +138,7 @@ async function addPaymentMethod() {
     methodLabel.value = '';
     makeDefault.value = false;
   } catch (error) {
-    paymentMethodError.value = error?.response?.data?.message || error?.message || 'The payment method could not be added.';
+    paymentMethodError.value = error?.response?.data?.message || error?.message || t('portal.payments.errors.addMethod');
   } finally {
     savingMethod.value = false;
   }
@@ -144,48 +150,48 @@ async function addPaymentMethod() {
     <div class="page-header">
       <div>
         <div class="page-title">{{ $t('portal.nav.payments') }}</div>
-        <div class="page-subtitle">Credit line, pending balance, payment history and preferred payment references for this buyer account.</div>
+        <div class="page-subtitle">{{ t('portal.payments.subtitle') }}</div>
       </div>
     </div>
 
     <section class="flow-panel payment-credit-panel">
       <div class="flow-panel-pad payment-credit-grid">
         <div>
-          <div class="flow-eyebrow">Monthly credit</div>
+          <div class="flow-eyebrow">{{ t('portal.payments.monthlyCredit') }}</div>
           <div class="payment-credit-value">S/ {{ credit.limit.toLocaleString() }}</div>
-          <div class="flow-note">Available S/ {{ credit.available.toLocaleString() }} of S/ {{ credit.limit.toLocaleString() }}.</div>
-          <div class="payment-meter" aria-label="Credit usage">
+          <div class="flow-note">{{ t('portal.payments.availableCredit', { available: credit.available.toLocaleString(), limit: credit.limit.toLocaleString() }) }}</div>
+          <div class="payment-meter" :aria-label="t('portal.payments.creditUsage')">
             <span :style="{ width: creditUsagePercent + '%' }"></span>
           </div>
         </div>
         <div class="payment-next-card">
-          <div class="flow-eyebrow">Next payment</div>
-          <strong>{{ nextDue ? formatMoney(nextDue.amount || nextDue.total, nextDue.currency) : 'No pending payment' }}</strong>
-          <span>{{ nextDue?.referenceCode || credit.period || 'Credit line clear' }}</span>
+          <div class="flow-eyebrow">{{ t('portal.payments.nextPayment') }}</div>
+          <strong>{{ nextDue ? formatMoney(nextDue.amount || nextDue.total, nextDue.currency) : t('portal.payments.noPendingPayment') }}</strong>
+          <span>{{ nextDue?.referenceCode || credit.period || t('portal.payments.creditLineClear') }}</span>
         </div>
         <div class="payment-next-card">
-          <div class="flow-eyebrow">Payment option</div>
-          <ReferenceSelect v-model="selectedPaymentOption" resource="payment-options" placeholder="Reference payment option" />
-          <span>Use this to prepare the next request payment preference.</span>
+          <div class="flow-eyebrow">{{ t('portal.payments.paymentOption') }}</div>
+          <ReferenceSelect v-model="selectedPaymentOption" resource="payment-options" :placeholder="t('portal.payments.referencePaymentOption')" />
+          <span>{{ t('portal.payments.paymentOptionHelp') }}</span>
         </div>
       </div>
     </section>
 
     <div class="grid-3" style="margin-bottom:18px">
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-check-circle" style="color:#16A34A"></i> Paid</div>
+        <div class="kpi-label"><i class="pi pi-check-circle" style="color:#16A34A"></i> {{ paymentStateLabel('paid') }}</div>
         <div class="kpi-value" style="color:#16A34A">S/ {{ totalPaid.toFixed(2) }}</div>
-        <div class="kpi-sub">Confirmed payment records</div>
+        <div class="kpi-sub">{{ t('portal.payments.kpi.paidSub') }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> Pending</div>
+        <div class="kpi-label"><i class="pi pi-clock" style="color:#F59E0B"></i> {{ paymentStateLabel('pending') }}</div>
         <div class="kpi-value" style="color:#F59E0B">S/ {{ totalPending.toFixed(2) }}</div>
-        <div class="kpi-sub">Pending payment records</div>
+        <div class="kpi-sub">{{ t('portal.payments.kpi.pendingSub') }}</div>
       </div>
       <div class="card kpi-card">
-        <div class="kpi-label"><i class="pi pi-credit-card" style="color:#2563EB"></i> Records</div>
+        <div class="kpi-label"><i class="pi pi-credit-card" style="color:#2563EB"></i> {{ t('portal.payments.kpi.records') }}</div>
         <div class="kpi-value" style="color:#2563EB">{{ paymentsBase.length }}</div>
-        <div class="kpi-sub">Workspace payment records</div>
+        <div class="kpi-sub">{{ t('portal.payments.kpi.recordsSub') }}</div>
       </div>
     </div>
 
@@ -195,8 +201,8 @@ async function addPaymentMethod() {
       <article class="flow-panel payment-chart-panel">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Payment balance</div>
-            <div class="flow-subtitle">Confirmed versus pending amount.</div>
+            <div class="flow-title">{{ t('portal.payments.balanceTitle') }}</div>
+            <div class="flow-subtitle">{{ t('portal.payments.balanceSubtitle') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad payment-bars">
@@ -209,8 +215,8 @@ async function addPaymentMethod() {
       <article class="flow-panel payment-chart-panel">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Recent payment activity</div>
-            <div class="flow-subtitle">Relative amount by payment reference.</div>
+            <div class="flow-title">{{ t('portal.payments.recentActivity') }}</div>
+            <div class="flow-subtitle">{{ t('portal.payments.recentActivitySubtitle') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad payment-bars">
@@ -218,7 +224,7 @@ async function addPaymentMethod() {
             <div class="flow-row-between"><span class="mono">{{ row.label }}</span><strong>{{ formatMoney(row.value) }}</strong></div>
             <div class="payment-bar-track"><span :style="{ width: row.percent + '%' }"></span></div>
           </div>
-          <div v-if="!recentPaymentChart.length" class="flow-note">No payment activity available.</div>
+          <div v-if="!recentPaymentChart.length" class="flow-note">{{ t('portal.payments.noPaymentActivity') }}</div>
         </div>
       </article>
     </section>
@@ -226,8 +232,8 @@ async function addPaymentMethod() {
     <section class="flow-panel">
       <div class="flow-panel-head">
         <div>
-          <div class="flow-title">Payment Records</div>
-          <div class="flow-subtitle">Tenant-scoped payments from Nexa Invoicing.</div>
+            <div class="flow-title">{{ t('portal.payments.recordsTitle') }}</div>
+            <div class="flow-subtitle">{{ t('portal.payments.recordsSubtitle') }}</div>
         </div>
         <div class="flow-row">
           <button
@@ -238,29 +244,29 @@ async function addPaymentMethod() {
             type="button"
             @click="statusFilter = option.key"
           >
-            {{ option.label }}
+            {{ t(option.labelKey) }}
           </button>
         </div>
       </div>
       <table class="data-table">
         <thead>
           <tr>
-            <th>Reference</th>
-            <th>Invoice</th>
-            <th>Order</th>
-            <th>Amount</th>
-            <th>Status</th>
+            <th>{{ t('common.reference') }}</th>
+            <th>{{ t('portal.payments.table.invoice') }}</th>
+            <th>{{ t('portal.table.order') }}</th>
+            <th>{{ t('portal.payments.table.amount') }}</th>
+            <th>{{ t('portal.table.status') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="payment in payments" :key="payment.id">
             <td><span class="mono">{{ payment.referenceCode || payment.id }}</span></td>
-            <td><span class="mono">{{ payment.invoiceId || 'Core payment' }}</span></td>
-            <td><span class="mono">{{ payment.orderId || 'Pending relation' }}</span></td>
+            <td><span class="mono">{{ payment.invoiceId || t('portal.payments.corePayment') }}</span></td>
+            <td><span class="mono">{{ payment.orderId || t('portal.payments.pendingRelation') }}</span></td>
             <td style="font-weight:700">{{ formatMoney(payment.amount || payment.total, payment.currency) }}</td>
             <td>
               <span :class="'badge ' + paymentStateClass(payment.status)">
-                {{ paymentState(payment.status) }}
+                {{ paymentStateLabel(payment.status) }}
               </span>
             </td>
           </tr>
@@ -268,8 +274,8 @@ async function addPaymentMethod() {
             <td colspan="5">
               <div class="empty-state compact">
                 <div class="empty-state-icon"><i class="pi pi-credit-card"></i></div>
-                <div class="empty-state-title">No payment records</div>
-                <div class="empty-state-desc">No records match the current filter.</div>
+                <div class="empty-state-title">{{ t('portal.payments.emptyRecordsTitle') }}</div>
+                <div class="empty-state-desc">{{ t('portal.payments.emptyRecordsDesc') }}</div>
               </div>
             </td>
           </tr>
@@ -280,27 +286,27 @@ async function addPaymentMethod() {
     <section class="flow-panel" style="margin-top:18px">
       <div class="flow-panel-head">
         <div>
-          <div class="flow-title">Payment Methods</div>
-          <div class="flow-subtitle">Cards and payment references linked to this buyer account.</div>
+          <div class="flow-title">{{ t('portal.payments.methodsTitle') }}</div>
+          <div class="flow-subtitle">{{ t('portal.payments.methodsSubtitle') }}</div>
         </div>
         <button class="btn btn-primary btn-sm" type="button" @click="showAddMethod = !showAddMethod">
           <i :class="showAddMethod ? 'pi pi-times' : 'pi pi-plus'"></i>
-          {{ showAddMethod ? 'Cancel' : 'Add payment method' }}
+          {{ showAddMethod ? t('common.cancel') : t('portal.payments.addPaymentMethod') }}
         </button>
       </div>
       <div class="flow-panel-pad">
         <div v-if="paymentMethodError" class="banner banner-danger" role="alert">{{ paymentMethodError }}</div>
         <form v-if="showAddMethod" class="payment-method-form" @submit.prevent="addPaymentMethod">
           <label class="field">
-            <span class="field-label">Method type</span>
+            <span class="field-label">{{ t('portal.payments.form.methodType') }}</span>
             <select v-model="methodType" class="plain-input">
-              <option value="card">Credit or debit card</option>
-              <option value="bank_transfer">Bank transfer</option>
-              <option value="cash">Cash agreement</option>
+              <option value="card">{{ t('portal.payments.form.card') }}</option>
+              <option value="bank_transfer">{{ t('portal.payments.form.bankTransfer') }}</option>
+              <option value="cash">{{ t('portal.payments.form.cashAgreement') }}</option>
             </select>
           </label>
           <label v-if="methodType === 'card'" class="field">
-            <span class="field-label">Card brand</span>
+            <span class="field-label">{{ t('portal.payments.form.cardBrand') }}</span>
             <select v-model="cardBrand" class="plain-input">
               <option>Visa</option>
               <option>Mastercard</option>
@@ -308,21 +314,21 @@ async function addPaymentMethod() {
             </select>
           </label>
           <label v-if="methodType === 'card'" class="field">
-            <span class="field-label">Last 4 digits</span>
+            <span class="field-label">{{ t('portal.payments.form.lastFour') }}</span>
             <input v-model="lastFour" class="plain-input" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="1234" />
-            <small>Only a masked card reference is stored. Nexa never stores the full card number.</small>
+            <small>{{ t('portal.payments.form.maskedCardHelp') }}</small>
           </label>
           <label v-else class="field">
-            <span class="field-label">Reference label</span>
-            <input v-model="methodLabel" class="plain-input" maxlength="80" placeholder="BCP transfer account" />
+            <span class="field-label">{{ t('portal.payments.form.referenceLabel') }}</span>
+            <input v-model="methodLabel" class="plain-input" maxlength="80" :placeholder="t('portal.payments.form.referencePlaceholder')" />
           </label>
           <label class="payment-default-check">
             <input v-model="makeDefault" type="checkbox" />
-            <span>Use as default payment method</span>
+            <span>{{ t('portal.payments.form.useDefault') }}</span>
           </label>
           <button class="btn btn-primary" type="submit" :disabled="!canAddMethod || savingMethod">
             <i :class="savingMethod ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
-            {{ savingMethod ? 'Saving...' : 'Save payment method' }}
+            {{ savingMethod ? t('common.saving') : t('portal.payments.form.saveMethod') }}
           </button>
         </form>
         <div class="nexa-select-grid">
@@ -337,8 +343,8 @@ async function addPaymentMethod() {
         </div>
         <div v-if="!paymentMethods.length" class="empty-state compact">
           <div class="empty-state-icon"><i class="pi pi-wallet"></i></div>
-          <div class="empty-state-title">No payment methods</div>
-          <div class="empty-state-desc">No payment method references are available for this buyer.</div>
+          <div class="empty-state-title">{{ t('portal.payments.emptyMethodsTitle') }}</div>
+          <div class="empty-state-desc">{{ t('portal.payments.emptyMethodsDesc') }}</div>
         </div>
       </div>
     </section>

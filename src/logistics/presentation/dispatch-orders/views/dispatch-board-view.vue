@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { orderStatusLabel, orderStatusBadge, coldTypeLabel, coldTypeBadge, displayCode } from '@/shared/status';
+import { orderStatusLabel, orderStatusBadge, coldTypeLabel, coldTypeBadge, priorityLabel, displayCode } from '@/shared/status';
 import { creditSummary } from '@/shared/credit';
 
 const router = useRouter();
@@ -17,21 +17,21 @@ const busyDispatchId = ref(null);
 const actionError = ref('');
 
 const columns = [
-  { key: 'ready_for_operations', label: 'Orders', statuses: ['ready_for_operations'] },
-  { key: 'preparing', label: 'Processed / ordering', statuses: ['assigned', 'scheduled', 'preparing', 'ready_for_route', 'reprogrammed'] },
-  { key: 'in_route', label: 'In distribution', statuses: ['in_route', 'delayed'] },
-  { key: 'delivered', label: 'Delivered', statuses: ['delivered'] },
-  { key: 'incident', label: 'Rejected / returned', statuses: ['incident', 'cancelled', 'rejected'] },
+  { key: 'ready_for_operations', labelKey: 'dispatch.board.columns.ready_for_operations', statuses: ['ready_for_operations'] },
+  { key: 'preparing', labelKey: 'dispatch.board.columns.preparing', statuses: ['assigned', 'scheduled', 'preparing', 'ready_for_route', 'reprogrammed'] },
+  { key: 'in_route', labelKey: 'dispatch.board.columns.in_route', statuses: ['in_route', 'delayed'] },
+  { key: 'delivered', labelKey: 'dispatch.board.columns.delivered', statuses: ['delivered'] },
+  { key: 'incident', labelKey: 'dispatch.board.columns.incident', statuses: ['incident', 'cancelled', 'rejected'] },
 ];
 
 const routes = computed(() => ['all', ...new Set(D.dispatchOrders.map(dispatch => dispatch.routeName).filter(Boolean))]);
 const sortOptions = [
-  { value: 'priority', label: 'Priority' },
-  { value: 'eta', label: 'ETA' },
-  { value: 'route', label: 'Route' },
-  { value: 'client', label: 'Client' },
-  { value: 'status', label: 'Status' },
-  { value: 'newest', label: 'Newest' },
+  { value: 'priority', labelKey: 'dispatch.board.sortOptions.priority' },
+  { value: 'eta', labelKey: 'dispatch.board.sortOptions.eta' },
+  { value: 'route', labelKey: 'dispatch.board.sortOptions.route' },
+  { value: 'client', labelKey: 'dispatch.board.sortOptions.client' },
+  { value: 'status', labelKey: 'dispatch.board.sortOptions.status' },
+  { value: 'newest', labelKey: 'dispatch.board.sortOptions.newest' },
 ];
 const priorityRank = { high: 0, medium: 1, normal: 1, low: 2 };
 
@@ -71,7 +71,7 @@ function creditFor(dispatch) {
 }
 
 function etaLabel(dispatch) {
-  return dispatch.eta ? new Date(dispatch.eta).toLocaleDateString('en-US') : 'Not scheduled';
+  return dispatch.eta ? new Date(dispatch.eta).toLocaleDateString('en-US') : t('dispatch.board.notScheduled');
 }
 
 async function moveForward(dispatch) {
@@ -93,7 +93,7 @@ async function moveForward(dispatch) {
     actionError.value = error?.response?.data?.detail
       || error?.response?.data?.message
       || error?.message
-      || 'Dispatch could not be updated.';
+      || t('dispatch.board.updateError');
   } finally {
     busyDispatchId.value = null;
   }
@@ -103,11 +103,11 @@ async function moveForward(dispatch) {
 <template>
   <div class="page-header">
     <div>
-      <div class="page-title">Dispatch Board</div>
-      <div class="page-subtitle">{{ D.dispatchOrders.length }} dispatch orders - S2 operational board for route execution.</div>
+      <div class="page-title">{{ t('dispatch.board.title') }}</div>
+      <div class="page-subtitle">{{ t('dispatch.board.subtitle', { count: D.dispatchOrders.length }) }}</div>
     </div>
     <button class="btn btn-secondary" @click="router.push('/ops/operations/proof-of-delivery')">
-      <i class="pi pi-camera"></i> Proof of Delivery
+      <i class="pi pi-camera"></i> {{ t('dispatch.board.proofOfDelivery') }}
     </button>
   </div>
 
@@ -117,7 +117,7 @@ async function moveForward(dispatch) {
       <input v-model="search" :placeholder="t('dispatch.searchPlaceholder')" :aria-label="t('dispatch.searchPlaceholder')" />
     </div>
     <label class="dispatch-filter-select">
-      <span>Route</span>
+      <span>{{ t('dispatch.board.route') }}</span>
       <select v-model="routeFilter" :aria-label="t('dispatch.allRoutes')">
         <option v-for="routeName in routes" :key="routeName" :value="routeName">
           {{ routeName === 'all' ? t('dispatch.allRoutes') : routeName }}
@@ -125,9 +125,9 @@ async function moveForward(dispatch) {
       </select>
     </label>
     <label class="dispatch-filter-select">
-      <span>Sort</span>
+      <span>{{ t('dispatch.board.sort') }}</span>
       <select v-model="sortMode">
-        <option v-for="option in sortOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+        <option v-for="option in sortOptions" :key="option.value" :value="option.value">{{ t(option.labelKey) }}</option>
       </select>
     </label>
   </div>
@@ -140,7 +140,7 @@ async function moveForward(dispatch) {
   <div class="kanban-board">
     <section v-for="column in columns" :key="column.key" class="kanban-column">
       <div class="kanban-column-head">
-        <div class="kanban-column-title">{{ column.label }}</div>
+        <div class="kanban-column-title">{{ t(column.labelKey) }}</div>
         <span class="flow-pill">{{ byColumn(column).length }}</span>
       </div>
 
@@ -152,10 +152,10 @@ async function moveForward(dispatch) {
       >
         <div class="flow-row-between" style="margin-bottom:8px">
           <span class="mono">{{ displayCode(dispatch) }}</span>
-          <span :class="'badge-priority-' + (dispatch.priority === 'normal' ? 'medium' : dispatch.priority)">{{ dispatch.priority }}</span>
+          <span :class="'badge-priority-' + (dispatch.priority === 'normal' ? 'medium' : dispatch.priority)">{{ priorityLabel(dispatch.priority) }}</span>
         </div>
         <div style="font-size:13px;font-weight:800;margin-bottom:3px">{{ ds.clientName(dispatch.clientId) }}</div>
-        <div class="flow-note">Purchase Order <span class="mono">{{ dispatch.orderId }}</span></div>
+        <div class="flow-note">{{ t('dispatch.board.purchaseOrder') }} <span class="mono">{{ dispatch.orderId }}</span></div>
         <div class="flow-row" style="margin-top:10px;flex-wrap:wrap">
           <span :class="coldTypeBadge(dispatch.coldType)">{{ coldTypeLabel(dispatch.coldType) }}</span>
           <span :class="'badge ' + orderStatusBadge(dispatch.status)">{{ orderStatusLabel(dispatch.status) }}</span>
@@ -164,29 +164,29 @@ async function moveForward(dispatch) {
         <div class="divider" style="margin:10px 0"></div>
         <div class="flow-stack" style="gap:6px">
           <div class="flow-row-between dispatch-meta-row">
-            <span class="flow-note">Business Documents</span>
+            <span class="flow-note">{{ t('dispatch.board.businessDocuments') }}</span>
             <strong>{{ dispatch.documentProgress || '0/0' }}</strong>
           </div>
           <div class="flow-row-between dispatch-meta-row">
-            <span class="flow-note">Route</span>
+            <span class="flow-note">{{ t('dispatch.board.route') }}</span>
             <strong>{{ dispatch.routeName }}</strong>
           </div>
           <div class="flow-row-between dispatch-meta-row">
-            <span class="flow-note">ETA</span>
+            <span class="flow-note">{{ t('dispatch.board.eta') }}</span>
             <strong>{{ etaLabel(dispatch) }}</strong>
           </div>
           <div class="flow-row-between dispatch-meta-row">
-            <span class="flow-note">Responsible</span>
-            <strong>{{ dispatch.responsible || 'Unassigned' }}</strong>
+            <span class="flow-note">{{ t('dispatch.board.responsible') }}</span>
+            <strong>{{ dispatch.responsible || t('common.unassigned') }}</strong>
           </div>
           <div v-if="creditFor(dispatch).limit" class="flow-row-between dispatch-meta-row">
-            <span class="flow-note">Client credit</span>
-            <strong>S/ {{ creditFor(dispatch).available.toLocaleString() }} available</strong>
+            <span class="flow-note">{{ t('dispatch.board.clientCredit') }}</span>
+            <strong>S/ {{ creditFor(dispatch).available.toLocaleString() }} {{ t('dispatch.board.available') }}</strong>
           </div>
         </div>
         <div v-if="isDelayed(dispatch)" class="banner banner-warning" style="margin:10px 0 0;padding:9px">
           <i class="pi pi-clock"></i>
-          <div>{{ dispatch.delayReason || 'ETA requires review before buyer update.' }}</div>
+          <div>{{ dispatch.delayReason || t('dispatch.board.etaReview') }}</div>
         </div>
         <div v-if="dispatch.incidentNote" class="banner banner-danger" style="margin:10px 0 0;padding:9px">
           <i class="pi pi-exclamation-triangle"></i>
@@ -199,7 +199,7 @@ async function moveForward(dispatch) {
           @click.stop="moveForward(dispatch)"
         >
           <i :class="busyDispatchId === dispatch.id ? 'pi pi-spin pi-spinner' : 'pi pi-arrow-right'"></i>
-          {{ busyDispatchId === dispatch.id ? 'Updating...' : ['incident', 'cancelled', 'rejected'].includes(dispatch.status) ? 'Returned to Sales' : dispatch.status === 'delivered' ? 'Delivered' : 'Move dispatch forward' }}
+          {{ busyDispatchId === dispatch.id ? t('dispatch.board.updating') : ['incident', 'cancelled', 'rejected'].includes(dispatch.status) ? t('dispatch.board.returnedToSales') : dispatch.status === 'delivered' ? t('dispatch.deliveredBtn') : t('dispatch.board.moveForward') }}
         </button>
       </article>
     </section>

@@ -145,8 +145,8 @@ const navAll = computed(() => [
     to: '/ops/commercial/promotions',
     icon: 'pi-megaphone',
     label: t('nav.promotions'),
-    section: roleKey.value === 'owner' ? 'company' : roleKey.value === 'logistics' ? 'workspace' : 'commercial',
-    roles: ['owner', 'commercial', 'logistics'],
+    section: 'company',
+    roles: ['owner'],
   },
   {
     key: 'company-overview',
@@ -397,7 +397,7 @@ function logout() {
         >
           <i class="pi pi-bars" aria-hidden="true"></i>
         </button>
-        <div class="topbar-company" aria-label="Company identity">
+        <div class="topbar-company" :aria-label="t('common.companyIdentity')">
           <div class="company-mark">{{ companyInitials }}</div>
           <div class="topbar-company-copy">
             <div class="topbar-company-name">{{ companyLegalName }}</div>
@@ -422,11 +422,11 @@ function logout() {
               </div>
               <div class="notification-list">
                 <article v-for="item in visibleNotifications" :key="item.id" class="notification-item">
-                  <strong>{{ item.title || item.type || 'Nexa update' }}</strong>
-                  <span>{{ item.body || item.status || 'Workspace notification' }}</span>
+                  <strong>{{ item.title || item.type || t('common.nexaUpdate') }}</strong>
+                  <span>{{ item.body || item.status || t('common.workspaceNotification') }}</span>
                 </article>
                 <div v-if="!visibleNotifications.length" class="notification-empty">
-                  No database notifications yet.
+                  {{ t('common.noDatabaseNotifications') }}
                 </div>
               </div>
               <button
@@ -436,7 +436,7 @@ function logout() {
                 @click="enableBrowserNotifications"
               >
                 <i class="pi pi-bell"></i>
-                {{ browserNotificationStatus === 'granted' ? 'Browser notifications enabled' : browserNotificationStatus === 'unsupported' ? 'Browser notifications unsupported' : 'Enable browser notifications' }}
+                {{ browserNotificationStatus === 'granted' ? t('common.browserNotificationsEnabled') : browserNotificationStatus === 'unsupported' ? t('common.browserNotificationsUnsupported') : t('common.enableBrowserNotifications') }}
               </button>
             </section>
           </transition>

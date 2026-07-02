@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { ORDER_STATUS_FLOW, orderStatusLabel, orderStatusBadge, priorityLabel, orderStepState, displayCode, timelineEventForStep, formatTimelineDateTime, effectiveOrderStatus } from '@/shared/status';
+import { ORDER_STATUS_FLOW, orderStatusLabel, orderStatusBadge, priorityLabel, paymentMethodLabel, orderStepState, displayCode, timelineEventForStep, formatTimelineDateTime, effectiveOrderStatus } from '@/shared/status';
 
 const route = useRoute();
 const router = useRouter();
@@ -32,10 +32,10 @@ const orderEvents = computed(() => order.value ? ds.timelineForOrder(order.value
 const confirmationChecks = computed(() => {
   if (!order.value) return [];
   return [
-    { key: 'client', label: 'Client selected', ok: !!client.value },
-    { key: 'items', label: 'Products attached', ok: displayItems.value.length > 0 },
-    { key: 'stock', label: 'Stock available', ok: displayItems.value.every(item => item.stockOk !== false) },
-    { key: 'total', label: 'Positive total', ok: Number(order.value.total || 0) > 0 },
+    { key: 'client', label: t('orderDetail.checks.client'), ok: !!client.value },
+    { key: 'items', label: t('orderDetail.checks.items'), ok: displayItems.value.length > 0 },
+    { key: 'stock', label: t('orderDetail.checks.stock'), ok: displayItems.value.every(item => item.stockOk !== false) },
+    { key: 'total', label: t('orderDetail.checks.total'), ok: Number(order.value.total || 0) > 0 },
   ];
 });
 const canConfirmOrder = computed(() => confirmationChecks.value.every(check => check.ok));
@@ -78,9 +78,9 @@ const timeline = computed(() => {
       </div>
       <div class="page-subtitle">{{ ds.clientName(order.clientId) }} · {{ orderDate }}</div>
     </div>
-    <button class="btn btn-ghost" @click="toast.add({ severity:'info', summary:'Printing...', detail:'Opens the browser print dialog', life:2500 })"><i class="pi pi-print"></i> Print</button>
-    <button class="btn btn-secondary" disabled title="Orders are created after Sales acceptance and stock reservation.">
-      <i class="pi pi-lock"></i> Confirmed by Sales acceptance
+    <button class="btn btn-ghost" @click="toast.add({ severity:'info', summary:t('orderDetail.printing'), detail:t('orderDetail.printDescription'), life:2500 })"><i class="pi pi-print"></i> {{ t('orderDetail.print') }}</button>
+    <button class="btn btn-secondary" disabled :title="t('orderDetail.confirmedDescription')">
+      <i class="pi pi-lock"></i> {{ t('orderDetail.confirmed') }}
     </button>
   </div>
 
@@ -91,9 +91,9 @@ const timeline = computed(() => {
   <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start">
     <div>
       <div class="card" style="overflow:hidden;margin-bottom:16px">
-        <div class="card-header"><span class="card-title">Requested Products</span></div>
+        <div class="card-header"><span class="card-title">{{ t('orderDetail.requestedProducts') }}</span></div>
         <table class="data-table">
-          <thead><tr><th>Product</th><th>Quantity</th><th>Price</th><th>Subtotal</th><th>Stock</th></tr></thead>
+          <thead><tr><th>{{ t('orderDetail.product') }}</th><th>{{ t('orderDetail.quantity') }}</th><th>{{ t('orderDetail.price') }}</th><th>{{ t('orderDetail.subtotal') }}</th><th>{{ t('orderDetail.stock') }}</th></tr></thead>
           <tbody>
             <tr v-for="i in displayItems" :key="i.productId">
               <td>
@@ -111,20 +111,20 @@ const timeline = computed(() => {
               <td style="font-weight:600">S/ {{ (i.qty * i.price).toFixed(2) }}</td>
               <td>
                 <span :class="'badge ' + (i.stockOk ? 'badge-green' : 'badge-red')">
-                  {{ i.stockOk ? 'Available' : 'Partial stock' }}
+                  {{ i.stockOk ? t('catalog.available') : t('orderDetail.partialStock') }}
                 </span>
               </td>
             </tr>
-            <tr v-if="!displayItems.length"><td colspan="5"><div class="empty-state" style="padding:24px"><div class="empty-state-icon"><i class="pi pi-box"></i></div><div class="empty-state-title">No items</div></div></td></tr>
+            <tr v-if="!displayItems.length"><td colspan="5"><div class="empty-state" style="padding:24px"><div class="empty-state-icon"><i class="pi pi-box"></i></div><div class="empty-state-title">{{ t('orderDetail.noItems') }}</div></div></td></tr>
           </tbody>
         </table>
         <div style="padding:16px 20px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-weight:700;font-size:15px">
-          <span>Total</span><span>S/ {{ order.total.toFixed(2) }}</span>
+          <span>{{ t('common.total') }}</span><span>S/ {{ order.total.toFixed(2) }}</span>
         </div>
       </div>
 
       <div class="card card-pad">
-        <div class="card-title" style="margin-bottom:16px">Timeline</div>
+        <div class="card-title" style="margin-bottom:16px">{{ t('orderDetail.timeline') }}</div>
         <div class="timeline">
           <div v-for="(t, i) in timeline" :key="i" class="tl-item">
             <div class="tl-spine"></div>
@@ -142,34 +142,34 @@ const timeline = computed(() => {
 
     <div class="card card-pad" v-if="client">
       <div style="margin-bottom:14px">
-        <div class="card-title" style="margin-bottom:10px">Confirmation Checks</div>
+        <div class="card-title" style="margin-bottom:10px">{{ t('orderDetail.confirmationChecks') }}</div>
         <div v-for="check in confirmationChecks" :key="check.key" style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0">
           <span>{{ check.label }}</span>
-          <span :class="'badge ' + (check.ok ? 'badge-green' : 'badge-red')">{{ check.ok ? 'OK' : 'Review' }}</span>
+          <span :class="'badge ' + (check.ok ? 'badge-green' : 'badge-red')">{{ check.ok ? t('common.ok') : t('common.review') }}</span>
         </div>
       </div>
       <div class="divider" style="margin:14px 0"></div>
       <div v-if="order.createdByName" style="margin-bottom:14px;padding:10px 12px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px">
-        <div style="font-size:11px;font-weight:600;color:#2563EB;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Registered by</div>
+        <div style="font-size:11px;font-weight:600;color:#2563EB;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">{{ t('orderDetail.registeredBy') }}</div>
         <div style="font-size:13px;font-weight:500;color:#1F2937">{{ order.createdByName }}</div>
         <div style="font-size:11px;color:#6B7280">{{ order.createdByRole }}</div>
       </div>
-      <div class="card-title" style="margin-bottom:12px">Client</div>
+      <div class="card-title" style="margin-bottom:12px">{{ t('orderDetail.client') }}</div>
       <div style="font-weight:600">{{ client.name }}</div>
       <div style="font-size:12px;color:#6B7280">{{ client.ruc }}</div>
       <div class="divider" style="margin:14px 0"></div>
-      <div style="font-size:12px;color:#6B7280">Contact</div>
+      <div style="font-size:12px;color:#6B7280">{{ t('orderDetail.contact') }}</div>
       <div style="font-size:13px">{{ client.contact }}</div>
       <div style="font-size:12px;color:#6B7280">{{ client.phone }}</div>
       <div class="divider" style="margin:14px 0"></div>
-      <div style="font-size:12px;color:#6B7280">Address</div>
+      <div style="font-size:12px;color:#6B7280">{{ t('orderDetail.address') }}</div>
       <div style="font-size:13px">{{ client.address }}</div>
       <div class="divider" style="margin:14px 0"></div>
-      <div style="font-size:12px;color:#6B7280">Condition</div>
-      <div style="font-size:13px">{{ client.condition }}</div>
+      <div style="font-size:12px;color:#6B7280">{{ t('orderDetail.condition') }}</div>
+      <div style="font-size:13px">{{ paymentMethodLabel(client.condition) || client.condition }}</div>
       <template v-if="client.creditLimit">
         <div class="divider" style="margin:14px 0"></div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:6px">Credit Used</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:6px">{{ t('orderDetail.creditUsed') }}</div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:3px">
           <span>S/ {{ client.creditUsed.toLocaleString() }}</span>
           <span>S/ {{ client.creditLimit.toLocaleString() }}</span>

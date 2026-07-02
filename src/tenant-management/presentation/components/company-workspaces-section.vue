@@ -70,10 +70,10 @@ const workspacePreviewUrl = computed(() => `${normalizedSlug.value || 'workspace
 const slugInvalid = computed(() => !isValidWorkspaceSlug(normalizedSlug.value));
 const enabledModules = computed(() => props.tenant.capabilities?.length || 0);
 const readinessRows = computed(() => [
-  { label: 'Plan', value: props.tenant.plan || 'Standard', tone: 'blue' },
-  { label: 'Members', value: props.tenant.memberCount || 0, tone: 'cyan' },
-  { label: 'Cold rooms', value: props.tenant.mainWarehouse?.coldRooms || 0, tone: 'green' },
-  { label: 'Access URL', value: props.tenant.workspaceUrl || workspacePreviewUrl.value, tone: 'slate' },
+  { label: t('tenant.companyAdmin.workspace.stats.plan'), value: props.tenant.plan || 'Standard', tone: 'blue' },
+  { label: t('tenant.companyAdmin.workspace.stats.members'), value: props.tenant.memberCount || 0, tone: 'cyan' },
+  { label: t('tenant.companyAdmin.workspace.stats.coldRooms'), value: props.tenant.mainWarehouse?.coldRooms || 0, tone: 'green' },
+  { label: t('tenant.companyAdmin.workspace.stats.accessUrl'), value: props.tenant.workspaceUrl || workspacePreviewUrl.value, tone: 'slate' },
 ]);
 const visualPreviewStyle = computed(() => {
   const image = draft.backgroundPreview || props.tenant.branding?.backgroundPreview;
@@ -165,7 +165,7 @@ async function save() {
           <strong>{{ workspace.name }}</strong>
           <small>{{ workspace.slug }} · {{ workspace.url || workspace.workspaceUrl }}</small>
         </div>
-        <button type="button" class="admin-button" @click="startEdit(workspace)">Edit</button>
+        <button type="button" class="admin-button" @click="startEdit(workspace)">{{ $t('common.edit') }}</button>
       </article>
     </div>
     <div class="section-card workspace-detail">
@@ -196,17 +196,17 @@ async function save() {
       </div>
       <div class="workspace-story">
         <div>
-          <span>Workspace operations setup</span>
-          <strong>ICISA can keep sales, inventory, dispatch, proof of delivery and buyer visibility inside one controlled tenant.</strong>
+          <span>{{ $t('tenant.companyAdmin.workspace.operationsSetup') }}</span>
+          <strong>{{ $t('tenant.companyAdmin.workspace.operationsSetupDesc') }}</strong>
         </div>
         <div>
-          <span>Activation status</span>
-          <strong>Workspace membership is validated before users enter this operational workspace.</strong>
+          <span>{{ $t('tenant.companyAdmin.workspace.activationStatus') }}</span>
+          <strong>{{ $t('tenant.companyAdmin.workspace.activationStatusDesc') }}</strong>
         </div>
       </div>
       <div class="workspace-visual-preview" :style="visualPreviewStyle">
         <div>
-          <span>Workspace visual identity</span>
+          <span>{{ $t('tenant.companyAdmin.workspace.visualIdentity') }}</span>
           <strong>{{ draft.name || tenant.name }}</strong>
           <small>{{ workspacePreviewUrl }}</small>
         </div>

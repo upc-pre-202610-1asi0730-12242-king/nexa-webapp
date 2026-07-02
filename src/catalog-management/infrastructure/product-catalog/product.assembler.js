@@ -15,10 +15,18 @@ const coldRequirementToType = (requirement = '') => {
   return 'ambient';
 };
 
-const coldRequirementToRange = (requirement = '') => {
+const coldRequirementToRange = (requirement = '', category = '', name = '') => {
   const normalized = String(requirement).toLowerCase();
   if (normalized.includes('frozen')) return '-18°C';
-  if (normalized.includes('refrigerated')) return '2°C - 8°C';
+  if (normalized.includes('refrigerated')) {
+    const normalizedName = String(name).toUpperCase();
+    if (category === 'Charcuterie') return '0°C - 5°C';
+    if (category === 'Butter') return '2°C - 6°C';
+    if (category === 'Dessert') return '0°C - 4°C';
+    if (/PARMIGIANO|GRANA|MANCHEGO|GOUDA|EDAM|EMMENTAL|MAASDAM/.test(normalizedName)) return '4°C - 8°C';
+    if (/CABRA|FETA|BLEU|BLUE|MASCARPONE|PETIT/.test(normalizedName)) return '2°C - 6°C';
+    return '2°C - 8°C';
+  }
   return 'Ambient';
 };
 
@@ -50,7 +58,7 @@ const normalizeBackendCatalogItem = (resource = {}) => {
     sku: resource.productId,
     category,
     cat: categoryToCat(category),
-    temp: coldRequirementToRange(resource.coldChainRequirement),
+    temp: coldRequirementToRange(resource.coldChainRequirement, category, resource.itemName),
     unit: 'UN',
     price: Number(resource.unitPriceAmount ?? 0),
     currency: resource.unitPriceCurrency || 'PEN',

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStripePaymentsStore } from '@/invoicing/application/payments/stripe-payments.store';
 
 const props = defineProps({
@@ -10,11 +11,12 @@ const props = defineProps({
 });
 
 const stripePayments = useStripePaymentsStore();
+const { t } = useI18n();
 
 const payable = computed(() => props.payment || null);
 const canPrepareCheckout = computed(() => stripePayments.frontendConfigured && payable.value && !stripePayments.loading);
 const amountLabel = computed(() => {
-  if (!payable.value) return 'No pending payment selected';
+  if (!payable.value) return t('stripePayments.noPendingSelected');
   const amount = Number(payable.value.amount || payable.value.total || 0).toFixed(2);
   return `${payable.value.currency || 'PEN'} ${amount}`;
 });
@@ -38,26 +40,26 @@ async function prepareCheckout() {
   <section class="flow-panel stripe-payment-panel">
     <div class="flow-panel-head">
       <div>
-        <div class="flow-title">Stripe payment preparation</div>
-        <div class="flow-subtitle">Checkout is prepared only through the backend. No card data is stored in Nexa Webapp.</div>
+        <div class="flow-title">{{ t('stripePayments.title') }}</div>
+        <div class="flow-subtitle">{{ t('stripePayments.subtitle') }}</div>
       </div>
       <span class="badge" :class="stripePayments.frontendConfigured ? 'badge-green' : 'badge-amber'">
-        {{ stripePayments.frontendConfigured ? 'Publishable key ready' : 'Missing publishable key' }}
+        {{ stripePayments.frontendConfigured ? t('stripePayments.keyReady') : t('stripePayments.keyMissing') }}
       </span>
     </div>
     <div class="flow-panel-pad stripe-payment-grid">
       <div>
-        <div class="flow-eyebrow">Selected payment</div>
+        <div class="flow-eyebrow">{{ t('stripePayments.selected') }}</div>
         <strong>{{ amountLabel }}</strong>
-        <span>{{ payable?.referenceCode || payable?.id || 'Pending payment record required' }}</span>
+        <span>{{ payable?.referenceCode || payable?.id || t('stripePayments.recordRequired') }}</span>
       </div>
       <div class="stripe-payment-copy">
-        <strong>Real payment states only</strong>
-        <span>Nexa will not mark a payment as paid until a verified backend Stripe flow and webhook update the payment record.</span>
+        <strong>{{ t('stripePayments.realStates') }}</strong>
+        <span>{{ t('stripePayments.realStatesDesc') }}</span>
       </div>
       <button class="btn btn-primary" type="button" :disabled="!canPrepareCheckout" @click="prepareCheckout">
         <i :class="stripePayments.loading ? 'pi pi-spin pi-spinner' : 'pi pi-credit-card'"></i>
-        {{ stripePayments.loading ? 'Preparing...' : 'Prepare Stripe Checkout' }}
+        {{ stripePayments.loading ? t('stripePayments.preparing') : t('stripePayments.prepare') }}
       </button>
     </div>
     <div v-if="stripePayments.error" class="banner banner-warning" role="status">
