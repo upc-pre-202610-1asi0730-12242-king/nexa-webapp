@@ -388,6 +388,14 @@
         "progress": "Setup progress",
         "temperature": "Cold-chain policy"
       },
+      "workspace": {
+        "create": "Create Workspace",
+        "duplicateSlug": "This workspace slug is already in use. Choose a different slug.",
+        "saveError": "Workspace could not be saved.",
+        "logoPreviewPlaceholder": "Preview only - no file upload persistence configured",
+        "backgroundImage": "Workspace background image",
+        "coverImage": "Workspace cover image"
+      },
       "actions": {
         "editProfile": "Edit profile",
         "manageWorkspace": "Manage workspace",

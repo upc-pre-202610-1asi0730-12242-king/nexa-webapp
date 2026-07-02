@@ -1,11 +1,21 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { normalizeWorkspaceSlug, isValidWorkspaceSlug } from '@/tenant-management/domain/model/value-objects/workspace-slug.value-object';
 
-const props = defineProps({ tenant: { type: Object, required: true } });
-const emit = defineEmits(['update-workspace']);
+const { t } = useI18n();
+const props = defineProps({
+  tenant: { type: Object, required: true },
+  workspaces: { type: Array, default: () => [] },
+  createWorkspace: { type: Function, required: true },
+  updateWorkspaceAction: { type: Function, required: true },
+});
 const editing = ref(false);
+const creating = ref(false);
+const saving = ref(false);
 const submitted = ref(false);
+const formError = ref('');
+const selectedWorkspaceId = ref(null);
 const draft = reactive({
   name: '',
   slug: '',
@@ -23,13 +33,26 @@ const draft = reactive({
 
 watch(
   () => props.tenant,
-  resetDraft,
+  () => resetDraft(selectedWorkspace.value),
   { immediate: true }
 );
 
-function resetDraft(tenant = props.tenant) {
-    draft.name = tenant.name || '';
-    draft.slug = tenant.slug || '';
+const workspaceRows = computed(() => props.workspaces.length ? props.workspaces : props.tenant.workspaces || []);
+const selectedWorkspace = computed(() =>
+  workspaceRows.value.find(row => Number(row.id) === Number(selectedWorkspaceId.value)) ||
+  workspaceRows.value.find(row => Number(row.id) === Number(props.tenant.workspaceId)) ||
+  workspaceRows.value[0] ||
+  props.tenant
+);
+
+watch(workspaceRows, () => {
+  if (!selectedWorkspaceId.value && selectedWorkspace.value?.id) selectedWorkspaceId.value = selectedWorkspace.value.id;
+}, { immediate: true });
+
+function resetDraft(workspace = selectedWorkspace.value) {
+    const tenant = props.tenant;
+    draft.name = workspace?.name || tenant.name || '';
+    draft.slug = workspace?.slug || tenant.slug || '';
     draft.plan = tenant.plan || 'Standard';
     draft.mainWarehouse = tenant.mainWarehouse?.name || '';
     draft.coldRooms = tenant.mainWarehouse?.coldRooms || 0;
@@ -61,22 +84,90 @@ const visualPreviewStyle = computed(() => {
 
 function cancel() {
   submitted.value = false;
+  formError.value = '';
   resetDraft();
   editing.value = false;
+  creating.value = false;
 }
 
-function save() {
+function startCreate() {
+  formError.value = '';
+  submitted.value = false;
+  creating.value = true;
+  editing.value = true;
+  const stamp = Date.now().toString().slice(-6);
+  draft.name = 'Otto Knut';
+  draft.slug = normalizeWorkspaceSlug(`otto-knut-${stamp}`);
+  draft.plan = props.tenant.plan || 'Standard';
+  draft.mainWarehouse = props.tenant.mainWarehouse?.name || '';
+  draft.coldRooms = props.tenant.mainWarehouse?.coldRooms || 0;
+  draft.temperatureRange = props.tenant.coldChainOperation?.temperatureRange || '';
+  draft.fefoEnabled = Boolean(props.tenant.logisticsSetup?.fefoEnabled);
+  draft.temperatureAlertsEnabled = Boolean(props.tenant.logisticsSetup?.temperatureAlertsEnabled);
+  draft.dispatchTrackingEnabled = Boolean(props.tenant.logisticsSetup?.dispatchTrackingEnabled);
+  draft.logoPreview = '';
+  draft.backgroundPreview = '';
+  draft.workspaceImage = '';
+}
+
+function startEdit(workspace = selectedWorkspace.value) {
+  selectedWorkspaceId.value = workspace?.id || selectedWorkspaceId.value;
+  creating.value = false;
+  editing.value = true;
+  submitted.value = false;
+  formError.value = '';
+  resetDraft(workspace);
+}
+
+function friendlyError(error) {
+  const message = error?.nexaMessage || error?.response?.data?.message || error?.response?.data?.detail || error?.response?.data?.title || error?.message || '';
+  return /slug|conflict|duplicate|already/i.test(message)
+    ? t('tenant.companyAdmin.workspace.duplicateSlug')
+    : message || t('tenant.companyAdmin.workspace.saveError');
+}
+
+async function save() {
   submitted.value = true;
+  formError.value = '';
   draft.slug = normalizedSlug.value;
   if (slugInvalid.value) return;
-  emit('update-workspace', { ...draft });
-  submitted.value = false;
-  editing.value = false;
+  saving.value = true;
+  try {
+    const saved = creating.value
+      ? await props.createWorkspace({ ...draft, url: workspacePreviewUrl.value })
+      : await props.updateWorkspaceAction({ ...draft, workspaceId: selectedWorkspace.value?.id });
+    selectedWorkspaceId.value = saved?.id || selectedWorkspace.value?.id || selectedWorkspaceId.value;
+    submitted.value = false;
+    editing.value = false;
+    creating.value = false;
+  } catch (error) {
+    formError.value = friendlyError(error);
+  } finally {
+    saving.value = false;
+  }
 }
 </script>
 
 <template>
   <section class="admin-section">
+    <div class="section-toolbar workspace-toolbar">
+      <button type="button" class="primary admin-button" @click="startCreate">{{ $t('tenant.companyAdmin.workspace.create') }}</button>
+    </div>
+    <div class="workspace-list">
+      <article
+        v-for="workspace in workspaceRows"
+        :key="workspace.id || workspace.slug"
+        class="workspace-list-card"
+        :class="{ active: Number(workspace.id) === Number(selectedWorkspace?.id) }"
+      >
+        <div>
+          <span>ID {{ workspace.id }}</span>
+          <strong>{{ workspace.name }}</strong>
+          <small>{{ workspace.slug }} · {{ workspace.url || workspace.workspaceUrl }}</small>
+        </div>
+        <button type="button" class="admin-button" @click="startEdit(workspace)">Edit</button>
+      </article>
+    </div>
     <div class="section-card workspace-detail">
       <div class="workspace-detail-head">
         <div class="brand-preview">
@@ -87,7 +178,7 @@ function save() {
           <h3>{{ tenant.name }}</h3>
           <span>{{ tenant.workspaceUrl }}</span>
         </div>
-        <button v-if="!editing" type="button" class="admin-button workspace-edit-button" @click="editing = true">{{ $t('common.edit') }}</button>
+        <button v-if="!editing" type="button" class="admin-button workspace-edit-button" @click="startEdit(selectedWorkspace)">{{ $t('common.edit') }}</button>
       </div>
       <div class="detail-grid">
         <div><span>{{ $t('tenant.registration.fields.workspaceSlug') }}</span><strong>{{ tenant.slug }}</strong><small>{{ tenant.workspaceUrl }}</small></div>
@@ -127,7 +218,7 @@ function save() {
 
       <form v-if="editing" class="admin-form admin-editor-panel workspace-editor" @submit.prevent="save">
         <div class="editor-heading span-2">
-          <strong>{{ $t('tenant.companyAdmin.actions.manageWorkspace') }}</strong>
+          <strong>{{ creating ? $t('tenant.companyAdmin.workspace.create') : $t('tenant.companyAdmin.actions.manageWorkspace') }}</strong>
           <span>{{ workspacePreviewUrl }}</span>
         </div>
         <label>{{ $t('tenant.registration.fields.workspaceName') }}<input v-model="draft.name" /></label>
@@ -140,9 +231,9 @@ function save() {
         <label>{{ $t('tenant.workspace.mainWarehouse') }}<input v-model="draft.mainWarehouse" /></label>
         <label>{{ $t('tenant.workspace.coldRooms') }}<input v-model.number="draft.coldRooms" type="number" min="0" /></label>
         <label>{{ $t('tenant.workspace.temperatureRange') }}<input v-model="draft.temperatureRange" /></label>
-        <label>{{ $t('tenant.companyAdmin.form.logoPreview') }}<input v-model="draft.logoPreview" placeholder="https://..." /></label>
-        <label>Workspace background image<input v-model="draft.backgroundPreview" placeholder="https://..." /></label>
-        <label>Workspace cover image<input v-model="draft.workspaceImage" placeholder="https://..." /></label>
+        <label>{{ $t('tenant.companyAdmin.form.logoPreview') }}<input v-model="draft.logoPreview" :placeholder="$t('tenant.companyAdmin.workspace.logoPreviewPlaceholder')" /></label>
+        <label>{{ $t('tenant.companyAdmin.workspace.backgroundImage') }}<input v-model="draft.backgroundPreview" placeholder="https://..." /></label>
+        <label>{{ $t('tenant.companyAdmin.workspace.coverImage') }}<input v-model="draft.workspaceImage" placeholder="https://..." /></label>
         <div class="workspace-url-preview">
           <span>{{ $t('tenant.registration.fields.workspaceUrl') }}</span>
           <strong>{{ workspacePreviewUrl }}</strong>
@@ -166,8 +257,9 @@ function save() {
           </button>
         </div>
         <div class="section-toolbar span-2">
+          <p v-if="formError" class="field-error span-2">{{ formError }}</p>
           <button type="button" @click="cancel">{{ $t('common.cancel') }}</button>
-          <button class="primary admin-button" type="submit">{{ $t('common.save') }}</button>
+          <button class="primary admin-button" type="submit" :disabled="saving">{{ saving ? $t('common.loading') : $t('common.save') }}</button>
         </div>
       </form>
       </div>
@@ -215,6 +307,28 @@ function save() {
 
 .workspace-editor {
   margin-top: 16px;
+}
+.workspace-toolbar {
+  justify-content: flex-end;
+}
+.workspace-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.workspace-list-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid #dbe5f2;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+}
+.workspace-list-card.active {
+  border-color: #93c5fd;
+  box-shadow: inset 0 0 0 1px rgba(147,197,253,.55);
 }
 
 .workspace-readiness {

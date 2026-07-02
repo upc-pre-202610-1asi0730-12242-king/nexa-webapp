@@ -23,6 +23,7 @@ const {
   preferences,
   segmentConnections,
   setupProgress,
+  workspaces,
 } = storeToRefs(store);
 
 const sections = [
@@ -52,6 +53,30 @@ const billingUsage = computed(() => ({
   documents: dataStore.D.businessDocuments.length,
 }));
 
+function hydrateFromSession() {
+  const sessionTenant = auth.tenant || JSON.parse(localStorage.getItem('nexa.tenant') || 'null');
+  if (!tenant.value && sessionTenant) {
+    tenant.value = {
+      ...sessionTenant,
+      workspaces: [],
+    };
+  }
+
+  if (!workspaces.value.length && sessionTenant?.workspaceId) {
+    workspaces.value = [{
+      id: sessionTenant.workspaceId,
+      tenantId: sessionTenant.id,
+      name: sessionTenant.name,
+      slug: sessionTenant.slug,
+      url: sessionTenant.workspaceUrl,
+      workspaceUrl: sessionTenant.workspaceUrl,
+      emailDomain: sessionTenant.emailDomain,
+      status: sessionTenant.status || 'active',
+      isPrimary: true,
+    }];
+  }
+}
+
 function selectSection(section, action = '') {
   const routeSection = sections.find(item => item.key === section)?.query || section;
   const query = { ...route.query, section: routeSection };
@@ -60,8 +85,14 @@ function selectSection(section, action = '') {
   router.replace({ path: route.path, query });
 }
 
+hydrateFromSession();
+
 onMounted(() => {
-  store.load(auth.tenant?.slug || 'icisa');
+  hydrateFromSession();
+  store.load(auth.tenant?.slug || 'icisa').catch(error => {
+    console.error('Company administration load failed', error);
+    hydrateFromSession();
+  });
 });
 </script>
 
@@ -91,6 +122,9 @@ onMounted(() => {
       :billing-error="billingError"
       :preferences="preferences"
       :save-billing="store.updateBilling"
+      :workspaces="workspaces"
+      :create-workspace="store.createWorkspace"
+      :update-workspace-action="store.updateWorkspace"
       @select="selectSection"
       @update-company="store.updateCompanyProfile"
       @update-workspace="store.updateWorkspace"

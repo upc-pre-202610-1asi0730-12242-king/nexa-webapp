@@ -154,6 +154,20 @@ function parseTemperatureRange(value, fallback) {
   };
 }
 
+function mapWorkspace(row = {}) {
+  return {
+    id: row.id || row.Id,
+    tenantId: row.tenantId || row.TenantId,
+    name: row.name || row.Name || '',
+    slug: row.slug || row.Slug || '',
+    url: row.url || row.Url || '',
+    workspaceUrl: row.url || row.Url || '',
+    emailDomain: row.emailDomain || row.EmailDomain || '',
+    status: row.status || row.Status || 'active',
+    isPrimary: Boolean(row.isPrimary ?? row.IsPrimary),
+  };
+}
+
 export const useCompanyAdministrationStore = defineStore('companyAdministration', () => {
   const tenant = ref(null);
   const teammates = ref([]);
@@ -188,7 +202,7 @@ export const useCompanyAdministrationStore = defineStore('companyAdministration'
       warehousesApi.getAll(),
     ]);
     const tenantId = tenant.value?.id;
-    workspaces.value = forTenant(workspaceRows, tenantId);
+    workspaces.value = forTenant(workspaceRows, tenantId).map(mapWorkspace);
     const currentWorkspace = workspaces.value.find(row => Number(row.id) === Number(tenant.value?.workspaceId)) || workspaces.value[0] || null;
     preferenceRows.value = storedPreferences.filter(row => Number(row.workspaceId ?? row.WorkspaceId) === Number(currentWorkspace?.id));
     preferences.value = Object.fromEntries(preferenceRows.value.map(row => [row.key || row.Key, preferenceValue(row)]));
@@ -307,26 +321,33 @@ export const useCompanyAdministrationStore = defineStore('companyAdministration'
   }
 
   async function updateWorkspace(payload) {
-    const workspace = currentWorkspace();
+    const workspace = payload.workspaceId
+      ? workspaces.value.find(row => Number(row.id) === Number(payload.workspaceId))
+      : currentWorkspace();
     if (!workspace) throw new Error('Workspace is required before updating it.');
     const url = payload.slug ? `${payload.slug}.nexa.com.pe` : workspace.url;
-    const [savedWorkspace, savedTenant] = await Promise.all([
-      workspacesApi.update(workspace.id, {
-        tenantId: Number(tenant.value.id),
-        name: payload.name ?? workspace.name,
-        slug: payload.slug ?? workspace.slug,
-        url,
-        emailDomain: workspace.emailDomain || tenant.value.emailDomain,
-        status: workspace.status || 'active',
-        isPrimary: workspace.isPrimary ?? true,
-      }),
-      tenantsApi.update(tenant.value.id, tenantResource({
-        name: payload.name,
-        workspaceUrl: url,
-        plan: payload.plan,
-      })),
-    ]);
-    Object.assign(workspace, savedWorkspace);
+    const savedWorkspace = await workspacesApi.update(workspace.id, {
+      tenantId: Number(tenant.value.id),
+      name: payload.name ?? workspace.name,
+      slug: payload.slug ?? workspace.slug,
+      url,
+      emailDomain: workspace.emailDomain || tenant.value.emailDomain,
+      status: workspace.status || 'active',
+      isPrimary: workspace.isPrimary ?? false,
+    });
+    Object.assign(workspace, mapWorkspace(savedWorkspace));
+
+    const updatesCurrentWorkspace = Number(workspace.id) === Number(tenant.value?.workspaceId) || Boolean(workspace.isPrimary);
+    if (!updatesCurrentWorkspace) {
+      tenant.value.workspaces = workspaces.value;
+      return workspace;
+    }
+
+    const savedTenant = await tenantsApi.update(tenant.value.id, tenantResource({
+      name: payload.name,
+      workspaceUrl: url,
+      plan: payload.plan,
+    }));
     Object.assign(tenant.value, savedTenant, {
       workspaceId: savedWorkspace.id,
       workspaceUrl: savedWorkspace.url,
@@ -374,6 +395,26 @@ export const useCompanyAdministrationStore = defineStore('companyAdministration'
       workspaceImage: preferences.value.workspaceImageUrl || '',
     };
     return tenant.value;
+  }
+
+  async function createWorkspace(payload) {
+    const tenantId = Number(tenant.value?.id || 0);
+    if (!tenantId) throw new Error('Tenant is required before creating a workspace.');
+    const slug = String(payload.slug || '').trim().toLowerCase();
+    if (!slug) throw new Error('Workspace slug is required.');
+    const saved = await workspacesApi.create({
+      tenantId,
+      name: payload.name || 'New workspace',
+      slug,
+      url: payload.url || `${slug}.nexa.com.pe`,
+      emailDomain: payload.emailDomain || tenant.value.emailDomain || `${slug}.nexa.com.pe`,
+      status: payload.status || 'active',
+      isPrimary: false,
+    });
+    const workspace = mapWorkspace(saved);
+    workspaces.value.push(workspace);
+    tenant.value.workspaces = workspaces.value;
+    return workspace;
   }
 
   async function addTeammate(payload) {
@@ -574,6 +615,7 @@ export const useCompanyAdministrationStore = defineStore('companyAdministration'
     load,
     updateCompanyProfile,
     updateWorkspace,
+    createWorkspace,
     addTeammate,
     updateTeammate,
     removeTeammate,

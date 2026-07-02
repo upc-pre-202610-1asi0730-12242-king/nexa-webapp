@@ -234,7 +234,7 @@ async function submitRequest() {
       ].filter(Boolean).join('\n'),
       items: cart.items,
     });
-    cart.clear();
+    cart.clearDraft();
     router.push('/portal/purchase-requests/' + request.id);
   } catch (error) {
     submitError.value = error?.message || t('buyerRequestBuilder.submitError');

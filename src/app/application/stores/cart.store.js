@@ -1,8 +1,29 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+
+const STORAGE_KEY = 'nexa.buyerRequestCart';
+
+function storageScope() {
+  const tenant = JSON.parse(localStorage.getItem('nexa.tenant') || 'null');
+  const user = JSON.parse(localStorage.getItem('nexa.user') || 'null');
+  return [tenant?.id || tenant?.slug || 'tenant', user?.clientId || user?.id || 'user'].join(':');
+}
+
+function readStoredItems() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    return draft?.scope === storageScope() && Array.isArray(draft.items) ? draft.items : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredItems(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ scope: storageScope(), items }));
+}
 
 export const useCartStore = defineStore('cart', () => {
-  const items = ref([]); // [{ productId, qty, price, name, unit }]
+  const items = ref(readStoredItems()); // [{ productId, qty, price, name, unit }]
   const isOpen = ref(false);
 
   const count = computed(() => items.value.reduce((s, i) => s + i.qty, 0));
@@ -38,8 +59,23 @@ export const useCartStore = defineStore('cart', () => {
     if (!it) return;
     it.qty = Math.max(1, qty);
   }
-  function clear() { items.value = []; }
+  function clear() {
+    items.value = [];
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  function clearDraft() {
+    items.value = [];
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  function reloadDraft() {
+    items.value = readStoredItems();
+  }
   function toggle() { isOpen.value = !isOpen.value; }
 
-  return { items, isOpen, count, total, add, remove, setQty, clear, toggle };
+  watch(items, (value) => {
+    if (value.length) writeStoredItems(value);
+    else localStorage.removeItem(STORAGE_KEY);
+  }, { deep: true });
+
+  return { items, isOpen, count, total, add, remove, setQty, clear, clearDraft, reloadDraft, toggle };
 });

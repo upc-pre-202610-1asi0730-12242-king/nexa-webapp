@@ -388,6 +388,14 @@
         "progress": "Progreso de setup",
         "temperature": "Política de cadena de frío"
       },
+      "workspace": {
+        "create": "Crear workspace",
+        "duplicateSlug": "Este slug de workspace ya está en uso. Elige otro slug.",
+        "saveError": "No se pudo guardar el workspace.",
+        "logoPreviewPlaceholder": "Solo preview - persistencia de archivo no configurada",
+        "backgroundImage": "Imagen de fondo del workspace",
+        "coverImage": "Imagen de portada del workspace"
+      },
       "actions": {
         "editProfile": "Editar perfil",
         "manageWorkspace": "Gestionar workspace",

@@ -22,6 +22,9 @@ defineProps({
   billingError: { type: String, default: '' },
   saveBilling: { type: Function, required: true },
   preferences: { type: Object, required: true },
+  workspaces: { type: Array, default: () => [] },
+  createWorkspace: { type: Function, required: true },
+  updateWorkspaceAction: { type: Function, required: true },
 });
 
 const emit = defineEmits([
@@ -55,7 +58,9 @@ const emit = defineEmits([
       <CompanyWorkspacesSection
         v-else-if="activeSection === 'workspaces'"
         :tenant="tenant"
-        @update-workspace="payload => emit('update-workspace', payload)"
+        :workspaces="workspaces"
+        :create-workspace="createWorkspace"
+        :update-workspace-action="updateWorkspaceAction"
       />
       <CompanyTeammatesSection
         v-else-if="activeSection === 'teammates'"

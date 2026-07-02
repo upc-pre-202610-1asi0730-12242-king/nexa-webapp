@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { iamApplication } from '@/iam/application/iam.application';
+import { useCartStore } from '@/app/application/stores/cart.store';
 
 export const useAuthStore = defineStore('auth', () => {
   const storedUser = JSON.parse(localStorage.getItem('nexa.user') || 'null');
@@ -28,6 +29,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login({ workspaceSlug, email, password }) {
     if (!workspaceSlug || !email || !password) throw new Error('Missing credentials');
+    const previousScope = [
+      tenant.value?.id || tenant.value?.slug || 'tenant',
+      user.value?.clientId || user.value?.id || 'user',
+    ].join(':');
 
     const session = await iamApplication.verifyWorkspaceCredentials({ workspaceSlug, email, password });
 
@@ -71,9 +76,18 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('nexa.scope', scope.value);
     localStorage.setItem('nexa.tenant', JSON.stringify(tenant.value));
     localStorage.setItem('nexa.membership', JSON.stringify(membership.value));
+
+    const nextScope = [
+      tenant.value?.id || tenant.value?.slug || 'tenant',
+      user.value?.clientId || user.value?.id || 'user',
+    ].join(':');
+    const cart = useCartStore();
+    if (previousScope !== nextScope) cart.clearDraft();
+    else cart.reloadDraft();
   }
 
   function logout() {
+    useCartStore().clearDraft();
     user.value  = null;
     token.value = null;
     scope.value = 'ops';
