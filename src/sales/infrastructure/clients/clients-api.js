@@ -21,6 +21,11 @@ class ClientsApiService {
     return this.clients.update(id, client);
   }
 
+  updateCurrentBuyerProfile(client) {
+    return this.clients.request((http) =>
+      http.put(this.clients.pathFor(http, '', '/api/v1/profile/client-account'), client).then(response => response.data));
+  }
+
   getClientFinancialProfile(id) {
     return this.clients.request((client) =>
       client.get(this.clients.pathFor(client, `/${id}/financial-profile`, '/api/v1/client-accounts')).then(response => response.data));

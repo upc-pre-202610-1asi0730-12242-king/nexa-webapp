@@ -1003,6 +1003,29 @@
         "manualOrder": "Manual Order Entry",
         "documents": "Business Documents"
       }
+    },
+    "password": {
+      "description": "Change your password using your current credentials.",
+      "policy": "Use at least 10 characters with uppercase, lowercase, a number, and a symbol.",
+      "confirmMismatch": "Password confirmation does not match.",
+      "wrongCurrent": "Current password is incorrect.",
+      "mustDiffer": "New password must differ from the current password.",
+      "error": "Password could not be changed.",
+      "success": "Password changed successfully. Your current session remains active."
+    },
+    "buyer": {
+      "portal": "Buyer Portal", "subtitle": "Buyer identity comes from authenticated access; client profile details belong to the current workspace.",
+      "role": "B2B Buyer", "account": "Buyer account", "client": "Client", "pendingAssignment": "pending assignment", "logout": "Log out",
+      "accountSummary": "Account summary", "accountSummaryDescription": "Buyer access and workspace identity for editable B2B profile data.",
+      "clientIdentifier": "Client identifier", "pending": "Pending", "saveAccount": "Save account", "accountUpdated": "Account name and email updated.",
+      "accountSaveError": "The account profile could not be saved.", "activity": "Current account activity", "activityDescription": "Real orders and invoices linked to this buyer account.",
+      "orders": "Orders", "ordersDescription": "Purchase orders linked to this buyer account.", "invoices": "Invoices", "invoicesDescription": "Billing documents linked to this buyer account.",
+      "clientProfile": "Client profile", "clientProfileDescription": "Editable buyer data used for documents, delivery, and future purchase requests.", "editClientProfile": "Edit client profile",
+      "companyType": "Company", "companyTypeDescription": "Uses RUC, legal name, and commercial documents.", "personType": "Individual", "personTypeDescription": "Uses DNI and traceable simplified receipts.",
+      "businessName": "Business name", "tradeName": "Trade name", "primaryContact": "Primary contact", "contactEmail": "Contact email", "district": "District", "province": "Province",
+      "deliveryAddress": "Delivery address", "reference": "Reference", "documentRequirements": "This profile defines document requirements: {documents}",
+      "companyDocuments": "invoice XML, invoice PDF, and delivery guide PDF", "personDocuments": "invoice PDF and delivery guide PDF",
+      "saveClientProfile": "Save buyer profile", "profileUpdated": "Profile updated for Buyer Portal and client-account fields.", "profileSaveError": "The buyer profile could not be saved."
     }
   },
   "portal": {
@@ -1241,6 +1264,7 @@
     "bankTransfer": "Bank transfer",
     "bankTransferDescription": "Register payment coordination before dispatch.",
     "routePreview": "Buyer delivery route preview",
+    "routePreviewDescription": "The map centers on the selected delivery destination; open it to review the driving route.",
     "traceableRoute": "Traceable route",
     "autoAddress": "Address filled automatically",
     "products": "Products",

@@ -358,11 +358,11 @@ function useCurrentLocation() {
               </small>
             </div>
             <div class="request-item-controls">
-              <button class="btn btn-ghost btn-sm" @click="cart.setQty(item.productId, item.qty - 1)">-</button>
-              <input class="qty-input" type="number" min="1" :value="item.qty" @input="cart.setQty(item.productId, Number($event.target.value || 1))" />
-              <button class="btn btn-ghost btn-sm" @click="cart.setQty(item.productId, item.qty + 1)">+</button>
+              <button class="btn btn-ghost btn-sm" type="button" :aria-label="t('portal.cartDecrease', { name: item.name })" @click="cart.setQty(item.productId, item.qty - 1)">-</button>
+              <input class="qty-input" type="number" min="1" :value="item.qty" :aria-label="t('portal.cartQuantity', { qty: item.qty })" @input="cart.setQty(item.productId, Number($event.target.value || 1))" />
+              <button class="btn btn-ghost btn-sm" type="button" :aria-label="t('portal.cartIncrease', { name: item.name })" @click="cart.setQty(item.productId, item.qty + 1)">+</button>
               <strong>S/ {{ (Number(item.price || 0) * Number(item.qty || 1)).toFixed(2) }}</strong>
-              <button class="btn btn-ghost btn-sm" @click="cart.remove(item.productId)"><i class="pi pi-trash"></i></button>
+              <button class="btn btn-ghost btn-sm" type="button" :aria-label="t('portal.cartRemove', { name: item.name })" @click="cart.remove(item.productId)"><i class="pi pi-trash" aria-hidden="true"></i></button>
             </div>
           </div>
           <div v-if="!cart.items.length" class="empty-state compact">

@@ -1003,6 +1003,29 @@
         "manualOrder": "Registro manual de pedido",
         "documents": "Documentos comerciales"
       }
+    },
+    "password": {
+      "description": "Cambia tu contraseña usando tus credenciales actuales.",
+      "policy": "Usa al menos 10 caracteres con mayúscula, minúscula, número y símbolo.",
+      "confirmMismatch": "La confirmación de contraseña no coincide.",
+      "wrongCurrent": "La contraseña actual es incorrecta.",
+      "mustDiffer": "La nueva contraseña debe ser distinta de la actual.",
+      "error": "No se pudo cambiar la contraseña.",
+      "success": "Contraseña cambiada correctamente. Tu sesión actual sigue activa."
+    },
+    "buyer": {
+      "portal": "Portal del comprador", "subtitle": "La identidad proviene del acceso autenticado; el perfil del cliente pertenece al workspace actual.",
+      "role": "Comprador B2B", "account": "Cuenta compradora", "client": "Cliente", "pendingAssignment": "asignación pendiente", "logout": "Cerrar sesión",
+      "accountSummary": "Resumen de cuenta", "accountSummaryDescription": "Acceso e identidad del workspace para el perfil B2B editable.",
+      "clientIdentifier": "Identificador del cliente", "pending": "Pendiente", "saveAccount": "Guardar cuenta", "accountUpdated": "Nombre y correo de la cuenta actualizados.",
+      "accountSaveError": "No se pudo guardar el perfil de la cuenta.", "activity": "Actividad actual de la cuenta", "activityDescription": "Pedidos y facturas reales vinculados a esta cuenta compradora.",
+      "orders": "Pedidos", "ordersDescription": "Pedidos de compra vinculados a esta cuenta.", "invoices": "Facturas", "invoicesDescription": "Documentos de facturación vinculados a esta cuenta.",
+      "clientProfile": "Perfil del cliente", "clientProfileDescription": "Datos editables usados en documentos, entregas y futuras solicitudes.", "editClientProfile": "Editar perfil del cliente",
+      "companyType": "Empresa", "companyTypeDescription": "Usa RUC, razón social y documentos comerciales.", "personType": "Persona natural", "personTypeDescription": "Usa DNI y comprobantes simplificados trazables.",
+      "businessName": "Razón social", "tradeName": "Nombre comercial", "primaryContact": "Contacto principal", "contactEmail": "Correo de contacto", "district": "Distrito", "province": "Provincia",
+      "deliveryAddress": "Dirección de entrega", "reference": "Referencia", "documentRequirements": "Este perfil define los documentos requeridos: {documents}",
+      "companyDocuments": "factura XML, factura PDF y guía de entrega PDF", "personDocuments": "factura PDF y guía de entrega PDF",
+      "saveClientProfile": "Guardar perfil del comprador", "profileUpdated": "Perfil actualizado para el Portal del comprador y la cuenta cliente.", "profileSaveError": "No se pudo guardar el perfil del comprador."
     }
   },
   "portal": {
@@ -1241,6 +1264,7 @@
     "bankTransfer": "Transferencia bancaria",
     "bankTransferDescription": "Registra la coordinación de pago antes del despacho.",
     "routePreview": "Vista previa de la ruta de entrega",
+    "routePreviewDescription": "El mapa se centra en el destino seleccionado; ábrelo para revisar la ruta vehicular.",
     "traceableRoute": "Ruta trazable",
     "autoAddress": "Dirección completada automáticamente",
     "products": "Productos",

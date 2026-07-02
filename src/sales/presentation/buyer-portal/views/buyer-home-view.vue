@@ -216,7 +216,7 @@ onMounted(() => {
               <div class="flow-note">{{ product.category }} - {{ product.temperatureRange || product.temp }}</div>
               <div class="flow-row-between" style="margin-top:12px">
                 <strong>S/ {{ Number(product.price || product.priceAmount || 0).toFixed(2) }}</strong>
-                <button class="add-btn add-btn-default" @click="cart.add(product)"><i class="pi pi-plus"></i></button>
+                <button class="add-btn add-btn-default" type="button" :aria-label="t('catalog.addToRequest') + ': ' + product.name" @click="cart.add(product)"><i class="pi pi-plus" aria-hidden="true"></i></button>
               </div>
             </div>
           </article>

@@ -898,6 +898,16 @@ export const useDataStore = defineStore('data', () => {
     return client;
   }
 
+  async function updateCurrentBuyerProfile(clientId, payload) {
+    const client = clientById(clientId);
+    if (!client) return null;
+    const draft = { ...client, ...payload, updatedAt: new Date().toISOString() };
+    const saved = await clientsApplication.updateCurrentBuyerProfile(draft);
+    Object.assign(client, saved);
+    addActivity(`B2B buyer profile updated: ${client.commercialName || client.businessName}`, 'info');
+    return client;
+  }
+
   async function addStockMovement(payload) {
     const product = productById(payload.productId);
     const quantity = Number(payload.quantity ?? payload.qty ?? 0);
@@ -1209,6 +1219,13 @@ export const useDataStore = defineStore('data', () => {
     }));
   }
 
+  function canLoadAuditLogs() {
+    if (typeof localStorage === 'undefined') return false;
+    const user = JSON.parse(localStorage.getItem('nexa.user') || 'null');
+    const role = String(user?.roleName || user?.role || user?.roleKey || '').toLowerCase();
+    return role.includes('owner') || role === 'admin';
+  }
+
   async function loadCoreCollections() {
     const [
       tenants,
@@ -1256,7 +1273,9 @@ export const useDataStore = defineStore('data', () => {
       readCoreCollection(() => api.notifications.getAll(), 'notifications'),
       readCoreCollection(() => api.temperatureLogs.getAll(), 'temperatureLogs'),
       readCoreCollection(() => api.promotions.getAll(), 'promotions'),
-      readCoreCollection(() => api.auditLogs.getAll(), 'auditLogs'),
+      canLoadAuditLogs()
+        ? readCoreCollection(() => api.auditLogs.getAll(), 'auditLogs')
+        : Promise.resolve([]),
       readCoreCollection(() => api.creditRequests.getAll(), 'creditRequests'),
     ]);
 
@@ -1477,6 +1496,7 @@ export const useDataStore = defineStore('data', () => {
     updatePromotionStatus,
     addClient,
     updateClient,
+    updateCurrentBuyerProfile,
     addStockMovement,
   };
 });

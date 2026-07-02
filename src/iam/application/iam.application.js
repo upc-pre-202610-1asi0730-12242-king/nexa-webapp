@@ -46,6 +46,10 @@ export const iamApplication = {
     return iamApiService.updateCurrentProfile(payload).then(mapBackendUser);
   },
 
+  changeCurrentPassword(payload) {
+    return iamApiService.changeCurrentPassword(payload);
+  },
+
   /**
    * @summary Resolves a tenant preview for the workspace-first login.
    * @param {string} workspaceSlug

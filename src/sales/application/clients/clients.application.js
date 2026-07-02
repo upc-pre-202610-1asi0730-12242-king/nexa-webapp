@@ -24,6 +24,12 @@ export const clientsApplication = {
       .then(mapClientResource);
   },
 
+  updateCurrentBuyerProfile(client) {
+    return clientsApiService
+      .updateCurrentBuyerProfile(ClientAssembler.toCreateResource(client))
+      .then(mapClientResource);
+  },
+
   getActiveClients() {
     return this.getClients().then(clients => clients.filter(c => c.status === 'active'));
   },

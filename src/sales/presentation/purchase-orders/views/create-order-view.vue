@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
@@ -9,6 +10,7 @@ import { creditSummary } from '@/shared/credit';
 import { referenceDataApi } from '@/shared/infrastructure/reference-data-api';
 
 const router = useRouter();
+const { t } = useI18n();
 const toast = useToast();
 const ds = useDataStore();
 const cart = useCartStore();
@@ -499,7 +501,7 @@ async function confirm() {
               <div style="font-size:11px;color:#9CA3AF">S/ {{ l.price.toFixed(2) }} / {{ l.unit }}</div>
             </div>
             <input type="number" v-model.number="l.qty" :max="l.max" min="1" style="width:50px;border:1px solid #E5E7EB;border-radius:6px;padding:4px;font-size:13px;text-align:center" />
-            <button class="btn btn-ghost btn-sm" @click="removeLine(l.productId)"><i class="pi pi-trash"></i></button>
+            <button class="btn btn-ghost btn-sm" type="button" :aria-label="t('portal.cartRemove', { name: l.name })" @click="removeLine(l.productId)"><i class="pi pi-trash" aria-hidden="true"></i></button>
           </div>
           <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;margin-top:12px;padding-top:12px;border-top:2px solid #E5E7EB">
             <span>Total</span><span>S/ {{ total.toFixed(2) }}</span>

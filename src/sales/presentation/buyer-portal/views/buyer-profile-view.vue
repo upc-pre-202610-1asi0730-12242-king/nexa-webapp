@@ -1,11 +1,13 @@
 <script setup>
 import { computed, reactive, ref, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { iamApplication } from '@/iam/application/iam.application';
 import { useDataStore } from '@/app/application/stores/data.store';
 
 const router = useRouter();
+const { t } = useI18n();
 const auth = useAuthStore();
 const ds = useDataStore();
 
@@ -22,7 +24,11 @@ const accountSaved = ref(false);
 const saveError = ref('');
 const editingAccount = ref(false);
 const editingClientProfile = ref(false);
+const changingPassword = ref(false);
+const passwordSaved = ref(false);
+const passwordError = ref('');
 const account = reactive({ fullName: '', email: '' });
+const password = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' });
 const profile = reactive({
   buyerType: 'company',
   businessName: '',
@@ -97,7 +103,7 @@ async function saveAccount() {
     localStorage.setItem('nexa.user', JSON.stringify(auth.user));
 
     if (client.value) {
-      await ds.updateClient(client.value.id, {
+      await ds.updateCurrentBuyerProfile(client.value.id, {
         contact: account.fullName,
         contactEmail: account.email,
       });
@@ -108,7 +114,7 @@ async function saveAccount() {
     accountSaved.value = true;
     editingAccount.value = false;
   } catch (error) {
-    saveError.value = error?.response?.data?.message || error?.message || 'The account profile could not be saved.';
+    saveError.value = error?.response?.data?.message || t('profile.buyer.accountSaveError');
   } finally {
     savingAccount.value = false;
   }
@@ -120,7 +126,7 @@ async function saveProfile() {
   saved.value = false;
   saveError.value = '';
   try {
-    await ds.updateClient(client.value.id, {
+    await ds.updateCurrentBuyerProfile(client.value.id, {
       type: profile.buyerType,
       businessName: profile.buyerType === 'company' ? profile.businessName : profile.contact,
       commercialName: profile.buyerType === 'company' ? profile.commercialName : profile.contact,
@@ -139,9 +145,41 @@ async function saveProfile() {
     saved.value = true;
     editingClientProfile.value = false;
   } catch (error) {
-    saveError.value = error?.response?.data?.message || error?.message || 'The buyer profile could not be saved.';
+    saveError.value = error?.response?.data?.message || t('profile.buyer.profileSaveError');
   } finally {
     saving.value = false;
+  }
+}
+
+function clearPasswordFields() {
+  password.currentPassword = '';
+  password.newPassword = '';
+  password.confirmPassword = '';
+}
+
+async function changePassword() {
+  passwordError.value = '';
+  passwordSaved.value = false;
+  if (password.newPassword !== password.confirmPassword) {
+    passwordError.value = t('profile.password.confirmMismatch');
+    return;
+  }
+  changingPassword.value = true;
+  try {
+    await iamApplication.changeCurrentPassword({ ...password });
+    passwordSaved.value = true;
+    clearPasswordFields();
+  } catch (error) {
+    const message = String(error?.response?.data?.message || '');
+    passwordError.value = message.includes('Current password')
+      ? t('profile.password.wrongCurrent')
+      : message.includes('differ')
+        ? t('profile.password.mustDiffer')
+        : message.includes('10 characters')
+          ? t('profile.password.policy')
+          : t('profile.password.error');
+  } finally {
+    changingPassword.value = false;
   }
 }
 
@@ -155,9 +193,9 @@ function endSession() {
   <div class="buyer-profile">
     <section class="page-header">
       <div>
-        <span class="eyebrow">Buyer Portal</span>
+        <span class="eyebrow">{{ $t('profile.buyer.portal') }}</span>
         <h1>{{ $t('portal.nav.profile') }}</h1>
-        <p>Buyer identity comes from authenticated access; client profile details are shown for the current workspace.</p>
+        <p>{{ $t('profile.buyer.subtitle') }}</p>
       </div>
     </section>
 
@@ -166,13 +204,13 @@ function endSession() {
         <span>{{ initials }}</span>
       </div>
       <div class="profile-hero-copy">
-        <div class="flow-pill flow-pill-blue">B2B buyer</div>
-        <h1>{{ auth.user?.name || 'Buyer account' }}</h1>
-        <p>{{ auth.user?.email }} · Client {{ clientId || 'pending assignment' }}</p>
+        <div class="flow-pill flow-pill-blue">{{ $t('profile.buyer.role') }}</div>
+        <h1>{{ auth.user?.name || $t('profile.buyer.account') }}</h1>
+        <p>{{ auth.user?.email }} · {{ $t('profile.buyer.client') }} {{ clientId || $t('profile.buyer.pendingAssignment') }}</p>
       </div>
       <div class="profile-hero-actions">
-        <button class="btn btn-secondary" @click="endSession"><i class="pi pi-users"></i> Switch Account</button>
-        <button class="btn btn-logout-contrast" @click="endSession"><i class="pi pi-sign-out"></i> Log Out</button>
+        <button class="btn btn-secondary" type="button" @click="endSession"><i class="pi pi-users" aria-hidden="true"></i> {{ $t('profile.workspace.switchAccount') }}</button>
+        <button class="btn btn-logout-contrast" type="button" @click="endSession"><i class="pi pi-sign-out" aria-hidden="true"></i> {{ $t('profile.buyer.logout') }}</button>
       </div>
     </section>
 
@@ -180,39 +218,71 @@ function endSession() {
       <section class="flow-panel span-6" :class="{ editing: editingAccount }">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Account Summary</div>
-            <div class="flow-subtitle">Buyer access and workspace identity for editable B2B profile data.</div>
+            <div class="flow-title">{{ $t('profile.buyer.accountSummary') }}</div>
+            <div class="flow-subtitle">{{ $t('profile.buyer.accountSummaryDescription') }}</div>
           </div>
-          <button v-if="!editingAccount" class="btn btn-secondary" type="button" @click="editingAccount = true">Edit account</button>
+          <button v-if="!editingAccount" class="btn btn-secondary" type="button" @click="editingAccount = true">{{ $t('profile.workspace.editAccount') }}</button>
         </div>
         <form class="flow-panel-pad form-grid buyer-editable-grid" @submit.prevent="saveAccount">
-          <label class="field"><span class="field-label">Full name</span><input v-model="account.fullName" class="plain-input" :disabled="!editingAccount" required /></label>
-          <label class="field"><span class="field-label">Email</span><input v-model="account.email" class="plain-input" type="email" :disabled="!editingAccount" required /></label>
-          <label class="field"><span class="field-label">Client identifier</span><input class="plain-input" :value="client?.code || clientId || 'Pending'" disabled /></label>
-          <label class="field"><span class="field-label">Role</span><input class="plain-input" :value="auth.user?.roleName || 'B2B Buyer'" disabled /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.name') }}</span><input v-model="account.fullName" class="plain-input" :disabled="!editingAccount" required /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.email') }}</span><input v-model="account.email" class="plain-input" type="email" :disabled="!editingAccount" required /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.buyer.clientIdentifier') }}</span><input class="plain-input" :value="client?.code || clientId || $t('profile.buyer.pending')" disabled /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.role') }}</span><input class="plain-input" :value="auth.user?.roleName || $t('profile.buyer.role')" disabled /></label>
           <div v-if="editingAccount" class="profile-form-actions span-full">
-            <button class="btn btn-secondary" type="button" @click="cancelAccountEdit">Cancel</button>
-            <button class="btn btn-primary" type="submit" :disabled="savingAccount">{{ savingAccount ? 'Saving...' : 'Save account' }}</button>
+            <button class="btn btn-secondary" type="button" @click="cancelAccountEdit">{{ $t('common.cancel') }}</button>
+            <button class="btn btn-primary" type="submit" :disabled="savingAccount">{{ savingAccount ? $t('profile.workspace.saving') : $t('profile.buyer.saveAccount') }}</button>
           </div>
-          <p v-if="accountSaved" class="muted-text span-full">Account name and email updated.</p>
+          <p v-if="accountSaved" class="muted-text span-full" role="status">{{ $t('profile.buyer.accountUpdated') }}</p>
+        </form>
+      </section>
+
+      <section class="flow-panel span-12" aria-labelledby="password-change-title">
+        <div class="flow-panel-head">
+          <div>
+            <div id="password-change-title" class="flow-title">{{ $t('profile.security') }}</div>
+            <div class="flow-subtitle">{{ $t('profile.password.description') }}</div>
+          </div>
+        </div>
+        <form class="flow-panel-pad form-grid buyer-editable-grid" @submit.prevent="changePassword">
+          <input class="sr-only" type="email" :value="auth.user?.email || ''" autocomplete="username" tabindex="-1" aria-hidden="true" readonly />
+          <label class="field">
+            <span class="field-label">{{ $t('profile.currentPassword') }}</span>
+            <input v-model="password.currentPassword" class="plain-input" type="password" autocomplete="current-password" required />
+          </label>
+          <label class="field">
+            <span class="field-label">{{ $t('profile.newPassword') }}</span>
+            <input v-model="password.newPassword" class="plain-input" type="password" autocomplete="new-password" minlength="10" required aria-describedby="password-policy" />
+          </label>
+          <label class="field">
+            <span class="field-label">{{ $t('profile.confirmPassword') }}</span>
+            <input v-model="password.confirmPassword" class="plain-input" type="password" autocomplete="new-password" minlength="10" required />
+          </label>
+          <p id="password-policy" class="muted-text">{{ $t('profile.password.policy') }}</p>
+          <div class="profile-form-actions span-full">
+            <button class="btn btn-primary" type="submit" :disabled="changingPassword">
+              {{ changingPassword ? $t('profile.workspace.saving') : $t('profile.changePassword') }}
+            </button>
+          </div>
+          <p v-if="passwordError" class="banner banner-danger span-full" role="alert">{{ passwordError }}</p>
+          <p v-if="passwordSaved" class="banner banner-success span-full" role="status">{{ $t('profile.password.success') }}</p>
         </form>
       </section>
 
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Current Account Activity</div>
-            <div class="flow-subtitle">Real orders and invoices linked to this buyer account.</div>
+            <div class="flow-title">{{ $t('profile.buyer.activity') }}</div>
+            <div class="flow-subtitle">{{ $t('profile.buyer.activityDescription') }}</div>
           </div>
         </div>
         <div class="flow-panel-pad buyer-kpi-grid">
           <div class="credit-summary-box">
-            <div class="mini-row"><span class="meta-label">Orders</span><strong>{{ clientOrders.length }}</strong></div>
-            <div class="flow-note">Purchase orders linked to this buyer account.</div>
+            <div class="mini-row"><span class="meta-label">{{ $t('profile.buyer.orders') }}</span><strong>{{ clientOrders.length }}</strong></div>
+            <div class="flow-note">{{ $t('profile.buyer.ordersDescription') }}</div>
           </div>
           <div class="credit-summary-box">
-            <div class="mini-row"><span class="meta-label">Invoices</span><strong>{{ clientInvoices.length }}</strong></div>
-            <div class="flow-note">Billing documents linked to this buyer account.</div>
+            <div class="mini-row"><span class="meta-label">{{ $t('profile.buyer.invoices') }}</span><strong>{{ clientInvoices.length }}</strong></div>
+            <div class="flow-note">{{ $t('profile.buyer.invoicesDescription') }}</div>
           </div>
         </div>
       </section>
@@ -220,45 +290,45 @@ function endSession() {
       <section class="flow-panel span-12" :class="{ editing: editingClientProfile }">
         <div class="flow-panel-head">
           <div>
-            <div class="flow-title">Client Profile</div>
-            <div class="flow-subtitle">Editable buyer data used for documents, delivery and future purchase requests.</div>
+            <div class="flow-title">{{ $t('profile.buyer.clientProfile') }}</div>
+            <div class="flow-subtitle">{{ $t('profile.buyer.clientProfileDescription') }}</div>
           </div>
-          <button v-if="!editingClientProfile" class="btn btn-secondary" type="button" @click="editingClientProfile = true">Edit client profile</button>
+          <button v-if="!editingClientProfile" class="btn btn-secondary" type="button" @click="editingClientProfile = true">{{ $t('profile.buyer.editClientProfile') }}</button>
         </div>
         <div class="flow-panel-pad form-grid">
           <div class="span-full nexa-select-grid">
             <button class="nexa-select-card" :class="{ active: profile.buyerType === 'company' }" type="button" :disabled="!editingClientProfile" @click="profile.buyerType = 'company'">
               <i class="pi pi-building"></i>
-              <span><strong>Empresa</strong><small>Requiere RUC, razon social y documentos comerciales.</small></span>
+              <span><strong>{{ $t('profile.buyer.companyType') }}</strong><small>{{ $t('profile.buyer.companyTypeDescription') }}</small></span>
             </button>
             <button class="nexa-select-card" :class="{ active: profile.buyerType === 'natural' }" type="button" :disabled="!editingClientProfile" @click="profile.buyerType = 'natural'">
               <i class="pi pi-user"></i>
-              <span><strong>Persona natural</strong><small>Usa DNI y comprobantes simples trazables.</small></span>
+              <span><strong>{{ $t('profile.buyer.personType') }}</strong><small>{{ $t('profile.buyer.personTypeDescription') }}</small></span>
             </button>
           </div>
-          <label v-if="profile.buyerType === 'company'" class="field"><span class="field-label">Business name</span><input v-model="profile.businessName" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label v-if="profile.buyerType === 'company'" class="field"><span class="field-label">Trade name</span><input v-model="profile.commercialName" class="plain-input" :disabled="!editingClientProfile" /></label>
+          <label v-if="profile.buyerType === 'company'" class="field"><span class="field-label">{{ $t('profile.buyer.businessName') }}</span><input v-model="profile.businessName" class="plain-input" :disabled="!editingClientProfile" /></label>
+          <label v-if="profile.buyerType === 'company'" class="field"><span class="field-label">{{ $t('profile.buyer.tradeName') }}</span><input v-model="profile.commercialName" class="plain-input" :disabled="!editingClientProfile" /></label>
           <label v-if="profile.buyerType === 'company'" class="field"><span class="field-label">RUC</span><input v-model="profile.ruc" class="plain-input" inputmode="numeric" :disabled="!editingClientProfile" /></label>
           <label v-else class="field"><span class="field-label">DNI</span><input v-model="profile.dni" class="plain-input" inputmode="numeric" :disabled="!editingClientProfile" /></label>
-          <label class="field"><span class="field-label">Primary contact</span><input v-model="profile.contact" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label class="field"><span class="field-label">Contact email</span><input v-model="profile.contactEmail" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label class="field"><span class="field-label">Phone</span><input v-model="profile.phone" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label class="field"><span class="field-label">District</span><input v-model="profile.district" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label class="field"><span class="field-label">Province</span><input v-model="profile.province" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label class="field span-full"><span class="field-label">Delivery address</span><input v-model="profile.address" class="plain-input" :disabled="!editingClientProfile" /></label>
-          <label class="field span-full"><span class="field-label">Reference</span><textarea v-model="profile.reference" rows="3" class="plain-input" :disabled="!editingClientProfile"></textarea></label>
+          <label class="field"><span class="field-label">{{ $t('profile.buyer.primaryContact') }}</span><input v-model="profile.contact" class="plain-input" :disabled="!editingClientProfile" /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.buyer.contactEmail') }}</span><input v-model="profile.contactEmail" class="plain-input" type="email" :disabled="!editingClientProfile" /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.phone') }}</span><input v-model="profile.phone" class="plain-input" inputmode="tel" :disabled="!editingClientProfile" /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.buyer.district') }}</span><input v-model="profile.district" class="plain-input" :disabled="!editingClientProfile" /></label>
+          <label class="field"><span class="field-label">{{ $t('profile.buyer.province') }}</span><input v-model="profile.province" class="plain-input" :disabled="!editingClientProfile" /></label>
+          <label class="field span-full"><span class="field-label">{{ $t('profile.buyer.deliveryAddress') }}</span><input v-model="profile.address" class="plain-input" :disabled="!editingClientProfile" /></label>
+          <label class="field span-full"><span class="field-label">{{ $t('profile.buyer.reference') }}</span><textarea v-model="profile.reference" rows="3" class="plain-input" :disabled="!editingClientProfile"></textarea></label>
           <div class="banner banner-info span-full" style="margin:0">
             <i class="pi pi-file-check"></i>
-            <div>This profile feeds document requirements: {{ profile.buyerType === 'company' ? 'Factura XML, factura PDF and guia PDF.' : 'Factura PDF and guia PDF.' }}</div>
+            <div>{{ $t('profile.buyer.documentRequirements', { documents: profile.buyerType === 'company' ? $t('profile.buyer.companyDocuments') : $t('profile.buyer.personDocuments') }) }}</div>
           </div>
           <div v-if="editingClientProfile" class="profile-form-actions span-full">
-            <button class="btn btn-secondary" type="button" @click="cancelClientProfileEdit">Cancel</button>
+            <button class="btn btn-secondary" type="button" @click="cancelClientProfileEdit">{{ $t('common.cancel') }}</button>
             <button class="btn btn-primary" type="button" :disabled="saving" @click="saveProfile">
-              <i class="pi pi-save"></i> {{ saving ? 'Saving...' : 'Save buyer profile' }}
+              <i class="pi pi-save" aria-hidden="true"></i> {{ saving ? $t('profile.workspace.saving') : $t('profile.buyer.saveClientProfile') }}
             </button>
           </div>
           <p v-if="saveError" class="banner banner-danger span-full" role="alert">{{ saveError }}</p>
-          <p v-if="saved" class="muted-text span-full">Profile updated for buyer portal and client account fields.</p>
+          <p v-if="saved" class="muted-text span-full" role="status">{{ $t('profile.buyer.profileUpdated') }}</p>
         </div>
       </section>
     </div>

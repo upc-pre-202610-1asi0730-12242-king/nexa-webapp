@@ -53,6 +53,7 @@ class IamApiService {
   constructor() {
     this.users = new BaseEndpoint('/api/v1/users');
     this.authentication = new BaseEndpoint('/api/v1/authentication');
+    this.profile = new BaseEndpoint('/api/v1/profile');
   }
 
   getUsers() {
@@ -70,6 +71,13 @@ class IamApiService {
     return this.users.request(
       (client) => client.put(this.users.pathFor(client, '/me'), resource).then(response => response.data),
       (data) => data && typeof data === 'object'
+    );
+  }
+
+  changeCurrentPassword(resource) {
+    return this.profile.request(
+      (client) => client.post(this.profile.pathFor(client, '/password-changes'), resource)
+        .then(response => response.data)
     );
   }
 
