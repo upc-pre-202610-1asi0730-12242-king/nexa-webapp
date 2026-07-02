@@ -15,7 +15,7 @@ const endpoints = {
   tenants: '/api/v1/tenants',
   subscriptions: '/api/v1/subscriptions',
   users: '/api/v1/users',
-  clients: '/api/v1/clients',
+  clients: '/api/v1/client-accounts',
   categories: '/api/v1/categories',
   brands: '/api/v1/brands',
   promotions: '/api/v1/promotions',
@@ -33,7 +33,7 @@ const endpoints = {
   payments: '/api/v1/payments',
   creditRequests: '/api/v1/credit-requests',
   creditPayments: '/api/v1/payments',
-  notifications: '/api/v1/notification-records',
+  notifications: '/api/v1/notifications',
   temperatureLogs: '/api/v1/temperature-logs',
   auditLogs: '/api/v1/audit-logs',
 };

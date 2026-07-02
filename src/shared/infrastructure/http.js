@@ -18,7 +18,7 @@ export const coreHttp = axios.create({
 
 const attachBearerToken = (config) => {
   const path = String(config.url || '');
-  const isPublicWorkspaceLookup = path.includes('/tenants/by-slug/');
+  const isPublicWorkspaceLookup = path.endsWith('/tenants') && Boolean(config.params?.slug);
   const isPublicAuthentication = path.includes('/authentication/sign-in') || path.endsWith('/authentication');
   if (isPublicWorkspaceLookup || isPublicAuthentication) return config;
 

@@ -22,6 +22,8 @@ Existing context stores include:
 - Added client methods for backend read-model endpoints without forcing screens to migrate before the backend contracts exist.
 - Context stores now load role-focused read models with explicit loading/error state.
 - Buyer home/profile preparation, Buyer order detail lifecycle, Sales order summaries, Sales purchase request inbox, Logistics dispatch detail, and Catalog item availability consume read-model endpoints while keeping the legacy `data.store.js` joins as fallback.
+- Active clients now use canonical `/client-accounts`, `/notifications`, `/tenants?slug=`, and `/workspaces?slug=` contracts. No active Vue client calls `/clients`, `/notification-records`, or `/by-*` routes.
+- Owner workspace rendering no longer crashes on partially hydrated tenant state; workspace component initialization order is fixed and create/edit/duplicate/reload flows have browser proof.
 
 ## Migration Rules
 
@@ -56,3 +58,5 @@ Catalog:
 - `getPromotionalCatalog`
 
 These methods are additive. Current screens use them incrementally through context stores and keep old collection-based data as compatibility fallback during the migration.
+
+`data.store.js` remains 1482 lines. This final pass did not risk a broad store rewrite; bounded-context stores are the preferred direction, while compatibility consumers remain explicit debt.

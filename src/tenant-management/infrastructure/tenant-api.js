@@ -84,17 +84,15 @@ class TenantApi {
   }
 
   getTenantPreview(slug = 'icisa') {
-    const encodedSlug = encodeURIComponent(slug);
     return this.tenants.request(
-      (client) => client.get(this.tenants.pathFor(client, `/by-slug/${encodedSlug}`)).then(response => response.data),
+      (client, endpointPath) => client.get(this.tenants.pathFor(client, '', endpointPath), { params: { slug } }).then(response => response.data),
       (data) => data && typeof data === 'object'
     ).then(enrichTenant);
   }
 
   getWorkspace(slug = 'icisa') {
-    const encodedSlug = encodeURIComponent(slug);
     return this.workspaces.request(
-      (client) => client.get(this.workspaces.pathFor(client, `/by-slug/${encodedSlug}`)).then(response => response.data),
+      (client, endpointPath) => client.get(this.workspaces.pathFor(client, '', endpointPath), { params: { slug } }).then(response => response.data),
       (data) => data && typeof data === 'object'
     );
   }

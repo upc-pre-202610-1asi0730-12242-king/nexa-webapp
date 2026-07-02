@@ -31,18 +31,18 @@ const draft = reactive({
   workspaceImage: '',
 });
 
-watch(
-  () => props.tenant,
-  () => resetDraft(selectedWorkspace.value),
-  { immediate: true }
-);
-
 const workspaceRows = computed(() => props.workspaces.length ? props.workspaces : props.tenant.workspaces || []);
 const selectedWorkspace = computed(() =>
   workspaceRows.value.find(row => Number(row.id) === Number(selectedWorkspaceId.value)) ||
   workspaceRows.value.find(row => Number(row.id) === Number(props.tenant.workspaceId)) ||
   workspaceRows.value[0] ||
   props.tenant
+);
+
+watch(
+  () => props.tenant,
+  () => resetDraft(selectedWorkspace.value),
+  { immediate: true }
 );
 
 watch(workspaceRows, () => {

@@ -3,7 +3,7 @@ import { BaseEndpoint } from '@/shared/infrastructure/base-endpoint';
 export class CommunicationsApi {
   constructor() {
     this.messages = new BaseEndpoint('/api/v1/conversation-messages');
-    this.notifications = new BaseEndpoint('/api/v1/notification-records');
+    this.notifications = new BaseEndpoint('/api/v1/notifications');
   }
 
   getThreads() { return this.messages.getAll(); }

@@ -59,6 +59,15 @@ function hydrateFromSession() {
     tenant.value = {
       ...sessionTenant,
       workspaces: [],
+      branding: sessionTenant.branding || { displayName: sessionTenant.name || '', logoPreview: '' },
+      mainWarehouse: sessionTenant.mainWarehouse || { id: null, name: '', address: '', coldRooms: 0 },
+      coldChainOperation: sessionTenant.coldChainOperation || { temperatureRange: '' },
+      logisticsSetup: sessionTenant.logisticsSetup || {
+        inventoryLotPolicy: '',
+        fefoEnabled: false,
+        temperatureAlertsEnabled: false,
+        dispatchTrackingEnabled: false,
+      },
     };
   }
 

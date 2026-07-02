@@ -85,13 +85,13 @@ function cancel() {
       </article>
       <article>
         <span>{{ $t('tenant.companyAdmin.overview.temperature') }}</span>
-        <strong>{{ tenant.coldChainOperation.temperatureRange }}</strong>
-        <small>{{ tenant.logisticsSetup.inventoryLotPolicy }} · {{ tenant.logisticsSetup.fefoEnabled ? $t('common.enabled') : $t('common.disabled') }}</small>
+        <strong>{{ tenant.coldChainOperation?.temperatureRange || '—' }}</strong>
+        <small>{{ tenant.logisticsSetup?.inventoryLotPolicy || '—' }} · {{ tenant.logisticsSetup?.fefoEnabled ? $t('common.enabled') : $t('common.disabled') }}</small>
       </article>
       <article>
         <span>{{ $t('tenant.workspace.mainWarehouse') }}</span>
-        <strong>{{ tenant.mainWarehouse.name }}</strong>
-        <small>{{ tenant.mainWarehouse.coldRooms }} {{ $t('tenant.workspace.coldRooms') }}</small>
+        <strong>{{ tenant.mainWarehouse?.name || '—' }}</strong>
+        <small>{{ tenant.mainWarehouse?.coldRooms || 0 }} {{ $t('tenant.workspace.coldRooms') }}</small>
       </article>
     </div>
 
