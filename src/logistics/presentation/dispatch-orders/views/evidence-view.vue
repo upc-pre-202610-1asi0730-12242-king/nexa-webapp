@@ -140,4 +140,3 @@ async function completeEvidence(row) {
 @media (max-width:980px){ .evidence-grid { grid-template-columns:1fr; } }
 @media (max-width:620px){ .evidence-meta { grid-template-columns:1fr; } .evidence-card footer .btn { flex:1; justify-content:center; } }
 </style>
-

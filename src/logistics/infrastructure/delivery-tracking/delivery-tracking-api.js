@@ -2,8 +2,8 @@ import { BaseEndpoint } from '@/shared/infrastructure/base-endpoint';
 
 export class DeliveryTrackingApi {
   constructor() {
-    this.deliveryEvents = new BaseEndpoint('/api/v1/delivery-events');
-    this.timelineEvents = new BaseEndpoint('/api/v1/order-timeline-events');
+    this.deliveryEvents = new BaseEndpoint('/api/v1/dispatch-events');
+    this.timelineEvents = new BaseEndpoint('/api/v1/dispatch-events');
   }
 
   getDeliveryEvents() { return this.deliveryEvents.getAll(); }

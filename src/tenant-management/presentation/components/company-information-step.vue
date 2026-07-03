@@ -105,4 +105,3 @@ const emit = defineEmits(['update', 'logo']);
   font-weight: 800;
 }
 </style>
-

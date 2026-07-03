@@ -138,4 +138,3 @@ export function mapSubmittedRegistration(resource = {}) {
     estimatedReview: resource.estimatedReview || resource.payload?.estimatedReview || '',
   };
 }
-

@@ -55,4 +55,3 @@
     </article>
   </div>
 </template>
-

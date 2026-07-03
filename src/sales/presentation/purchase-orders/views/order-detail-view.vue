@@ -214,4 +214,3 @@ const timeline = computed(() => {
   padding-left: 2px;
 }
 </style>
-

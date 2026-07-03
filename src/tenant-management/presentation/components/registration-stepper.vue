@@ -21,4 +21,3 @@ defineProps({ steps: { type: Array, required: true }, currentStep: { type: Numbe
 .tm-stepper li.done span { background:#16a34a; color:white; }
 @media (max-width: 760px) { .tm-stepper { grid-template-columns:repeat(3,minmax(0,1fr)); } }
 </style>
-

@@ -6,13 +6,13 @@ export const catalogManagementRoutes = [
     meta: { roles: ['commercial'] },
   },
   {
-    path: 'operations/promotions',
-    name: 'operations-promotions',
+    path: 'commercial/promotions',
+    name: 'commercial-promotions',
     component: () => import('@/catalog-management/presentation/promotions/views/promotions-manager-view.vue'),
-    meta: { roles: ['logistics'] },
+    meta: { roles: ['owner'] },
   },
   { path: 'catalog', redirect: '/ops/product-catalog' },
-  { path: 'commercial/promotions', redirect: '/ops/operations/promotions' },
+  { path: 'operations/promotions', redirect: '/ops/commercial/promotions' },
 ];
 
 export const catalogManagementPortalRoutes = [

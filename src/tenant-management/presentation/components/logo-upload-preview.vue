@@ -27,4 +27,3 @@ span { display:block; color:#64748b; font-size:12px; line-height:1.4; }
 input { display:none; }
 small { grid-column:1/-1; color:#b91c1c; font-size:12px; }
 </style>
-

@@ -18,4 +18,3 @@ export function runRouteGuardChain(to, from) {
 
   return true;
 }
-

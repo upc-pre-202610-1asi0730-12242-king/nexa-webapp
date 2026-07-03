@@ -54,4 +54,3 @@ const emit = defineEmits(['update']);
 .terms-error { display:block; color:#b91c1c; margin-top:6px; font-size:12px; }
 @media (max-width: 620px) { .review-grid { grid-template-columns:1fr; } }
 </style>
-

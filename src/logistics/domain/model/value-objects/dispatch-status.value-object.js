@@ -3,6 +3,9 @@ import { ValueObject } from '@/shared/domain/model/value-objects/value-object';
 const DISPATCH_STATUSES = [
   'ready',
   'ready_for_operations',
+  'assigned',
+  'scheduled',
+  'reprogrammed',
   'ready_for_dispatch',
   'ready_for_route',
   'preparing',

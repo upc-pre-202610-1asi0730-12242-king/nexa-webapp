@@ -7,4 +7,3 @@ export class TenantCapabilities {
     return this.capabilities.includes(capability);
   }
 }
-

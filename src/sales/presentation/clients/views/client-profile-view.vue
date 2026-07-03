@@ -221,4 +221,3 @@ async function save() {
 @media (max-width:980px){ .span-4,.span-6,.span-8 { grid-column:1/-1; } }
 @media (max-width:720px){ .client-profile-form { grid-template-columns:1fr; } }
 </style>
-

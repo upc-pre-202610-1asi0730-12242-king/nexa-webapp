@@ -11,4 +11,3 @@ export const TENANT_CAPABILITIES = Object.freeze({
   BUSINESS_DOCUMENTS: 'business-documents',
   PROMOTIONS: 'promotions',
 });
-

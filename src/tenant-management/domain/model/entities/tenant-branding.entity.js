@@ -5,4 +5,3 @@ export class TenantBranding {
     this.primaryColor = primaryColor;
   }
 }
-

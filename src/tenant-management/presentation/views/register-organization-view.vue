@@ -241,4 +241,3 @@ watch(submittedRegistration, (registration) => {
 }
 @media (max-width: 620px) { :global(.auth-right) { padding:28px 16px 38px; } .tenant-register-panel { padding:16px; border-radius:18px; } :deep(.tm-fields), :deep(.tm-check-grid), :deep(.tm-toggle-grid) { grid-template-columns:1fr; } }
 </style>
-

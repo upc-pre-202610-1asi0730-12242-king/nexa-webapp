@@ -8,4 +8,3 @@ export class AdminContact {
     this.preferredLanguage = preferredLanguage;
   }
 }
-

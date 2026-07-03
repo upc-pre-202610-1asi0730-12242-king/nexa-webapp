@@ -33,6 +33,20 @@ class CatalogApiService {
     return this.products.getById(id);
   }
 
+  getCatalogItemAvailability(id) {
+    return this.products.request((client, endpointPath) =>
+      client.get(this.products.pathFor(client, `/${id}/availability`, endpointPath)).then(response => response.data));
+  }
+
+  getProductAvailability(id) {
+    return this.getCatalogItemAvailability(id);
+  }
+
+  getPromotionalCatalog(params = {}) {
+    return this.products.request((client) =>
+      client.get(this.products.pathFor(client, '', '/api/v1/catalog/promotional-catalog'), { params }).then(response => response.data));
+  }
+
   /**
    * @summary Gets all categories.
    * @returns {Promise<Array>} Categories collection.

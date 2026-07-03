@@ -14,4 +14,3 @@ export function capabilityGuard(to) {
     query: { from: to.fullPath, required: requiredCapability },
   };
 }
-

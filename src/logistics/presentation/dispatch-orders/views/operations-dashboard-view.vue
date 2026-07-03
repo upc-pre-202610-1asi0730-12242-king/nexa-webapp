@@ -133,4 +133,3 @@ const canManageCompany = computed(() =>
     </section>
   </div>
 </template>
-

@@ -494,4 +494,3 @@ function paymentConditionLabel(value) {
   .seller-email-card { grid-template-columns:1fr; align-items:flex-start; }
 }
 </style>
-

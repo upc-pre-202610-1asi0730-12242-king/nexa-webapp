@@ -49,4 +49,3 @@ const roleLabelKey = computed(() => `tenant.companyAdmin.roles.${props.form.admi
   line-height: 1.45;
 }
 </style>
-

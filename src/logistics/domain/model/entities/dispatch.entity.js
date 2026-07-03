@@ -15,8 +15,10 @@ export class Dispatch extends Entity {
     evidenceRequired = false,
     evidenceDone = false,
     checklist = [],
+    tenantId = null,
     backendId = null,
     code = null,
+    orderBackendId = null,
     column = null,
     priority = 'normal',
     routeName = '',
@@ -29,11 +31,15 @@ export class Dispatch extends Entity {
     lastTemperatureCelsius = null,
     scheduledAt = null,
     deliveredAt = null,
+    createdAt = null,
+    updatedAt = null,
   } = {}) {
     super({ id });
+    this.tenantId = tenantId;
     this.backendId = backendId;
     this.code = code || id;
     this.orderId = orderId;
+    this.orderBackendId = orderBackendId;
     this.clientId = clientId;
     this.status = new DispatchStatus(status);
     this.column = column || status;
@@ -55,6 +61,8 @@ export class Dispatch extends Entity {
     this.lastTemperatureCelsius = lastTemperatureCelsius;
     this.scheduledAt = scheduledAt;
     this.deliveredAt = deliveredAt;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 
   canStartRoute() {

@@ -53,4 +53,3 @@ onMounted(loadOptions);
 .reference-select select { min-height:42px; border:1px solid #d7deea; border-radius:12px; background:#fff; color:#0f172a; padding:0 12px; font-size:13px; }
 .reference-select small { color:#b91c1c; font-size:11px; font-weight:700; }
 </style>
-

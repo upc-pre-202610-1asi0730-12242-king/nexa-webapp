@@ -6,4 +6,3 @@ export class OrganizationRegistration {
     this.form = form;
   }
 }
-

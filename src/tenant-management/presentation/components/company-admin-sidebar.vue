@@ -23,4 +23,3 @@ button i { width:16px; text-align:center; font-size:13px; }
 @media (max-width:900px){ .company-admin-sidebar { position:static; grid-template-columns:repeat(2,minmax(0,1fr)); } .sidebar-label { grid-column:1/-1; } }
 @media (max-width:560px){ .company-admin-sidebar { grid-template-columns:1fr; } }
 </style>
-

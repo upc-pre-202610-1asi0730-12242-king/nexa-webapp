@@ -219,4 +219,3 @@ export const useOrganizationRegistrationStore = defineStore('organizationRegistr
     submit,
   };
 });
-

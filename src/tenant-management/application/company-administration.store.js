@@ -629,4 +629,3 @@ export const useCompanyAdministrationStore = defineStore('companyAdministration'
     updatePreferences,
   };
 });
-

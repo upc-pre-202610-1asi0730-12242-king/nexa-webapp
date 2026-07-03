@@ -51,4 +51,3 @@ const registrationOptions = store.REGISTRATION_OPTIONS;
 .btn-secondary:disabled, .btn-primary:disabled { opacity:.55; cursor:not-allowed; }
 @media (max-width: 560px) { .wizard-actions { flex-direction:column-reverse; } .btn-primary,.btn-secondary { width:100%; } }
 </style>
-

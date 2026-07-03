@@ -446,4 +446,3 @@ function compareDocument(a, b) {
 @media (max-width:980px){ .document-layout,.order-document-grid,.document-record-grid { grid-template-columns:1fr; } }
 @media (max-width:720px){ .action-form { grid-template-columns:1fr; } .span-2 { grid-column:auto; } .compact-filter { width:100%; } .builder-topbar { align-items:flex-start; flex-direction:column; } .document-check-row,.document-record-card { grid-template-columns:1fr; } .document-action-button { width:100%; } }
 </style>
-

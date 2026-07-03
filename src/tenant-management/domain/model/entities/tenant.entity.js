@@ -21,4 +21,3 @@ export class Tenant {
     this.branding = branding;
   }
 }
-

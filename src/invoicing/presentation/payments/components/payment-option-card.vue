@@ -27,4 +27,3 @@ defineEmits(['select']);
     <i v-if="active" class="pi pi-check"></i>
   </button>
 </template>
-

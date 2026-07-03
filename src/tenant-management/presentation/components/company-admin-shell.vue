@@ -148,4 +148,3 @@ const emit = defineEmits([
 :deep(.toggle-button.on) { background:#dcfce7; border-color:#bbf7d0; color:#15803d; }
 @media (max-width:900px){ :deep(.metric-grid), :deep(.detail-grid), :deep(.rule-grid), :deep(.field-list), :deep(.admin-form) { grid-template-columns:1fr; } :deep(.table-row), :deep(.admin-setting-row) { grid-template-columns:1fr; } :deep(.admin-form .span-2) { grid-column:auto; } }
 </style>
-

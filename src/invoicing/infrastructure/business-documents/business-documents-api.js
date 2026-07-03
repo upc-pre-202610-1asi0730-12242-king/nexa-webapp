@@ -3,33 +3,45 @@ import { baseApi } from '@/shared/infrastructure/base-api';
 
 export class BusinessDocumentsApi {
   constructor() {
-    this.documents = new BaseEndpoint('/api/v1/invoices', baseApi, { useCoreBackend: true });
+    this.documents = new BaseEndpoint('/api/v1/business-documents', baseApi, { useCoreBackend: true });
     this.payments = new BaseEndpoint('/api/v1/payments', baseApi, { useCoreBackend: true });
-    this.portalTasks = new BaseEndpoint('/api/v1/portal-upload-tasks', baseApi);
   }
 
-  getDocuments() { return this.documents.getAll(); }
-  getInvoices() { return this.documents.getAll().then(invoices => invoices.map(invoice => this.invoiceToDocument(invoice))); }
+  getDocuments() { return this.documents.getAll().then(documents => documents.map(document => this.resourceToDocument(document))); }
   getPayments() { return this.payments.getAll(); }
   patchDocument(id, payload) { return this.documents.patch(id, payload); }
-  getPortalTasks() { return this.portalTasks.getAll(); }
+  generate(payload) {
+    return this.documents.request((client, endpointPath) =>
+      client.post(this.documents.pathFor(client, '/generations', endpointPath), payload)
+        .then(response => response.data)
+    );
+  }
+  downloadContent(id) {
+    return this.documents.request((client, endpointPath) =>
+      client.get(this.documents.pathFor(client, `/${id}/content`, endpointPath), { responseType: 'blob' })
+        .then(response => ({
+          blob: response.data,
+          contentDisposition: response.headers['content-disposition'] || '',
+        }))
+    );
+  }
 
-  invoiceToDocument(invoice = {}) {
+  resourceToDocument(document = {}) {
     return {
-      id: invoice.invoiceNumber || `INV-${invoice.id}`,
-      backendId: invoice.id,
-      orderId: invoice.orderId,
-      clientId: null,
-      type: 'invoice',
-      label: invoice.invoiceNumber || 'Invoice',
-      status: invoice.paymentStatus === 'Paid' ? 'accepted' : 'pending',
-      required: true,
-      visibleToBuyer: true,
-      fileName: `${invoice.invoiceNumber || invoice.id}.pdf`,
-      amount: Number(invoice.amount || 0),
-      currency: invoice.currency || 'PEN',
-      paymentStatus: invoice.paymentStatus,
-      paidAt: invoice.paidAt,
+      id: document.code || `DOC-${document.id}`,
+      backendId: document.id,
+      orderId: document.orderId,
+      clientId: document.clientAccountId || document.clientId,
+      type: document.type || 'business_document',
+      label: document.label || 'Business document',
+      status: document.status || 'pending',
+      required: document.required !== false,
+      visibleToBuyer: Boolean(document.visibleToBuyer),
+      fileName: document.fileName || '',
+      amount: Number(document.amount || document.total || 0),
+      currency: document.currency || 'PEN',
+      paymentStatus: document.paymentStatus || document.status,
+      paidAt: document.paidAt,
       source: 'nexa-platform',
     };
   }

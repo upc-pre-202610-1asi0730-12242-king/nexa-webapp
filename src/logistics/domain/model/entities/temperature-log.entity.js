@@ -1,5 +1,5 @@
 export class TemperatureLog {
-  constructor({ id = null, dispatchOrderId = null, orderId = null, temperatureC = null, status = 'ok', source = 'simulated', timestamp = '' } = {}) {
+  constructor({ id = null, dispatchOrderId = null, orderId = null, temperatureC = null, status = 'ok', source = 'warehouse_sensor', timestamp = '' } = {}) {
     this.id = id;
     this.dispatchOrderId = dispatchOrderId;
     this.orderId = orderId;

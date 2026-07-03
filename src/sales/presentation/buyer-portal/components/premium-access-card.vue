@@ -9,4 +9,3 @@ defineProps({ title: { type: String, default: '' }, icon: { type: String, defaul
     <p>Premium capability for advanced buyer workflows and operational visibility.</p>
   </article>
 </template>
-

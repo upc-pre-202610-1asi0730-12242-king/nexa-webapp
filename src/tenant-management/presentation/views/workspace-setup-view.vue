@@ -79,4 +79,3 @@ onMounted(() => {
 @media (max-width: 1100px) { .segment-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width: 760px) { .workspace-setup-header, .workspace-grid { grid-template-columns:1fr; } .workspace-grid { display:grid; } .segment-grid { grid-template-columns:1fr; } }
 </style>
-

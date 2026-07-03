@@ -9,6 +9,19 @@ export const CATALOG_BRANDS = [
   'Sterilgarda',
 ];
 
+const brandLogoMap = {
+  'Agriform': '/brand-logos/logo-agriform.png',
+  'Cavour': '/brand-logos/logo-cavour.png',
+  'Gestam': '/brand-logos/logo-gestam.png',
+  'Green Island': '/brand-logos/logo-green-island.png',
+  'Happy Cow': '/brand-logos/logo-happy-cow.png',
+  'Le Charcutier': '/brand-logos/logo-le-charcutier.png',
+  'Le Fromelier': '/brand-logos/logo-le-fromelier.png',
+  'Paysan Breton': '/brand-logos/logo-paysan-breton.png',
+  'Sancho Panza': '/brand-logos/logo-sancho-panza.png',
+  'Sterilgarda': '/brand-logos/logo-sterilgarda.png',
+};
+
 const brandMatchers = [
   ['Paysan Breton', ['paysan', 'breton', 'butter', 'brie', 'camembert']],
   ['Le Charcutier', ['charcutier', 'ham', 'prosciutto', 'salami', 'mortadella']],
@@ -33,4 +46,8 @@ export function brandForProduct(product = {}) {
 
   const matched = brandMatchers.find(([, terms]) => terms.some(term => haystack.includes(term)));
   return matched?.[0] || 'Brand pending';
+}
+
+export function logoForProduct(product = {}) {
+  return brandLogoMap[brandForProduct(product)] || '';
 }

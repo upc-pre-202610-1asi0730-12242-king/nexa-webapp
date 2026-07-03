@@ -15,7 +15,7 @@ const copy = {
     noteHeadline: 'Sales, logistics and account assistance',
     noteCopy: 'Nexa routes questions to the right operational team so buyers can resolve commercial, credit, dispatch and document issues faster.',
     cards: [
-      { icon: 'pi-inbox', title: 'Request review', copy: 'Use My Requests to review sales comments, adjustment requests, credit validation and conversion status.', action: 'Open requests', to: '/portal/purchase-requests' },
+      { icon: 'pi-inbox', title: 'Request review', copy: 'Use My Requests to review sales comments, adjustment requests, credit validation and acceptance status.', action: 'Open requests', to: '/portal/purchase-requests' },
       { icon: 'pi-wallet', title: 'Credit and payments', copy: 'Review available monthly credit, schedule the current quota or send a credit increase request to Sales.', action: 'Open payments', to: '/portal/payment-methods' },
       { icon: 'pi-truck', title: 'Order tracking', copy: 'Use My Orders to check validation, documents, dispatch preparation, route status and delivery evidence.', action: 'Open orders', to: '/portal/purchase-orders' },
       { icon: 'pi-user-edit', title: 'Buyer account', copy: 'Update buyer identity, delivery preferences, notifications and payment references from your profile.', action: 'Open profile', to: '/portal/profile' },
@@ -23,7 +23,7 @@ const copy = {
     notesTitle: 'How support works',
     notesSub: 'Business support paths for refrigerated B2B operations.',
     notes: [
-      ['Sales assistance', 'Contact Sales for request adjustments, credit limit increases, pricing questions, product availability and commercial validation.'],
+      ['Sales assistance', 'Contact Sales for request adjustments, credit limit increases, pricing questions, product availability and Sales validation.'],
       ['Logistics assistance', 'Contact Logistics for route preparation, delivery windows, proof of delivery, cold-chain incidents and dispatch exceptions.'],
       ['Account assistance', 'Use Profile for buyer identity, addresses and notification preferences. For access issues, switch accounts and sign in with an authorized user.'],
     ],
@@ -36,7 +36,7 @@ const copy = {
     noteHeadline: 'Asistencia de ventas, logistica y cuenta',
     noteCopy: 'Nexa direcciona las consultas al equipo operativo correcto para resolver temas comerciales, credito, despacho y documentos con mayor rapidez.',
     cards: [
-      { icon: 'pi-inbox', title: 'Revision de solicitudes', copy: 'Usa My Requests para revisar comentarios de ventas, ajustes, validacion de credito y conversion a orden.', action: 'Abrir solicitudes', to: '/portal/purchase-requests' },
+      { icon: 'pi-inbox', title: 'Revision de solicitudes', copy: 'Usa My Requests para revisar comentarios de ventas, ajustes, validacion de credito y estado de aceptacion.', action: 'Abrir solicitudes', to: '/portal/purchase-requests' },
       { icon: 'pi-wallet', title: 'Credito y pagos', copy: 'Revisa credito mensual disponible, programa la cuota actual o envia una solicitud de aumento a ventas.', action: 'Abrir pagos', to: '/portal/payment-methods' },
       { icon: 'pi-truck', title: 'Seguimiento de ordenes', copy: 'Usa My Orders para revisar validacion, documentos, preparacion, ruta y evidencia de entrega.', action: 'Abrir ordenes', to: '/portal/purchase-orders' },
       { icon: 'pi-user-edit', title: 'Cuenta comprador', copy: 'Actualiza identidad, direcciones, notificaciones y referencias de pago desde tu perfil.', action: 'Abrir perfil', to: '/portal/profile' },

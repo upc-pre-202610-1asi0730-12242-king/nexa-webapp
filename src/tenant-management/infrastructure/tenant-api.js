@@ -108,4 +108,3 @@ class TenantApi {
 }
 
 export const tenantApi = new TenantApi();
-

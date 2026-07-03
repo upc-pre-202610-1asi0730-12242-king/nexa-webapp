@@ -47,4 +47,3 @@ export function roleAuthorizationGuard(to) {
 
   return { path: fallbackPath };
 }
-

@@ -4,4 +4,3 @@
     <p>{{ $t('tenant.workspace.subtitle') }}</p>
   </section>
 </template>
-

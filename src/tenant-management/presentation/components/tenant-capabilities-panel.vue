@@ -10,4 +10,3 @@ defineProps({ capabilities: { type: Array, required: true } });
     </div>
   </section>
 </template>
-

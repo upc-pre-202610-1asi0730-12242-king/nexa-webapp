@@ -35,4 +35,3 @@ p { margin:0; color:#475569; line-height:1.6; }
 .pending-steps span { padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; color:#334155; font-size:13px; background:#f8fafc; }
 .pending-link { width:fit-content; padding:12px 16px; border-radius:12px; background:#1d4ed8; color:white; font-weight:700; font-size:14px; }
 </style>
-

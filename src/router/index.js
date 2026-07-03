@@ -26,4 +26,3 @@ const router = createRouter({
 router.beforeEach((to, from) => runRouteGuardChain(to, from));
 
 export default router;
-

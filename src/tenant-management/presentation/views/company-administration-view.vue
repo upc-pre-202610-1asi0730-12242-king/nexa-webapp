@@ -160,4 +160,3 @@ onMounted(() => {
 .workspace-pill { padding:8px 12px; border:1px solid #bfdbfe; border-radius:999px; background:#eff6ff; color:#1d4ed8; font-size:12px; font-weight:800; white-space:nowrap; }
 @media (max-width:760px){ .company-admin-header { flex-direction:column; } .workspace-pill { white-space:normal; } }
 </style>
-

@@ -27,7 +27,7 @@ const subscription = computed(() => ds.D.subscriptions[0] || null);
         <div class="flow-panel-head">
           <div>
             <div class="flow-title">Company Identity</div>
-            <div class="flow-subtitle">Read-only local application identity.</div>
+            <div class="flow-subtitle">Read-only workspace identity from the active API connection.</div>
           </div>
         </div>
         <div class="flow-panel-pad form-grid">
@@ -61,7 +61,7 @@ const subscription = computed(() => ds.D.subscriptions[0] || null);
           <div v-else class="empty-state compact">
             <div class="empty-state-icon"><i class="pi pi-users"></i></div>
             <div class="empty-state-title">Team roster unavailable</div>
-            <div class="empty-state-desc">Run npm run server to load optional local company users.</div>
+            <div class="empty-state-desc">No company users are available for this workspace.</div>
           </div>
         </div>
       </section>

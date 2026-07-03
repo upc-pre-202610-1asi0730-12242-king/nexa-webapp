@@ -1,15 +1,17 @@
 <script setup>
+import { useI18n } from 'vue-i18n';
 import DocumentStatusBadge from './document-status-badge.vue';
 
 defineProps({ documents: { type: Array, default: () => [] } });
+const { t } = useI18n();
 </script>
 
 <template>
   <section class="flow-panel">
     <div class="flow-panel-head">
       <div>
-        <h2>Document Checklist</h2>
-        <p>Business documents linked to invoice, delivery and collection evidence.</p>
+        <h2>{{ t('businessDocuments.checklist') }}</h2>
+        <p>{{ t('businessDocuments.checklistDesc') }}</p>
       </div>
     </div>
     <div class="flow-stack">

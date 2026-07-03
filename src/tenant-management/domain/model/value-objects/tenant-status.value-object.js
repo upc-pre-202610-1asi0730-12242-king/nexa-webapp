@@ -3,4 +3,3 @@ export const TenantStatus = Object.freeze({
   SUSPENDED: 'suspended',
   PENDING_REVIEW: 'pending_review',
 });
-

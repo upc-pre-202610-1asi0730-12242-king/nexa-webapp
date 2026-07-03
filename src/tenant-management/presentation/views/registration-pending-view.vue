@@ -23,4 +23,3 @@ const { submittedRegistration, workspaceUrl, form } = storeToRefs(store);
 :global(.auth-right) { width:100%; align-items:center; justify-content:center; padding:32px; background:transparent; }
 .pending-page { width:min(100% - 32px,560px); margin:clamp(40px,14vh,120px) auto; border:1px solid #dbe3ef; border-radius:24px; background:white; padding:28px; box-shadow:0 24px 60px rgba(15,23,42,.10); }
 </style>
-

@@ -15,10 +15,18 @@ const coldRequirementToType = (requirement = '') => {
   return 'ambient';
 };
 
-const coldRequirementToRange = (requirement = '') => {
+const coldRequirementToRange = (requirement = '', category = '', name = '') => {
   const normalized = String(requirement).toLowerCase();
   if (normalized.includes('frozen')) return '-18°C';
-  if (normalized.includes('refrigerated')) return '2°C - 8°C';
+  if (normalized.includes('refrigerated')) {
+    const normalizedName = String(name).toUpperCase();
+    if (category === 'Charcuterie') return '0°C - 5°C';
+    if (category === 'Butter') return '2°C - 6°C';
+    if (category === 'Dessert') return '0°C - 4°C';
+    if (/PARMIGIANO|GRANA|MANCHEGO|GOUDA|EDAM|EMMENTAL|MAASDAM/.test(normalizedName)) return '4°C - 8°C';
+    if (/CABRA|FETA|BLEU|BLUE|MASCARPONE|PETIT/.test(normalizedName)) return '2°C - 6°C';
+    return '2°C - 8°C';
+  }
   return 'Ambient';
 };
 
@@ -28,6 +36,11 @@ const statusFor = (resource = {}) => {
   if (available <= 0) return 'out';
   if (available <= Math.max(10, Math.round(available * 0.2))) return 'low';
   return 'ok';
+};
+
+const presentationFromName = (name = '') => {
+  const match = String(name).trim().match(/(?:MOLDE\s*)?(\d+\s?X\s?\d+(?:[.,]\d+)?\s?G|\d+(?:[.,]\d+)?\s?KG|\d+(?:[.,]\d+)?\s?G|AL PESO|CORTE)$/i);
+  return match ? match[0].replace(/\s+/g, ' ').toUpperCase() : '';
 };
 
 const normalizeBackendCatalogItem = (resource = {}) => {
@@ -45,14 +58,14 @@ const normalizeBackendCatalogItem = (resource = {}) => {
     sku: resource.productId,
     category,
     cat: categoryToCat(category),
-    temp: coldRequirementToRange(resource.coldChainRequirement),
+    temp: coldRequirementToRange(resource.coldChainRequirement, category, resource.itemName),
     unit: 'UN',
     price: Number(resource.unitPriceAmount ?? 0),
     currency: resource.unitPriceCurrency || 'PEN',
     stock,
     reserved: Number(resource.reservedStock ?? 0),
     minStock: Math.max(10, Math.round(stock * 0.2)),
-    warehouse: 'Core backend',
+    warehouse: 'ICISA Lima Cold Hub',
     zone: category,
     status: statusFor(resource),
     imageUrl: resource.imageUrl,
@@ -63,6 +76,7 @@ const normalizeBackendCatalogItem = (resource = {}) => {
     commercialAvailability: resource.isActive === false ? 'Inactive' : 'Available',
     isVisibleToBuyer: resource.isActive !== false,
     visibleToBuyer: resource.isActive !== false,
+    presentation: resource.presentation || presentationFromName(resource.itemName),
     weightKg: 1,
     knowledge: resource.description,
     source: 'nexa-platform',
@@ -79,6 +93,7 @@ export const ProductAssembler = {
     if (!entity) return null;
     return new ProductResource({
       id: entity.id,
+      backendId: entity.backendId,
       name: entity.name,
       sku: entity.sku,
       category: entity.category,
@@ -103,6 +118,7 @@ export const ProductAssembler = {
       catalogItemId: entity.catalogItemId,
       productId: entity.productId,
       currency: entity.currency,
+      presentation: entity.presentation,
       weightKg: entity.weightKg,
       knowledge: entity.knowledge,
     });

@@ -29,4 +29,3 @@ export const useTenantStore = defineStore('tenantManagement', () => {
     loadCurrentTenant,
   };
 });
-

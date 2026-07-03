@@ -30,4 +30,3 @@ export const useWorkspaceSetupStore = defineStore('workspaceSetup', () => {
     loadWorkspaceSetup,
   };
 });
-

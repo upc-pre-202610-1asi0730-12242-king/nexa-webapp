@@ -261,4 +261,3 @@ watch(dispatchReadModelId, (id) => {
   background: #f8fafc;
 }
 </style>
-

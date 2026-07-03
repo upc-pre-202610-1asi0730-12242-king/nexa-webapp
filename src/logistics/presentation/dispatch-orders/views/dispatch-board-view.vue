@@ -269,4 +269,3 @@ async function moveForward(dispatch) {
   }
 }
 </style>
-

@@ -16,4 +16,3 @@ defineProps({ checklist: { type: Array, required: true }, completionPercent: { t
     </ul>
   </section>
 </template>
-

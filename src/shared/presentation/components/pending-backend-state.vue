@@ -15,15 +15,15 @@ const { t } = useI18n();
     <div class="page-header">
       <div>
         <div class="page-title">{{ title }}</div>
-        <div class="page-subtitle">{{ description || t('common.pendingBackendDesc') }}</div>
+        <div class="page-subtitle">{{ description || t('common.pendingServiceDesc') }}</div>
       </div>
     </div>
     <section class="flow-panel">
       <div class="flow-panel-pad">
         <div class="empty-state">
           <div class="empty-state-icon"><i :class="icon"></i></div>
-          <div class="empty-state-title">{{ t('common.pendingBackendTitle') }}</div>
-          <div class="empty-state-desc">{{ t('common.pendingBackendDesc') }}</div>
+          <div class="empty-state-title">{{ t('common.pendingServiceTitle') }}</div>
+          <div class="empty-state-desc">{{ t('common.pendingServiceDesc') }}</div>
         </div>
       </div>
     </section>

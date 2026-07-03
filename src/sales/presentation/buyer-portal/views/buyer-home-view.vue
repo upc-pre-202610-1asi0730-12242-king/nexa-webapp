@@ -1,10 +1,11 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
 import { useAuthStore } from '@/iam/application/iam.store';
+import { useBuyerPortalStore } from '@/sales/application/buyer-portal/buyer-portal.store';
 import { orderStatusLabel, orderStatusBadge, requestStatusLabel, requestStatusBadge, buildOrderTrackingSteps, displayCode, recordTimestamp } from '@/shared/status';
 import { creditSummary } from '@/shared/credit';
 
@@ -13,6 +14,7 @@ const { t } = useI18n();
 const ds = useDataStore();
 const cart = useCartStore();
 const auth = useAuthStore();
+const buyerPortal = useBuyerPortalStore();
 const D = ds.D;
 
 const client = computed(() => ds.clientById(auth.user?.clientId) || (auth.user?.clientId ? {
@@ -21,8 +23,8 @@ const client = computed(() => ds.clientById(auth.user?.clientId) || (auth.user?.
   commercialName: auth.user.clientId,
 } : null));
 const hasClient = computed(() => Boolean(auth.user?.clientId));
-const myRequests = computed(() => D.purchaseRequests.filter(request => request.clientId === auth.user?.clientId));
-const myOrders = computed(() => D.purchaseOrders.filter(order => order.clientId === auth.user?.clientId));
+const myRequests = computed(() => D.purchaseRequests.filter(request => ds.clientRecordMatches(request, auth.user?.clientId)));
+const myOrders = computed(() => D.purchaseOrders.filter(order => ds.clientRecordMatches(order, auth.user?.clientId)));
 const credit = computed(() => creditSummary(client.value || {}));
 const orderTime = (order) => recordTimestamp(order, ds.timelineForOrder(order.id));
 const recentOrders = computed(() => [...myOrders.value].sort((a, b) => orderTime(b) - orderTime(a)));
@@ -41,11 +43,27 @@ const currentActivity = computed(() => {
 });
 const activeOrder = computed(() => currentActivity.value?.type === 'order' ? currentActivity.value.record : null);
 const activeRequest = computed(() => currentActivity.value?.type === 'request' ? currentActivity.value.record : null);
+const activeOrderStatus = computed(() => {
+  if (!activeOrder.value) return null;
+  return ds.dispatchForOrder(activeOrder.value.id)?.status || activeOrder.value.status;
+});
 const activePromos = computed(() => D.promotions.filter(promo => promo.status === 'active' && ['buyer_portal', 'client_specific'].includes(promo.visibility)).slice(0, 3));
-const featured = computed(() => D.products.filter(product => product.isVisibleToBuyer && product.status !== 'out').slice(0, 4));
+const featured = computed(() =>
+  D.products
+    .filter(product => product.isVisibleToBuyer !== false && product.status !== 'out')
+    .slice(0, 4)
+);
 const trackingSteps = computed(() => activeOrder.value ? buildOrderTrackingSteps(activeOrder.value, ds.timelineForOrder(activeOrder.value.id)) : []);
 const firstName = computed(() => auth.user?.name?.split(' ')[0] || 'buyer');
 const formatMoney = (value) => Number(value || 0).toLocaleString();
+
+onMounted(() => {
+  if (!auth.user?.clientId) return;
+  Promise.allSettled([
+    buyerPortal.loadDashboardSummary(),
+    buyerPortal.loadFinancialProfile(),
+  ]);
+});
 
 </script>
 
@@ -91,11 +109,6 @@ const formatMoney = (value) => Number(value || 0).toLocaleString();
         <div class="flow-title" style="margin-top:10px">{{ t('portal.nav.orders') }}</div>
         <div class="flow-note">{{ t('portal.homePanel.ordersDesc', { count: myOrders.length }) }}</div>
       </button>
-      <button class="buyer-card flow-panel-pad" style="text-align:left" @click="router.push('/portal/business-documents')">
-        <div class="flow-kpi-icon" style="background:#F0FDF4;color:#15803D"><i class="pi pi-file-check"></i></div>
-        <div class="flow-title" style="margin-top:10px">{{ t('portal.nav.documents') }}</div>
-        <div class="flow-note">{{ t('portal.homePanel.documentsDesc') }}</div>
-      </button>
       <button class="buyer-card flow-panel-pad" style="text-align:left" @click="router.push('/portal/profile')">
         <div class="flow-kpi-icon" style="background:#EEF2FF;color:#4F46E5"><i class="pi pi-credit-card"></i></div>
         <div class="flow-title" style="margin-top:10px">{{ t('portal.homePanel.credit') }}</div>
@@ -110,7 +123,7 @@ const formatMoney = (value) => Number(value || 0).toLocaleString();
             <div class="flow-title">{{ t('portal.homePanel.currentStatus') }}</div>
             <div class="flow-subtitle">{{ t('portal.homePanel.currentStatusDesc') }}</div>
           </div>
-          <span v-if="activeOrder" :class="'badge ' + orderStatusBadge(activeOrder.status)">{{ orderStatusLabel(activeOrder.status) }}</span>
+          <span v-if="activeOrder" :class="'badge ' + orderStatusBadge(activeOrderStatus)">{{ orderStatusLabel(activeOrderStatus) }}</span>
           <span v-else-if="activeRequest" :class="'badge ' + requestStatusBadge(activeRequest.status)">{{ requestStatusLabel(activeRequest.status) }}</span>
         </div>
         <div class="flow-panel-pad">
@@ -179,9 +192,6 @@ const formatMoney = (value) => Number(value || 0).toLocaleString();
           <button class="btn btn-secondary" @click="router.push('/portal/purchase-requests')">
             <i class="pi pi-comments"></i> {{ t('portal.homePanel.nextRequests') }}
           </button>
-          <button class="btn btn-secondary" @click="router.push('/portal/business-documents')">
-            <i class="pi pi-file-check"></i> {{ t('portal.homePanel.nextDocuments') }}
-          </button>
           <button class="btn btn-secondary" @click="router.push('/portal/payment-methods')">
             <i class="pi pi-credit-card"></i> {{ t('portal.homePanel.nextPayments') }}
           </button>
@@ -197,16 +207,16 @@ const formatMoney = (value) => Number(value || 0).toLocaleString();
         </div>
         <div class="grid-4 flow-panel-pad">
           <article v-for="product in featured" :key="product.id" class="buyer-card">
-            <div class="buyer-product-visual" :class="'cat-' + product.cat">
+            <div class="buyer-product-visual" :class="'cat-' + (product.cat || product.categorySlug || 'cold-chain')">
               <img v-if="product.imageUrl" class="buyer-product-image" :src="product.imageUrl" :alt="product.name" loading="lazy" />
               <i v-else class="pi pi-box"></i>
             </div>
             <div style="padding:14px">
               <div style="font-weight:800;font-size:13px">{{ product.name }}</div>
-              <div class="flow-note">{{ product.category }} - {{ product.temperatureRange }}</div>
+              <div class="flow-note">{{ product.category }} - {{ product.temperatureRange || product.temp }}</div>
               <div class="flow-row-between" style="margin-top:12px">
-                <strong>S/ {{ product.price.toFixed(2) }}</strong>
-                <button class="add-btn add-btn-default" @click="cart.add(product)"><i class="pi pi-plus"></i></button>
+                <strong>S/ {{ Number(product.price || product.priceAmount || 0).toFixed(2) }}</strong>
+                <button class="add-btn add-btn-default" type="button" :aria-label="t('catalog.addToRequest') + ': ' + product.name" @click="cart.add(product)"><i class="pi pi-plus" aria-hidden="true"></i></button>
               </div>
             </div>
           </article>

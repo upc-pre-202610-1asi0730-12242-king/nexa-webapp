@@ -13,9 +13,9 @@ export const useCommercialValidationStore = defineStore('commercialValidation', 
     return dataStore.updateRequestStatus(requestId, 'needs_adjustment');
   }
 
-  function convertToOrder(requestId) {
-    return dataStore.convertRequestToOrder(requestId);
+  function acceptRequest(requestId) {
+    return dataStore.acceptRequestAsOrder(requestId);
   }
 
-  return { approve, requestChanges, convertToOrder };
+  return { approve, requestChanges, acceptRequest };
 });

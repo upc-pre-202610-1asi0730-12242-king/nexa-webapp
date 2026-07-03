@@ -7,4 +7,3 @@ export class WarehouseLocationDraft {
     this.country = country;
   }
 }
-

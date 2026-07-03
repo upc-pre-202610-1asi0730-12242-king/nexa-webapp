@@ -26,4 +26,3 @@ export class PaymentsApi {
 }
 
 export const paymentsApi = new PaymentsApi();
-

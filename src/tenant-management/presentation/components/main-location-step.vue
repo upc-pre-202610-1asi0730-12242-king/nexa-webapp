@@ -22,4 +22,3 @@ const emit = defineEmits(['update']);
     </div>
   </div>
 </template>
-

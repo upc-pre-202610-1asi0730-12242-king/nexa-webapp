@@ -12,4 +12,3 @@ defineProps({ tenant: { type: Object, required: true } });
     </div>
   </section>
 </template>
-

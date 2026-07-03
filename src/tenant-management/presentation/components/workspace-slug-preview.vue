@@ -22,4 +22,3 @@ span { display:block; font-size:11px; color:#64748b; margin-bottom:3px; }
 strong { color:#0f172a; overflow-wrap:anywhere; }
 em, small { font-size:12px; font-style:normal; }
 </style>
-

@@ -65,4 +65,3 @@ const emit = defineEmits(['update', 'category']);
   }
 }
 </style>
-

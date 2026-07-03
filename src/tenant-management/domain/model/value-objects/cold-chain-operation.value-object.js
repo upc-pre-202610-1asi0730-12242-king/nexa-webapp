@@ -7,4 +7,3 @@ export class ColdChainOperation {
     this.monthlyVolume = monthlyVolume;
   }
 }
-

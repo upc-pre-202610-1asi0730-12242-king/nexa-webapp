@@ -56,4 +56,3 @@ const emit = defineEmits(['update']);
 .plan-card.selected small { background:#dbeafe; color:#1d4ed8; }
 @media (max-width: 620px) { .plan-grid { grid-template-columns:1fr; } }
 </style>
-

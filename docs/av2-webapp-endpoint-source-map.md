@@ -56,7 +56,7 @@ These modules represent unsupported or future capabilities and are backed by the
 | delivery-events | `/api/v1/delivery-events` | `deliveryEvents` |
 | order-timeline-events | `/api/v1/order-timeline-events` | `orderTimelineEvents` |
 | proof-of-delivery-uploads | `/api/v1/proof-of-delivery-uploads` | `proofOfDeliveryUploads` |
-| premium-previews | `/api/v1/premium-previews` | `premiumPreviews` |
+| premium-access | `/api/v1/premium-access` | `premiumAccess` |
 
 ---
 

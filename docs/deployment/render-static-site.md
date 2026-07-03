@@ -11,8 +11,6 @@
 
 ```env
 VITE_NEXA_API_BASE_URL=https://nexa-platform-api.onrender.com/api/v1
-VITE_NEXA_MOCK_API_BASE_URL=https://nexa-platform-api.onrender.com/api/v1
-VITE_ENABLE_MOCK_API_FALLBACK=false
 VITE_CORE_BACKEND_ENABLED=true
 ```
 

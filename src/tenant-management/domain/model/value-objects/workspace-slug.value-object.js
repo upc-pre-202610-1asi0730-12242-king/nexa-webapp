@@ -12,4 +12,3 @@ export function normalizeWorkspaceSlug(value = '') {
 export function isValidWorkspaceSlug(value = '') {
   return /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/.test(value);
 }
-

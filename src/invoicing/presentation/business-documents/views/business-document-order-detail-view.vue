@@ -161,4 +161,3 @@ async function download(document) {
 @media (max-width:1040px){ .document-detail-grid { grid-template-columns:1fr; } }
 @media (max-width:760px){ .document-detail-hero,.order-line-grid { grid-template-columns:1fr; } }
 </style>
-

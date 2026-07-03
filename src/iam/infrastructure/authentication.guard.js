@@ -11,4 +11,3 @@ export function authenticationGuard(to) {
     query: { redirect: to.fullPath },
   };
 }
-

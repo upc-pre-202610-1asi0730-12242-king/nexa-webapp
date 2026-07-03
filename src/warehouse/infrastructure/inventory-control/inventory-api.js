@@ -9,10 +9,10 @@ import { baseApi } from '@/shared/infrastructure/base-api';
  */
 class InventoryApiService {
   constructor() {
-    this.lots = new BaseEndpoint('/api/v1/inventory-items', baseApi, {
+    this.lots = new BaseEndpoint('/api/v1/inventory-lots', baseApi, {
       useCoreBackend: true,
     });
-    this.movements = new BaseEndpoint('/api/v1/stock-movements');
+    this.movements = new BaseEndpoint('/api/v1/inventory-movements');
     this.warehouses = new BaseEndpoint('/api/v1/warehouses');
   }
 

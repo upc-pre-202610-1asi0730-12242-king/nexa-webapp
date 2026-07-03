@@ -16,4 +16,3 @@ export function tenantContextGuard(to) {
 
   return true;
 }
-
