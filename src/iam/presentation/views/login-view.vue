@@ -148,6 +148,7 @@ async function doLogin({ workspaceSlug, email, password }) {
   min-height: 100vh;
   min-height: 100dvh;
   width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: stretch;
   justify-content: stretch;
@@ -164,6 +165,7 @@ async function doLogin({ workspaceSlug, email, password }) {
   max-width: none;
   min-height: 100vh;
   min-height: 100dvh;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: minmax(0, 50%) minmax(0, 50%);
   border: 0;
@@ -176,6 +178,7 @@ async function doLogin({ workspaceSlug, email, password }) {
 :global(.auth-left) {
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   min-width: 0;
@@ -299,6 +302,7 @@ async function doLogin({ workspaceSlug, email, password }) {
 
 :global(.auth-right) {
   position: relative;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -318,6 +322,9 @@ async function doLogin({ workspaceSlug, email, password }) {
 :global(.auth-right > .auth-form-sub),
 :global(.auth-right > .workspace-login-form) {
   width: min(100%, 420px);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 :global(.lang-selector) {
@@ -423,6 +430,8 @@ async function doLogin({ workspaceSlug, email, password }) {
 
 @media (max-width: 820px) {
   :global(.auth-wrap) {
+    width: 100%;
+    max-width: 100%;
     grid-template-columns: 1fr;
   }
 
@@ -489,8 +498,11 @@ async function doLogin({ workspaceSlug, email, password }) {
   }
 
   :global(.auth-right) {
-    padding: 28px 20px 38px;
-    align-items: stretch;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 28px 40px 38px 20px !important;
+    align-items: stretch !important;
+    overflow-x: hidden !important;
   }
 
   :global(.lang-selector) {
@@ -503,6 +515,16 @@ async function doLogin({ workspaceSlug, email, password }) {
 
   :global(.auth-form-sub) {
     font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.auth-right > .lang-selector),
+  :global(.auth-right > .auth-form-title),
+  :global(.auth-right > .auth-form-sub),
+  :global(.auth-right > .workspace-login-form) {
+    width: auto !important;
+    max-width: none !important;
+    align-self: stretch !important;
   }
 }
 </style>

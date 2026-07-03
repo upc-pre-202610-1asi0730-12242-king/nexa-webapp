@@ -154,6 +154,9 @@ function submit() {
   display: flex;
   flex-direction: column;
   width: min(100%, 420px);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .workspace-field {
   margin-bottom: 16px;
@@ -281,7 +284,9 @@ function submit() {
 }
 .btn-full {
   width: 100%;
+  max-width: 100%;
   min-height: 48px;
+  box-sizing: border-box;
   border: 0;
   border-radius: 12px;
   display: inline-flex;
@@ -369,10 +374,19 @@ function submit() {
 }
 @media (max-width: 560px) {
   .workspace-login-form {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .workspace-login-form * {
+    box-sizing: border-box;
+    max-width: 100%;
   }
   .workspace-form-links {
     justify-content: flex-start;
+  }
+  .btn-full {
+    width: 100% !important;
+    padding: 0 18px !important;
   }
 }
 </style>

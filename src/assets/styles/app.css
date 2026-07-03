@@ -372,6 +372,37 @@ a { color: inherit; text-decoration: none; }
   .auth-pills {
     margin-top: 14px;
   }
+
+  .auth-page .auth-right {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    padding: 28px 40px 38px 20px !important;
+    overflow-x: hidden;
+  }
+
+  .auth-page .auth-right > .lang-selector,
+  .auth-page .auth-right > .auth-form-title,
+  .auth-page .auth-right > .auth-form-sub,
+  .auth-page .auth-right > .workspace-login-form {
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0;
+    align-self: stretch;
+    box-sizing: border-box;
+  }
+
+  .auth-page .workspace-login-form,
+  .auth-page .workspace-login-form * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .auth-page .btn-full {
+    width: 100% !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
