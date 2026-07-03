@@ -56,6 +56,15 @@ const encodedWarehouseOrigin = computed(() => encodeURIComponent(warehouseOrigin
 const encodedDeliveryAddress = computed(() => encodeURIComponent(`${deliveryAddressText.value}, Peru`));
 const mapEmbedUrl = computed(() => mapReady.value ? `https://maps.google.com/maps?saddr=${encodedWarehouseOrigin.value}&daddr=${encodedDeliveryAddress.value}&output=embed` : '');
 const mapDirectionsUrl = computed(() => `https://www.google.com/maps/dir/?api=1&origin=${encodedWarehouseOrigin.value}&destination=${encodedDeliveryAddress.value}&travelmode=driving`);
+const localeCode = computed(() => locale.value === 'es' ? 'es-PE' : 'en-US');
+
+function formatDateTime(value) {
+  return new Date(value).toLocaleString(localeCode.value);
+}
+
+function formatTime(value) {
+  return new Date(value).toLocaleTimeString(localeCode.value);
+}
 
 async function downloadDocument(document) {
   if (!document.fileName || downloadingDocumentId.value) return;
@@ -180,7 +189,7 @@ watch(orderReadModelId, (id) => {
               <div class="tl-dot" style="background:#DBEAFE;color:#1D4ED8"><i class="pi pi-check"></i></div>
               <div class="tl-content">
                 <div class="tl-title">{{ event.label }}</div>
-                <div class="tl-meta">{{ new Date(event.timestamp).toLocaleString(locale === 'es' ? 'es-PE' : 'en-US') }}</div>
+                <div class="tl-meta">{{ formatDateTime(event.timestamp) }}</div>
               </div>
             </div>
             <div v-if="!visibleEvents.length" class="empty-state compact">{{ t('portal.orderDetail.noVisibleEvents') }}</div>
@@ -206,7 +215,7 @@ watch(orderReadModelId, (id) => {
             <div>{{ t('portal.orderDetail.mapDescription') }}</div>
           </div>
           <div v-for="log in temps" :key="log.id" class="flow-row-between">
-            <span>{{ new Date(log.timestamp).toLocaleTimeString(locale === 'es' ? 'es-PE' : 'en-US') }}</span>
+            <span>{{ formatTime(log.timestamp) }}</span>
             <strong>{{ log.temperatureC }} C - {{ log.status }}</strong>
           </div>
         </div>

@@ -45,6 +45,7 @@ function setLang(l) {
   locale.value = l;
   i18n.global.locale.value = l;
   localStorage.setItem('nexa.lang', l);
+  document.documentElement.lang = l === 'es' ? 'es-419' : 'en';
 }
 
 function goPortal(to) {
@@ -96,8 +97,8 @@ function goRequestBuilder() {
       <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
         <!-- Language switcher -->
         <div style="display:flex;gap:2px" role="group" :aria-label="t('common.language')">
-          <button class="lang-opt" :class="{ active: locale === 'es' }" @click="setLang('es')" :aria-pressed="locale === 'es'" style="padding:3px 8px;font-size:11px">ES</button>
-          <button class="lang-opt" :class="{ active: locale === 'en' }" @click="setLang('en')" :aria-pressed="locale === 'en'" style="padding:3px 8px;font-size:11px">EN</button>
+          <button class="lang-opt" :class="{ active: locale === 'es' }" @click="setLang('es')" :aria-label="t('common.switchToSpanish')" :aria-pressed="locale === 'es'" style="padding:3px 8px;font-size:11px">ES</button>
+          <button class="lang-opt" :class="{ active: locale === 'en' }" @click="setLang('en')" :aria-label="t('common.switchToEnglish')" :aria-pressed="locale === 'en'" style="padding:3px 8px;font-size:11px">EN</button>
         </div>
         <button class="cart-btn" @click="cart.toggle()" :aria-label="`${t('portal.cart')} (${cart.count})`">
           <i class="pi pi-shopping-cart" aria-hidden="true"></i>

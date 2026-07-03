@@ -3,7 +3,11 @@ import { useI18n } from 'vue-i18n';
 import logo from '@/assets/img/nexa.svg';
 
 const { locale, t } = useI18n();
-function setLang(l) { locale.value = l; localStorage.setItem('nexa.lang', l); }
+function setLang(l) {
+  locale.value = l;
+  localStorage.setItem('nexa.lang', l);
+  document.documentElement.lang = l === 'es' ? 'es-419' : 'en';
+}
 </script>
 
 <template>
@@ -30,9 +34,9 @@ function setLang(l) { locale.value = l; localStorage.setItem('nexa.lang', l); }
 
       <!-- Form panel -->
       <section class="auth-right">
-        <div class="lang-selector">
-          <button class="lang-opt" :class="{ active: locale === 'es' }" @click="setLang('es')">ES</button>
-          <button class="lang-opt" :class="{ active: locale === 'en' }" @click="setLang('en')">EN</button>
+        <div class="lang-selector" role="group" :aria-label="t('common.language')">
+          <button class="lang-opt" :class="{ active: locale === 'es' }" :aria-label="t('common.switchToSpanish')" :aria-pressed="locale === 'es'" @click="setLang('es')">ES</button>
+          <button class="lang-opt" :class="{ active: locale === 'en' }" :aria-label="t('common.switchToEnglish')" :aria-pressed="locale === 'en'" @click="setLang('en')">EN</button>
         </div>
         <router-view />
       </section>
