@@ -302,6 +302,7 @@ function setLang(l) {
   locale.value = l;
   i18n.global.locale.value = l;
   localStorage.setItem('nexa.lang', l);
+  document.documentElement.lang = l === 'es' ? 'es-419' : 'en';
 }
 
 function goOps(itemOrTo) {
@@ -406,8 +407,8 @@ function logout() {
         </div>
         <div class="topbar-right">
           <div class="lang-group" role="group" :aria-label="t('common.language')">
-            <button class="lang-opt" :class="{ active: locale === 'es' }" @click="setLang('es')" :aria-pressed="locale === 'es'">ES</button>
-            <button class="lang-opt" :class="{ active: locale === 'en' }" @click="setLang('en')" :aria-pressed="locale === 'en'">EN</button>
+            <button class="lang-opt" :class="{ active: locale === 'es' }" @click="setLang('es')" :aria-label="t('common.switchToSpanish')" :aria-pressed="locale === 'es'">ES</button>
+            <button class="lang-opt" :class="{ active: locale === 'en' }" @click="setLang('en')" :aria-label="t('common.switchToEnglish')" :aria-pressed="locale === 'en'">EN</button>
           </div>
           <div class="notification-shell">
           <button class="topbar-icon-btn" :aria-label="t('common.notifications')" @click="notificationsOpen = !notificationsOpen">

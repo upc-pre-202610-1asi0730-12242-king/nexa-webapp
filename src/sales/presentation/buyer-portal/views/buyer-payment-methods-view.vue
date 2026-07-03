@@ -197,7 +197,7 @@ async function addPaymentMethod() {
 
     <StripePaymentFoundation :payment="nextDue" />
 
-    <section class="payment-insights-grid" aria-label="Payment insights">
+    <section class="payment-insights-grid" :aria-label="t('portal.payments.insights')">
       <article class="flow-panel payment-chart-panel">
         <div class="flow-panel-head">
           <div>

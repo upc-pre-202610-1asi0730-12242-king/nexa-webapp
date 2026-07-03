@@ -13,6 +13,10 @@ if (typeof localStorage !== 'undefined' && migrated !== ENGLISH_FIRST_VERSION) {
 
 const currentLocale = (typeof localStorage !== 'undefined' && localStorage.getItem('nexa.lang')) || stored || 'en';
 
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = currentLocale === 'es' ? 'es-419' : 'en';
+}
+
 const i18n = createI18n({
   legacy: false,
   globalInjection: true,

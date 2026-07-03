@@ -62,7 +62,7 @@ const current = computed(() => copy[locale.value === 'es' ? 'es' : 'en']);
         <h1>{{ current.title }}</h1>
         <p>{{ current.summary }}</p>
       </div>
-      <aside class="legal-hero-note" aria-label="Support scope">
+      <aside class="legal-hero-note" :aria-label="current.noteTitle">
         <span>{{ current.noteTitle }}</span>
         <strong>{{ current.noteHeadline }}</strong>
         <p>{{ current.noteCopy }}</p>

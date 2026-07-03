@@ -102,6 +102,7 @@ const documents = {
 
 const lang = computed(() => locale.value === 'es' ? 'es' : 'en');
 const current = computed(() => documents[lang.value][props.page] || documents[lang.value].terms);
+const legalNavLabel = computed(() => lang.value === 'es' ? 'Navegación legal del portal' : 'Portal legal navigation');
 const sideLinks = computed(() => [
   { label: lang.value === 'es' ? 'Terminos de uso' : 'Terms of use', to: '/portal/legal/terms', key: 'terms' },
   { label: lang.value === 'es' ? 'Politica de privacidad' : 'Privacy policy', to: '/portal/legal/privacy', key: 'privacy' },
@@ -117,7 +118,7 @@ const sideLinks = computed(() => [
         <h1>{{ current.title }}</h1>
         <p>{{ current.summary }}</p>
       </div>
-      <aside class="legal-hero-note" aria-label="Legal summary">
+      <aside class="legal-hero-note" :aria-label="current.noteTitle">
         <span>{{ current.noteTitle }}</span>
         <strong>{{ current.noteHeadline }}</strong>
         <p>{{ current.noteCopy }}</p>
@@ -125,7 +126,7 @@ const sideLinks = computed(() => [
     </section>
 
     <div class="legal-layout">
-      <nav class="legal-sidebar" aria-label="Portal legal navigation">
+      <nav class="legal-sidebar" :aria-label="legalNavLabel">
         <button
           v-for="link in sideLinks"
           :key="link.to"
