@@ -162,4 +162,3 @@ const temperatureSummary = computed(() => {
     </div>
   </template>
 </template>
-

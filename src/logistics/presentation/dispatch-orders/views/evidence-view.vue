@@ -80,4 +80,3 @@ const completedRows = computed(() => rows.value.filter(row => row.pod?.status ==
     </table>
   </section>
 </template>
-

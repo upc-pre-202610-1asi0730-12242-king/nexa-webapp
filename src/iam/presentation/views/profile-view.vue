@@ -98,4 +98,3 @@ function endSession() {
     </div>
   </div>
 </template>
-

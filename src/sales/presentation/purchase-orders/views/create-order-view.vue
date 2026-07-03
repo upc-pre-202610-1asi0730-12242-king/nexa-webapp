@@ -423,4 +423,3 @@ async function confirm() {
   }
 }
 </style>
-

@@ -144,4 +144,3 @@ function creditFor(dispatch) {
     </section>
   </div>
 </template>
-

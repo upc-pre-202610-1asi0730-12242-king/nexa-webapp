@@ -98,4 +98,3 @@ const formatMoney = (value, currency = 'PEN') => `${currency} ${Number(value || 
     </table>
   </section>
 </template>
-

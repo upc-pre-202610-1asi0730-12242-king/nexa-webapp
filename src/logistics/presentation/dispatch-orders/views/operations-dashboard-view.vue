@@ -121,4 +121,3 @@ const creditFor = (dispatch) => creditSummary(ds.clientById(dispatch.clientId) |
     </section>
   </div>
 </template>
-
