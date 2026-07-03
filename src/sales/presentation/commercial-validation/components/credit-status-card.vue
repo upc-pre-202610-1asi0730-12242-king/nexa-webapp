@@ -8,7 +8,7 @@ const credit = computed(() => creditSummary(props.client));
 
 <template>
   <section class="flow-panel">
-    <div class="meta-label">Commercial Condition</div>
+    <div class="meta-label">Sales Condition</div>
     <h3 style="margin-top:6px">{{ client.paymentCondition || client.condition || 'To validate' }}</h3>
     <span :class="'badge ' + credit.badgeClass">
       {{ credit.statusLabel }}

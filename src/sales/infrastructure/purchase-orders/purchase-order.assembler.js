@@ -1,8 +1,6 @@
 import { Order } from '@/sales/domain/model/entities/purchase-order.entity';
 import { OrderResource } from './purchase-order.resource';
 
-const fallbackOrderDate = '2026-06-06';
-
 const normalizeStatus = (status = 'validating') => {
   const normalized = String(status)
     .replace(/([a-z])([A-Z])/g, '$1_$2')
@@ -48,18 +46,22 @@ const normalizeBackendOrder = (resource = {}) => {
     backendId: resource.id,
     code: resource.orderNumber,
     clientId: resource.customerId,
+    clientAccountId: resource.clientAccountId,
     customerName: resource.customerName,
     status: normalizeStatus(resource.status),
-    priority: 'medium',
-    date: resource.confirmedAt?.slice?.(0, 10) || resource.date || fallbackOrderDate,
+    priority: resource.priority || 'medium',
+    date: resource.confirmedAt?.slice?.(0, 10) || resource.createdAt?.slice?.(0, 10) || resource.date || '',
     currency: resource.totalCurrency || 'PEN',
     items: (resource.items || []).map(normalizeBackendOrderItem),
     total: Number(resource.totalAmount ?? 0),
-    notes: resource.rejectionReason || '',
+    notes: resource.notes || resource.rejectionReason || '',
+    delivery: resource.delivery || {},
     paymentConfirmation: resource.paymentConfirmation,
     inventoryReservation: resource.inventoryReservation,
     rejectionReason: resource.rejectionReason,
     confirmedAt: resource.confirmedAt,
+    createdAt: resource.createdAt,
+    updatedAt: resource.updatedAt,
     source: 'nexa-platform',
   };
 };
@@ -86,6 +88,7 @@ export const OrderAssembler = {
       backendId: entity.backendId,
       code: entity.code,
       clientId: entity.clientId,
+      clientAccountId: entity.clientAccountId,
       status: entity.status.value,
       priority: entity.priority,
       date: entity.date,
@@ -104,10 +107,13 @@ export const OrderAssembler = {
       total: entity.total,
       currency: entity.currency,
       notes: entity.notes,
+      delivery: entity.delivery,
       paymentConfirmation: entity.paymentConfirmation,
       inventoryReservation: entity.inventoryReservation,
       rejectionReason: entity.rejectionReason,
       confirmedAt: entity.confirmedAt,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     });
   },
 
@@ -117,7 +123,12 @@ export const OrderAssembler = {
     return {
       orderNumber: source.orderNumber || source.code || source.id,
       customerId: source.customerId || source.clientId,
+      clientAccountId: source.clientAccountId || null,
       items: (source.items || []).map(normalizeCreateOrderItem),
+      priority: source.priority || 'medium',
+      notes: source.notes || '',
+      shippingEstimate: source.shippingEstimate ?? null,
+      delivery: source.delivery || null,
     };
   },
 };

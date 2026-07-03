@@ -11,11 +11,13 @@ const normalizeShipmentStatus = (status = 'scheduled') => {
 const normalizeShipment = (resource = {}) => {
   if (!resource.shipmentCode) return resource;
   const status = normalizeShipmentStatus(resource.status);
-  return {
-    id: resource.shipmentCode,
-    backendId: resource.id,
-    code: resource.shipmentCode,
-    orderId: resource.orderId,
+    return {
+      id: resource.shipmentCode,
+      tenantId: resource.tenantId,
+      backendId: resource.id,
+      code: resource.shipmentCode,
+      orderId: resource.orderId,
+      orderBackendId: resource.orderId,
     clientId: null,
     status,
     column: status,
@@ -23,7 +25,7 @@ const normalizeShipment = (resource = {}) => {
     driver: 'Pending assignment',
     driverName: 'Pending assignment',
     vehicle: 'Pending assignment',
-    dest: 'Backend order reference',
+    dest: 'Order delivery reference',
     tempExit: resource.lastTemperatureCelsius,
     evidenceRequired: true,
     evidenceDone: status === 'delivered',
@@ -32,14 +34,16 @@ const normalizeShipment = (resource = {}) => {
     eta: resource.scheduledAt,
     responsible: 'Operations',
     requiresPOD: true,
-    documentProgress: status === 'delivered' ? 'Delivered' : 'Pending POD',
+    documentProgress: '',
     coldType: Number(resource.lastTemperatureCelsius) < 0 ? 'frozen' : 'chilled',
     lastTemperatureCelsius: resource.lastTemperatureCelsius,
-    scheduledAt: resource.scheduledAt,
-    deliveredAt: resource.deliveredAt,
-    source: 'nexa-platform',
+      scheduledAt: resource.scheduledAt,
+      deliveredAt: resource.deliveredAt,
+      createdAt: resource.createdAt,
+      updatedAt: resource.updatedAt,
+      source: 'nexa-platform',
+    };
   };
-};
 
 export const DispatchAssembler = {
   toEntity(resource) {
@@ -51,9 +55,11 @@ export const DispatchAssembler = {
     if (!entity) return null;
     return new DispatchResource({
       id: entity.id,
+      tenantId: entity.tenantId,
       backendId: entity.backendId,
       code: entity.code,
       orderId: entity.orderId,
+      orderBackendId: entity.orderBackendId,
       clientId: entity.clientId,
       status: entity.status.value,
       column: entity.column,
@@ -75,6 +81,8 @@ export const DispatchAssembler = {
       lastTemperatureCelsius: entity.lastTemperatureCelsius,
       scheduledAt: entity.scheduledAt,
       deliveredAt: entity.deliveredAt,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
       delayReason: entity.delayReason,
       temperatureStatus: entity.temperatureStatus,
     });

@@ -1,71 +1,98 @@
 import { BaseEndpoint } from '@/shared/infrastructure/base-endpoint';
-import { baseApi } from '@/shared/infrastructure/base-api';
 
-/**
- * IAM API service.
- *
- * @summary Provides HTTP operations for user authentication.
- * @class IamApiService
- */
+const roleMap = {
+  Admin: { role: 'ops', scope: 'ops', roleKey: 'commercial', roleName: 'Company Owner', department: 'Executive Office', permissions: ['*'] },
+  'Company Owner': { role: 'ops', scope: 'ops', roleKey: 'owner', roleName: 'Company Owner', department: 'Executive Office', permissions: ['*'] },
+  Sales: { role: 'ops', scope: 'ops', roleKey: 'commercial', roleName: 'Sales', department: 'Sales', permissions: ['catalog:read', 'catalog:write', 'sales:read', 'sales:write', 'orders:read', 'orders:write', 'documents:read', 'documents:write'] },
+  Logistics: { role: 'ops', scope: 'ops', roleKey: 'logistics', roleName: 'Logistics', department: 'Logistics', permissions: ['warehouse:read', 'warehouse:write', 'logistics:read', 'logistics:write', 'shipments:read', 'shipments:write'] },
+  'Logistics Manager': { role: 'ops', scope: 'ops', roleKey: 'logistics', roleName: 'Logistics Manager', department: 'Logistics', permissions: ['warehouse:read', 'warehouse:write', 'logistics:read', 'logistics:write', 'shipments:read', 'shipments:write', 'dispatch:read', 'dispatch:write'] },
+  Buyer: { role: 'portal', scope: 'portal', roleKey: 'buyer', roleName: 'B2B Buyer', department: 'Purchasing', permissions: ['portal:read', 'portal:write', 'requests:read', 'requests:write', 'documents:read'] },
+  'B2B Buyer': { role: 'portal', scope: 'portal', roleKey: 'buyer', roleName: 'B2B Buyer', department: 'Purchasing', permissions: ['portal:read', 'portal:write', 'requests:read', 'requests:write', 'documents:read'] },
+};
+
+const roleAliases = Object.freeze({
+  CompanyOwner: 'Company Owner',
+  CommercialCoordinator: 'Sales',
+  'Commercial Coordinator': 'Sales',
+  LogisticsManager: 'Logistics Manager',
+  B2BBuyer: 'B2B Buyer',
+});
+
+function initialsFrom(email = '') {
+  return email
+    .split('@')[0]
+    .split(/[\s._-]+/)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('')
+    .slice(0, 2) || 'NX';
+}
+
+export function mapBackendUser(user = {}) {
+  const role = user.role || user.Role || 'Sales';
+  const mapped = roleMap[roleAliases[role] || role] || roleMap.Sales;
+  const email = user.email || user.Email || user.username || user.Username || '';
+  const fullName = user.fullName || user.FullName || user.name || user.displayName || email.split('@')[0];
+  return {
+    id: user.id || user.Id || email,
+    username: user.username || user.Username || email,
+    email,
+    name: fullName,
+    displayName: fullName,
+    initials: initialsFrom(fullName),
+    clientId: user.clientAccountId || user.ClientAccountId || null,
+    phone: user.phone || user.Phone || '',
+    preferredLanguage: user.preferredLanguage || user.PreferredLanguage || 'en',
+    notificationPreferences: {
+      critical: user.criticalNotificationsEnabled ?? user.CriticalNotificationsEnabled ?? true,
+    },
+    ...mapped,
+  };
+}
+
 class IamApiService {
   constructor() {
     this.users = new BaseEndpoint('/api/v1/users');
+    this.authentication = new BaseEndpoint('/api/v1/authentication');
+    this.profile = new BaseEndpoint('/api/v1/profile');
   }
 
-  /**
-   * @summary Gets all user resources.
-   * @returns {Promise<Array>} User collection.
-   */
   getUsers() {
-    if (baseApi.coreBackendEnabled) {
-      return Promise.resolve([
-        {
-          id: "USR-LOGISTICS",
-          name: "Roberto Garcia",
-          email: "logistics@nexa.com",
-          password: "NexaDemo2026!",
-          role: "ops",
-          scope: "ops",
-          roleKey: "logistics",
-          roleName: "Logistics",
-          department: "Logistics",
-          initials: "RG"
-        },
-        {
-          id: "USR-SALES",
-          name: "Valeria Sanchez",
-          email: "sales@nexa.com",
-          password: "NexaDemo2026!",
-          role: "ops",
-          scope: "ops",
-          roleKey: "commercial",
-          roleName: "Sales",
-          department: "Sales",
-          initials: "VS"
-        },
-        {
-          id: "USR-BUYER",
-          name: "Elena Litano",
-          email: "buyer.demo@nexa.com",
-          password: "NexaDemo2026!",
-          role: "portal",
-          scope: "portal",
-          roleKey: "buyer",
-          roleName: "B2B Buyer",
-          department: "Purchasing",
-          initials: "EL",
-          clientId: "CLI-001"
-        }
-      ]);
-    }
-    return this.users.getAll();
+    return this.users.getAll().then(users => users.map(mapBackendUser));
   }
 
-  /**
-   * @summary Finds a user by email address.
-   * @param {string} email
-   * @returns {Promise<Object|null>} User record or null if not found.
-   */
+  getCurrentProfile() {
+    return this.users.request(
+      (client) => client.get(this.users.pathFor(client, '/me')).then(response => response.data),
+      (data) => data && typeof data === 'object'
+    );
+  }
+
+  updateCurrentProfile(resource) {
+    return this.users.request(
+      (client) => client.put(this.users.pathFor(client, '/me'), resource).then(response => response.data),
+      (data) => data && typeof data === 'object'
+    );
+  }
+
+  changeCurrentPassword(resource) {
+    return this.profile.request(
+      (client) => client.post(this.profile.pathFor(client, '/password-changes'), resource)
+        .then(response => response.data)
+    );
+  }
+
+  signIn({ email, password, workspaceSlug }) {
+    return this.authentication.request(
+      (client) => client.post(this.authentication.pathFor(client, '/sign-in'), {
+        email,
+        username: email,
+        password,
+        workspaceSlug,
+      }).then(response => response.data),
+      (data) => data && typeof data === 'object'
+    );
+  }
+
   findUserByEmail(email) {
     return this.getUsers().then(users =>
       users.find(user => user.email === email || (user.aliases || []).includes(email)) || null

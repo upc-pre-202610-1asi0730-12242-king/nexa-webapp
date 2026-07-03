@@ -1,12 +1,12 @@
-export const ORDER_STATUS_FLOW = ['pending', 'submitted', 'validating', 'confirmed', 'document_pending', 'ready_for_dispatch', 'ready_for_route', 'preparing', 'in_route', 'delivered'];
+export const ORDER_STATUS_FLOW = ['pending', 'submitted', 'validating', 'confirmed', 'document_pending', 'ready_for_dispatch', 'preparing', 'ready_for_route', 'in_route', 'delivered'];
 export const ORDER_TRACKING_STEPS = [
   ['submitted', 'Request received'],
-  ['validating', 'Commercial validation'],
-  ['confirmed', 'Purchase order confirmed'],
+  ['validating', 'Sales validation'],
+  ['confirmed', 'Purchase order created'],
   ['document_pending', 'Business documents prepared'],
   ['ready_for_dispatch', 'Ready for operations'],
-  ['ready_for_route', 'Ready for route'],
   ['preparing', 'Preparing dispatch'],
+  ['ready_for_route', 'Ready for route'],
   ['in_route', 'On route'],
   ['delivered', 'Delivered'],
 ];
@@ -21,11 +21,14 @@ const statusLabels = {
     needs_adjustment: 'Needs adjustment',
     approved: 'Approved',
     converted_to_order: 'Converted to purchase order',
-    validating: 'Commercial validation',
+    validating: 'Sales validation',
     document_pending: 'Business documents pending',
     confirmed: 'Confirmed',
     ready_for_dispatch: 'Ready for operations',
     ready_for_operations: 'Ready for operations',
+    assigned: 'Assigned',
+    scheduled: 'Scheduled',
+    reprogrammed: 'Reprogrammed',
     ready_for_route: 'Ready for route',
     preparing: 'Preparing dispatch',
     dispatched: 'Dispatched',
@@ -51,6 +54,9 @@ const statusLabels = {
     confirmed: 'Confirmada',
     ready_for_dispatch: 'Lista para operaciones',
     ready_for_operations: 'Lista para operaciones',
+    assigned: 'Asignada',
+    scheduled: 'Programada',
+    reprogrammed: 'Reprogramada',
     ready_for_route: 'Lista para ruta',
     preparing: 'Preparando despacho',
     dispatched: 'Despachada',
@@ -70,7 +76,7 @@ const trackingStepLabels = {
   es: {
     submitted: 'Solicitud recibida',
     validating: 'Validación comercial',
-    confirmed: 'Orden de compra confirmada',
+    confirmed: 'Orden de compra creada',
     document_pending: 'Documentos comerciales preparados',
     ready_for_dispatch: 'Lista para operaciones',
     ready_for_route: 'Lista para ruta',
@@ -85,7 +91,11 @@ const documentStatusLabels = {
     pending: 'Pending',
     generated: 'Generated',
     uploaded: 'Uploaded',
+    ready: 'Ready',
     accepted: 'Accepted',
+    reviewed: 'Reviewed',
+    review: 'In review',
+    missing: 'Missing',
     observed: 'Observed',
     rejected: 'Rejected',
     not_required: 'Not required',
@@ -94,7 +104,11 @@ const documentStatusLabels = {
     pending: 'Pendiente',
     generated: 'Generado',
     uploaded: 'Cargado',
+    ready: 'Listo',
     accepted: 'Aceptado',
+    reviewed: 'Revisado',
+    review: 'En revisión',
+    missing: 'Faltante',
     observed: 'Observado',
     rejected: 'Rechazado',
     not_required: 'No requerido',
@@ -117,8 +131,29 @@ const coldTypeLabels = {
 };
 
 const priorityLabels = {
-  en: { high: 'High', medium: 'Medium', low: 'Low' },
-  es: { high: 'Alta', medium: 'Media', low: 'Baja' },
+  en: { urgent: 'Urgent', high: 'High', medium: 'Medium', normal: 'Normal', low: 'Low' },
+  es: { urgent: 'Urgente', high: 'Alta', medium: 'Media', normal: 'Normal', low: 'Baja' },
+};
+
+const paymentMethodLabels = {
+  en: {
+    credit_line: 'Credit line',
+    credit_15: '15-day credit',
+    credit_30: '30-day credit',
+    transfer: 'Bank transfer',
+    card: 'Card',
+    cash: 'Cash',
+    cash_on_delivery: 'Cash on delivery',
+  },
+  es: {
+    credit_line: 'Línea de crédito',
+    credit_15: 'Crédito a 15 días',
+    credit_30: 'Crédito a 30 días',
+    transfer: 'Transferencia bancaria',
+    card: 'Tarjeta',
+    cash: 'Efectivo',
+    cash_on_delivery: 'Pago contra entrega',
+  },
 };
 
 const currentLocale = () => {
@@ -151,6 +186,7 @@ export const orderStatusBadge = (s) => 'badge-' + ({
   needs_adjustment: 'orange', approved: 'green', converted_to_order: 'purple',
   validating: 'orange', document_pending: 'amber', confirmed: 'blue',
   ready_for_dispatch: 'blue', ready_for_operations: 'blue',
+  assigned: 'blue', scheduled: 'blue', reprogrammed: 'amber',
   ready_for_route: 'blue',
   preparing: 'amber', dispatched: 'blue', in_route: 'blue',
   delayed: 'orange', delivered: 'green', observed: 'orange', cancelled: 'gray',
@@ -158,6 +194,8 @@ export const orderStatusBadge = (s) => 'badge-' + ({
 }[s] || 'gray');
 
 export const priorityLabel = (p, locale) => labelFrom(priorityLabels, p, locale);
+
+export const paymentMethodLabel = (p, locale) => labelFrom(paymentMethodLabels, p, locale);
 
 export const orderStepState = (status, step) => {
   if (['blocked', 'cancelled', 'rejected'].includes(status)) {
@@ -185,6 +223,16 @@ const statusAliases = {
 
 export const normalizeOrderStatus = (status) => statusAliases[status] || status;
 
+export const effectiveOrderStatus = (orderStatus, dispatchStatus) => {
+  if (!dispatchStatus) return orderStatus;
+  if (['blocked', 'cancelled', 'rejected'].includes(orderStatus)) return orderStatus;
+  const normalizedDispatch = normalizeOrderStatus(dispatchStatus);
+  const normalizedOrder = normalizeOrderStatus(orderStatus);
+  const dispatchIndex = ORDER_STATUS_FLOW.indexOf(normalizedDispatch);
+  const orderIndex = ORDER_STATUS_FLOW.indexOf(normalizedOrder);
+  return dispatchIndex >= orderIndex ? normalizedDispatch : normalizedOrder;
+};
+
 export const timelineEventForStep = (events = [], step) => {
   const normalizedStep = normalizeOrderStatus(step);
   return [...events]
@@ -198,6 +246,33 @@ export const formatTimelineDateTime = (value, locale = currentLocale()) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return locale === 'es' ? 'Pendiente' : 'Pending';
   return date.toLocaleString(locale === 'es' ? 'es-PE' : 'en-US', {
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+export const formatCalendarDate = (value, locale = currentLocale()) => {
+  if (!value) return locale === 'es' ? 'Pendiente' : 'Pending';
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return locale === 'es' ? 'Pendiente' : 'Pending';
+  return date.toLocaleDateString(locale === 'es' ? 'es-PE' : 'en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+};
+
+export const formatRecordDateTime = (value, locale = currentLocale()) => {
+  if (!value) return locale === 'es' ? 'Pendiente' : 'Pending';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return locale === 'es' ? 'Pendiente' : 'Pending';
+  return date.toLocaleString(locale === 'es' ? 'es-PE' : 'en-US', {
+    year: 'numeric',
     month: 'short',
     day: '2-digit',
     hour: '2-digit',
@@ -234,7 +309,11 @@ export const documentStatusBadge = (s) => 'badge-' + ({
   pending: 'amber',
   generated: 'blue',
   uploaded: 'blue',
+  ready: 'green',
   accepted: 'green',
+  reviewed: 'green',
+  review: 'orange',
+  missing: 'red',
   observed: 'orange',
   rejected: 'red',
   not_required: 'gray',

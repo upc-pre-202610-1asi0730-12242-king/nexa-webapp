@@ -2,28 +2,38 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 
-const renderApiOrigin = 'https://nexa-platform-api.onrender.com';
+const apiProxyTarget = process.env.VITE_DEV_PROXY_TARGET
+  || process.env.NEXA_API_PROXY_TARGET
+  || 'http://localhost:5068';
 
 export default defineConfig({
   base: '/',
-  plugins: [
-    vue(),
-    {
-      name: 'nexa-production-origin-sanitizer',
-      apply: 'build',
-      generateBundle(_, bundle) {
-        for (const asset of Object.values(bundle)) {
-          if (asset.type === 'chunk') {
-            asset.code = asset.code.replaceAll('http://localhost', renderApiOrigin);
-          }
-        }
+  plugins: [vue()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('/node_modules/')) return undefined;
+          return 'vendor';
+        },
       },
     },
-  ],
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  server: { port: 5173, open: true },
+  server: {
+    port: 5173,
+    host: '0.0.0.0',
+    open: process.env.VITE_SERVER_OPEN !== 'false',
+    proxy: {
+      '/api/v1': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });

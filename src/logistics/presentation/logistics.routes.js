@@ -24,10 +24,9 @@ export const logisticsRoutes = [
     meta: { roles: ['logistics'] },
   },
   {
-    path: 'operations/customer-portals',
-    name: 'operations-customer-portals',
-    component: () => import('@/logistics/presentation/customer-portals/views/customer-portals-view.vue'),
-    meta: { roles: ['logistics'] },
+    path: 'operations/workspace-setup',
+    name: 'operations-workspace-setup',
+    redirect: '/ops/operations/company-administration?section=workspaces',
   },
   {
     path: 'dispatch',
@@ -40,13 +39,5 @@ export const logisticsRoutes = [
   {
     path: 'evidence',
     redirect: '/ops/operations/proof-of-delivery',
-  },
-  {
-    path: 'commercial/customer-portals',
-    redirect: '/ops/operations/customer-portals',
-  },
-  {
-    path: 'customer-portals',
-    redirect: '/ops/operations/customer-portals',
   },
 ];

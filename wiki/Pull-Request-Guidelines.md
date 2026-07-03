@@ -10,7 +10,7 @@ Before opening a pull request to merge a feature branch into `develop` or `main`
 2. **Review Code Hygene**:
    - Ensure there are no active console logging commands (`console.log`) or debug breakpoints left in presentation components.
    - Verify that credentials, passwords, or session tokens are not checked into the repository.
-   - Confirm that no files referencing placeholder APIs or mock JSON-servers are included.
+   - Confirm that no files reference placeholder APIs or retired local API servers.
 3. **No Garbage Files**:
    Ensure git-ignored directories (`node_modules/`, `dist/`, `.idea/`, `.DS_Store`) are not committed.
 

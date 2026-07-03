@@ -25,5 +25,5 @@ This folder documents the SemVer tags used by the Nexa WebApp academic repositor
 | `v1.4.0` | Bounded-context frontend architecture |
 | `v1.7.0` | Hybrid API integration and responsive polish |
 | `v1.7.1` | AV2 release metadata and environment documentation patch |
-| `v1.8.0` | Mock API cleanup and layout polish |
+| `v1.8.0` | Local data cleanup and layout polish |
 | `v2.0.0` | B2B Production Release |

@@ -19,23 +19,18 @@ const ds     = useDataStore();
 const mobileMenuOpen = ref(false);
 
 const navItems = [
-  { to: '/portal/home', labelKey: 'portal.nav.home', icon: 'pi-home' },
   { to: '/portal/product-catalog', labelKey: 'portal.nav.catalog', icon: 'pi-box' },
   { to: '/portal/request-builder', labelKey: 'portal.nav.requestBuilder', icon: 'pi-shopping-cart' },
   { to: '/portal/purchase-requests', labelKey: 'portal.nav.requests', icon: 'pi-inbox' },
   { to: '/portal/purchase-orders', labelKey: 'portal.nav.orders', icon: 'pi-truck' },
-  { to: '/portal/business-documents', labelKey: 'portal.nav.documents', icon: 'pi-file-check' },
   { to: '/portal/payment-methods', labelKey: 'portal.nav.payments', icon: 'pi-credit-card' },
   { to: '/portal/premium', labelKey: 'portal.nav.premium', icon: 'pi-sparkles' },
   { to: '/portal/profile', labelKey: 'portal.nav.profile', icon: 'pi-user-edit' },
 ];
 
+const bottomNavPaths = ['/portal/product-catalog', '/portal/request-builder', '/portal/purchase-orders', '/portal/payment-methods', '/portal/profile'];
 const bottomNavItems = computed(() => [
-  navItems[0],
-  navItems[1],
-  navItems[3],
-  navItems[5],
-  navItems[8],
+  ...bottomNavPaths.map(path => navItems.find(item => item.to === path)).filter(Boolean),
 ]);
 const mobileMenuItems = computed(() =>
   navItems.filter(item => !bottomNavItems.value.some(bottomItem => bottomItem.to === item.to))
@@ -78,7 +73,14 @@ function goRequestBuilder() {
 <template>
   <div class="portal-shell">
     <header class="portal-topbar" role="banner">
-      <img :src="logo" alt="Nexa" style="width:82px;height:auto;display:block" />
+      <button
+        type="button"
+        class="portal-logo-button"
+        :aria-label="t('portal.home')"
+        @click="goPortal('/portal/home')"
+      >
+        <img :src="logo" alt="Nexa" style="width:82px;height:auto;display:block" />
+      </button>
       <nav class="portal-nav" role="navigation" :aria-label="t('portal.catalog')">
         <button
           v-for="n in navItems"
@@ -99,7 +101,7 @@ function goRequestBuilder() {
         </div>
         <button class="cart-btn" @click="cart.toggle()" :aria-label="`${t('portal.cart')} (${cart.count})`">
           <i class="pi pi-shopping-cart" aria-hidden="true"></i>
-          {{ t('portal.cart') }}
+          <span>{{ t('portal.cart') }}</span>
           <span class="cart-count" v-if="cart.count" aria-live="polite">{{ cart.count }}</span>
         </button>
         <button
@@ -115,13 +117,16 @@ function goRequestBuilder() {
     </header>
 
     <main class="portal-page" role="main">
+      <div v-if="ds.loadError" class="banner banner-danger" role="alert">
+        {{ t(ds.loadError) }}
+      </div>
       <router-view />
     </main>
 
     <!-- Terms footer -->
     <footer class="portal-footer" role="contentinfo">
       <span>{{ t('footer.rights') }}</span>
-      <nav class="portal-footer-links" aria-label="Portal legal links">
+      <nav class="portal-footer-links" :aria-label="t('footer.legalLinks')">
         <button
           v-for="link in footerLinks"
           :key="link.to"
@@ -203,7 +208,7 @@ function goRequestBuilder() {
           <div class="empty-state-title">{{ t('portal.emptyCart') }}</div>
           <div class="empty-state-desc">{{ t('portal.emptyCartDesc') }}</div>
         </div>
-        <div v-for="i in cart.items" :key="i.productId" style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #F3F0EC">
+        <div v-for="i in cart.items" :key="i.productId" style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #e8eef7">
           <div :class="'product-placeholder cat-' + i.cat" style="width:60px;height:60px;border-radius:8px;flex-shrink:0">
             <img v-if="i.imageUrl" class="catalog-product-image" :src="i.imageUrl" :alt="i.name" loading="lazy" />
             <div v-else class="pp-icon" style="font-size:20px"><i class="pi pi-box" aria-hidden="true"></i></div>

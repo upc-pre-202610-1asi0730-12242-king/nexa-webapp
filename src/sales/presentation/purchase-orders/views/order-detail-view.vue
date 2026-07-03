@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { ORDER_STATUS_FLOW, orderStatusLabel, orderStatusBadge, priorityLabel, orderStepState, displayCode, timelineEventForStep, formatTimelineDateTime } from '@/shared/status';
+import { ORDER_STATUS_FLOW, orderStatusLabel, orderStatusBadge, priorityLabel, paymentMethodLabel, orderStepState, displayCode, timelineEventForStep, formatTimelineDateTime, effectiveOrderStatus } from '@/shared/status';
 
 const route = useRoute();
 const router = useRouter();
@@ -15,6 +15,8 @@ const D = ds.D;
 
 const order = computed(() => ds.orderById(route.params.id));
 const client = computed(() => order.value ? ds.clientById(order.value.clientId) : null);
+const relatedDispatch = computed(() => order.value ? ds.dispatchForOrder(order.value.id) : null);
+const currentStatus = computed(() => effectiveOrderStatus(order.value?.status, relatedDispatch.value?.status));
 const displayItems = computed(() => {
   if (!order.value) return [];
   if (Array.isArray(order.value.items)) return order.value.items;
@@ -30,24 +32,28 @@ const orderEvents = computed(() => order.value ? ds.timelineForOrder(order.value
 const confirmationChecks = computed(() => {
   if (!order.value) return [];
   return [
-    { key: 'client', label: 'Client selected', ok: !!client.value },
-    { key: 'items', label: 'Products attached', ok: displayItems.value.length > 0 },
-    { key: 'stock', label: 'Stock available', ok: displayItems.value.every(item => item.stockOk !== false) },
-    { key: 'total', label: 'Positive total', ok: Number(order.value.total || 0) > 0 },
+    { key: 'client', label: t('orderDetail.checks.client'), ok: !!client.value },
+    { key: 'items', label: t('orderDetail.checks.items'), ok: displayItems.value.length > 0 },
+    { key: 'stock', label: t('orderDetail.checks.stock'), ok: displayItems.value.every(item => item.stockOk !== false) },
+    { key: 'total', label: t('orderDetail.checks.total'), ok: Number(order.value.total || 0) > 0 },
   ];
 });
 const canConfirmOrder = computed(() => confirmationChecks.value.every(check => check.ok));
 
 const timeline = computed(() => {
   if (!order.value) return [];
-  return ORDER_STATUS_FLOW.map((status, index) => {
-    const state = orderStepState(order.value.status, status);
-    return {
-      title: orderStatusLabel(status),
-      meta: formatTimelineDateTime(timelineEventForStep(orderEvents.value, status)?.timestamp || timelineEventForStep(orderEvents.value, status)?.createdAt || (index === 0 ? order.value?.createdAt || orderDate.value : null)),
-      done: state === 'done' || state === 'active',
-    };
-  });
+	  return ORDER_STATUS_FLOW.map((status, index) => {
+	    const event = timelineEventForStep(orderEvents.value, status);
+	    const state = orderStepState(currentStatus.value, status);
+	    const dispatchTimestamp = state === 'active'
+	      ? relatedDispatch.value?.updatedAt || relatedDispatch.value?.createdAt || relatedDispatch.value?.eta
+	      : null;
+	    return {
+	      title: orderStatusLabel(status),
+	      meta: formatTimelineDateTime(event?.timestamp || event?.createdAt || dispatchTimestamp || (index === 0 ? order.value?.createdAt || orderDate.value : null)),
+	      done: Boolean(event) || state === 'done' || state === 'active',
+	    };
+	  });
 });
 </script>
 
@@ -67,13 +73,15 @@ const timeline = computed(() => {
     <div style="flex:1">
       <div style="display:flex;align-items:center;gap:10px">
         <span class="page-title" style="font-family:'JetBrains Mono',monospace">{{ displayCode(order) }}</span>
-        <span :class="'badge ' + orderStatusBadge(order.status)">{{ orderStatusLabel(order.status) }}</span>
+        <span :class="'badge ' + orderStatusBadge(currentStatus)">{{ orderStatusLabel(currentStatus) }}</span>
         <span :class="'badge-priority-' + order.priority">{{ priorityLabel(order.priority) }}</span>
       </div>
       <div class="page-subtitle">{{ ds.clientName(order.clientId) }} · {{ orderDate }}</div>
     </div>
-    <button class="btn btn-ghost" @click="toast.add({ severity:'info', summary:'Printing...', detail:'Opens the browser print dialog', life:2500 })"><i class="pi pi-print"></i> Print</button>
-    <button class="btn btn-secondary" :disabled="!canConfirmOrder"><i class="pi pi-lock"></i> Backend workflow action pending</button>
+    <button class="btn btn-ghost" @click="toast.add({ severity:'info', summary:t('orderDetail.printing'), detail:t('orderDetail.printDescription'), life:2500 })"><i class="pi pi-print"></i> {{ t('orderDetail.print') }}</button>
+    <button class="btn btn-secondary" disabled :title="t('orderDetail.confirmedDescription')">
+      <i class="pi pi-lock"></i> {{ t('orderDetail.confirmed') }}
+    </button>
   </div>
 
   <div class="banner banner-warning" v-if="order.notes">
@@ -83,34 +91,40 @@ const timeline = computed(() => {
   <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start">
     <div>
       <div class="card" style="overflow:hidden;margin-bottom:16px">
-        <div class="card-header"><span class="card-title">Requested Products</span></div>
+        <div class="card-header"><span class="card-title">{{ t('orderDetail.requestedProducts') }}</span></div>
         <table class="data-table">
-          <thead><tr><th>Product</th><th>Quantity</th><th>Price</th><th>Subtotal</th><th>Stock</th></tr></thead>
+          <thead><tr><th>{{ t('orderDetail.product') }}</th><th>{{ t('orderDetail.quantity') }}</th><th>{{ t('orderDetail.price') }}</th><th>{{ t('orderDetail.subtotal') }}</th><th>{{ t('orderDetail.stock') }}</th></tr></thead>
           <tbody>
             <tr v-for="i in displayItems" :key="i.productId">
               <td>
-                <div style="font-weight:500;font-size:13px">{{ ds.productName(i.productId) }}</div>
-                <div class="mono" style="font-size:10px">{{ ds.productById(i.productId)?.sku }}</div>
+                <div class="order-product-cell">
+                  <img v-if="ds.productById(i.productId)?.imageUrl" class="order-product-image" :src="ds.productById(i.productId)?.imageUrl" :alt="ds.productName(i.productId)" loading="lazy" />
+                  <div v-else class="order-product-image order-product-image-empty"><i class="pi pi-box"></i></div>
+                  <div>
+                    <div style="font-weight:700;font-size:13px">{{ ds.productName(i.productId) }}</div>
+                    <div class="mono" style="font-size:10px">{{ ds.productById(i.productId)?.sku }}</div>
+                  </div>
+                </div>
               </td>
               <td>{{ i.qty }} {{ ds.productById(i.productId)?.unit }}</td>
               <td>S/ {{ i.price.toFixed(2) }}</td>
               <td style="font-weight:600">S/ {{ (i.qty * i.price).toFixed(2) }}</td>
               <td>
                 <span :class="'badge ' + (i.stockOk ? 'badge-green' : 'badge-red')">
-                  {{ i.stockOk ? 'Available' : 'Partial stock' }}
+                  {{ i.stockOk ? t('catalog.available') : t('orderDetail.partialStock') }}
                 </span>
               </td>
             </tr>
-            <tr v-if="!displayItems.length"><td colspan="5"><div class="empty-state" style="padding:24px"><div class="empty-state-icon"><i class="pi pi-box"></i></div><div class="empty-state-title">No items</div></div></td></tr>
+            <tr v-if="!displayItems.length"><td colspan="5"><div class="empty-state" style="padding:24px"><div class="empty-state-icon"><i class="pi pi-box"></i></div><div class="empty-state-title">{{ t('orderDetail.noItems') }}</div></div></td></tr>
           </tbody>
         </table>
         <div style="padding:16px 20px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-weight:700;font-size:15px">
-          <span>Total</span><span>S/ {{ order.total.toFixed(2) }}</span>
+          <span>{{ t('common.total') }}</span><span>S/ {{ order.total.toFixed(2) }}</span>
         </div>
       </div>
 
       <div class="card card-pad">
-        <div class="card-title" style="margin-bottom:16px">Timeline</div>
+        <div class="card-title" style="margin-bottom:16px">{{ t('orderDetail.timeline') }}</div>
         <div class="timeline">
           <div v-for="(t, i) in timeline" :key="i" class="tl-item">
             <div class="tl-spine"></div>
@@ -128,34 +142,34 @@ const timeline = computed(() => {
 
     <div class="card card-pad" v-if="client">
       <div style="margin-bottom:14px">
-        <div class="card-title" style="margin-bottom:10px">Confirmation Checks</div>
+        <div class="card-title" style="margin-bottom:10px">{{ t('orderDetail.confirmationChecks') }}</div>
         <div v-for="check in confirmationChecks" :key="check.key" style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0">
           <span>{{ check.label }}</span>
-          <span :class="'badge ' + (check.ok ? 'badge-green' : 'badge-red')">{{ check.ok ? 'OK' : 'Review' }}</span>
+          <span :class="'badge ' + (check.ok ? 'badge-green' : 'badge-red')">{{ check.ok ? t('common.ok') : t('common.review') }}</span>
         </div>
       </div>
       <div class="divider" style="margin:14px 0"></div>
       <div v-if="order.createdByName" style="margin-bottom:14px;padding:10px 12px;background:#F0F7FF;border:1px solid #BFDBFE;border-radius:8px">
-        <div style="font-size:11px;font-weight:600;color:#2563EB;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Registered by</div>
+        <div style="font-size:11px;font-weight:600;color:#2563EB;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">{{ t('orderDetail.registeredBy') }}</div>
         <div style="font-size:13px;font-weight:500;color:#1F2937">{{ order.createdByName }}</div>
         <div style="font-size:11px;color:#6B7280">{{ order.createdByRole }}</div>
       </div>
-      <div class="card-title" style="margin-bottom:12px">Client</div>
+      <div class="card-title" style="margin-bottom:12px">{{ t('orderDetail.client') }}</div>
       <div style="font-weight:600">{{ client.name }}</div>
       <div style="font-size:12px;color:#6B7280">{{ client.ruc }}</div>
       <div class="divider" style="margin:14px 0"></div>
-      <div style="font-size:12px;color:#6B7280">Contact</div>
+      <div style="font-size:12px;color:#6B7280">{{ t('orderDetail.contact') }}</div>
       <div style="font-size:13px">{{ client.contact }}</div>
       <div style="font-size:12px;color:#6B7280">{{ client.phone }}</div>
       <div class="divider" style="margin:14px 0"></div>
-      <div style="font-size:12px;color:#6B7280">Address</div>
+      <div style="font-size:12px;color:#6B7280">{{ t('orderDetail.address') }}</div>
       <div style="font-size:13px">{{ client.address }}</div>
       <div class="divider" style="margin:14px 0"></div>
-      <div style="font-size:12px;color:#6B7280">Condition</div>
-      <div style="font-size:13px">{{ client.condition }}</div>
+      <div style="font-size:12px;color:#6B7280">{{ t('orderDetail.condition') }}</div>
+      <div style="font-size:13px">{{ paymentMethodLabel(client.condition) || client.condition }}</div>
       <template v-if="client.creditLimit">
         <div class="divider" style="margin:14px 0"></div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:6px">Credit Used</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:6px">{{ t('orderDetail.creditUsed') }}</div>
         <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:3px">
           <span>S/ {{ client.creditUsed.toLocaleString() }}</span>
           <span>S/ {{ client.creditLimit.toLocaleString() }}</span>
@@ -168,3 +182,35 @@ const timeline = computed(() => {
   </div>
   </template>
 </template>
+
+<style scoped>
+.order-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 220px;
+}
+.order-product-image {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.order-product-image-empty {
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+}
+.data-table td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.tl-item {
+  padding-bottom: 18px;
+}
+.tl-content {
+  padding-left: 2px;
+}
+</style>

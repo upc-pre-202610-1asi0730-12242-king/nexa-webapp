@@ -34,8 +34,8 @@ const companyFields = [
       <div class="card-title" style="margin-bottom:12px">{{ t('settings.users') }}</div>
       <div class="empty-state" style="padding:32px 20px">
         <div class="empty-state-icon"><i class="pi pi-lock"></i></div>
-        <div class="empty-state-title">Administrative Access</div>
-        <div class="empty-state-desc">User and role management is an administrative capability outside the TB1 scope.</div>
+        <div class="empty-state-title">{{ t('settings.adminAccess') }}</div>
+        <div class="empty-state-desc">{{ t('settings.adminAccessDesc') }}</div>
       </div>
     </div>
   </div>

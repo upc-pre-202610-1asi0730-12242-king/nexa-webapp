@@ -9,7 +9,7 @@ defineProps({
 <template>
   <section class="flow-panel">
     <span :class="'badge ' + (enabled ? 'badge-green' : preview ? 'badge-purple' : 'badge-gray')">
-      {{ enabled ? 'Available' : preview ? 'Premium preview' : 'Blocked' }}
+      {{ enabled ? 'Available' : preview ? 'Premium access' : 'Blocked' }}
     </span>
     <h3 style="margin-top:10px">{{ title }}</h3>
     <slot />

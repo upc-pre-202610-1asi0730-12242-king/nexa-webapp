@@ -1,29 +1,85 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+
+const STORAGE_KEY = 'nexa.buyerRequestCart';
+
+function storageScope() {
+  const tenant = JSON.parse(localStorage.getItem('nexa.tenant') || 'null');
+  const user = JSON.parse(localStorage.getItem('nexa.user') || 'null');
+  return [tenant?.id || tenant?.slug || 'tenant', user?.clientId || user?.id || 'user'].join(':');
+}
+
+function readStoredItems() {
+  try {
+    const draft = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    return draft?.scope === storageScope() && Array.isArray(draft.items) ? draft.items : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredItems(items) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ scope: storageScope(), items }));
+}
 
 export const useCartStore = defineStore('cart', () => {
-  const items = ref([]); // [{ productId, qty, price, name, unit }]
+  const items = ref(readStoredItems()); // [{ productId, qty, price, name, unit }]
   const isOpen = ref(false);
 
   const count = computed(() => items.value.reduce((s, i) => s + i.qty, 0));
   const total = computed(() => items.value.reduce((s, i) => s + i.qty * i.price, 0));
 
   function add(product) {
+    const available = Math.max(0, Number(product.stock || 0) - Number(product.reserved || 0));
+    if (product.status === 'out' || available <= 0) return false;
     const existing = items.value.find(i => i.productId === product.id);
-    if (existing) existing.qty += 1;
+    if (existing) {
+      existing.qty = Math.min(existing.qty + 1, available);
+      existing.max = available;
+      existing.backendId = existing.backendId || product.backendId;
+      existing.catalogItemBackendId = existing.catalogItemBackendId || product.backendId || product.catalogItemBackendId;
+      existing.catalogItemId = existing.catalogItemId || product.catalogItemId;
+      existing.productBackendId = existing.productBackendId || product.backendId;
+      existing.imageUrl = existing.imageUrl || product.imageUrl;
+      existing.presentation = existing.presentation || product.presentation;
+    }
     else items.value.push({
-      productId: product.id, qty: 1, price: product.price,
+      productId: product.id, qty: 1, price: product.price, max: available,
+      backendId: product.backendId,
+      catalogItemBackendId: product.backendId || product.catalogItemBackendId,
+      catalogItemId: product.catalogItemId,
+      productBackendId: product.backendId,
       name: product.name, unit: product.unit, sku: product.sku, cat: product.cat,
+      coldType: product.coldType,
+      brandName: product.brandName || product.brand,
+      imageUrl: product.imageUrl,
+      presentation: product.presentation,
     });
+    return true;
   }
   function remove(productId) { items.value = items.value.filter(i => i.productId !== productId); }
   function setQty(productId, qty) {
     const it = items.value.find(i => i.productId === productId);
     if (!it) return;
-    it.qty = Math.max(1, qty);
+    it.qty = Math.max(1, Math.min(Number(it.max || Number.MAX_SAFE_INTEGER), Number(qty || 1)));
   }
-  function clear() { items.value = []; }
+  function clear() {
+    items.value = [];
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  function clearDraft() {
+    items.value = [];
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  function reloadDraft() {
+    items.value = readStoredItems();
+  }
   function toggle() { isOpen.value = !isOpen.value; }
 
-  return { items, isOpen, count, total, add, remove, setQty, clear, toggle };
+  watch(items, (value) => {
+    if (value.length) writeStoredItems(value);
+    else localStorage.removeItem(STORAGE_KEY);
+  }, { deep: true });
+
+  return { items, isOpen, count, total, add, remove, setQty, clear, clearDraft, reloadDraft, toggle };
 });

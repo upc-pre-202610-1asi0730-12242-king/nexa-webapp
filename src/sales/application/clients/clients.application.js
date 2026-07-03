@@ -12,6 +12,24 @@ export const clientsApplication = {
     return clientsApiService.getClientById(id).then(mapClientResource);
   },
 
+  createClient(client) {
+    return clientsApiService
+      .createClient(ClientAssembler.toCreateResource(client))
+      .then(mapClientResource);
+  },
+
+  updateClient(id, client) {
+    return clientsApiService
+      .updateClient(id, ClientAssembler.toCreateResource(client))
+      .then(mapClientResource);
+  },
+
+  updateCurrentBuyerProfile(client) {
+    return clientsApiService
+      .updateCurrentBuyerProfile(ClientAssembler.toCreateResource(client))
+      .then(mapClientResource);
+  },
+
   getActiveClients() {
     return this.getClients().then(clients => clients.filter(c => c.status === 'active'));
   },

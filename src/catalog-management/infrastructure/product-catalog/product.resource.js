@@ -1,6 +1,7 @@
 export class ProductResource {
   constructor({
     id,
+    backendId,
     name,
     sku,
     category,
@@ -25,10 +26,12 @@ export class ProductResource {
     catalogItemId,
     productId,
     currency,
+    presentation,
     weightKg,
     knowledge,
   } = {}) {
     this.id = id;
+    this.backendId = backendId;
     this.name = name;
     this.sku = sku;
     this.category = category;
@@ -53,6 +56,7 @@ export class ProductResource {
     this.catalogItemId = catalogItemId;
     this.productId = productId;
     this.currency = currency;
+    this.presentation = presentation;
     this.weightKg = weightKg;
     this.knowledge = knowledge;
   }

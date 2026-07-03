@@ -1,6 +1,28 @@
-import { iamApiService } from '../infrastructure/iam-api';
-import { UserAssembler } from '../infrastructure/user.assembler';
-import { baseApi } from '@/shared/infrastructure/base-api';
+import { iamApiService, mapBackendUser } from '../infrastructure/iam-api';
+import { tenantApi } from '@/tenant-management/infrastructure/tenant-api';
+
+const PERSONAL_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'hotmail.com',
+  'outlook.com',
+  'yahoo.com',
+  'icloud.com',
+  'live.com',
+]);
+
+function normalizeWorkspaceSlug(value = '') {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function isPersonalEmail(email = '') {
+  const domain = String(email).split('@')[1]?.toLowerCase() || '';
+  return PERSONAL_EMAIL_DOMAINS.has(domain);
+}
 
 /**
  * IAM application use cases.
@@ -16,85 +38,81 @@ export const iamApplication = {
     return iamApiService.getUsers();
   },
 
+  getCurrentProfile() {
+    return iamApiService.getCurrentProfile().then(mapBackendUser);
+  },
+
+  updateCurrentProfile(payload) {
+    return iamApiService.updateCurrentProfile(payload).then(mapBackendUser);
+  },
+
+  changeCurrentPassword(payload) {
+    return iamApiService.changeCurrentPassword(payload);
+  },
+
   /**
-   * @summary Verifies credentials and returns the matching user.
+   * @summary Resolves a tenant preview for the workspace-first login.
+   * @param {string} workspaceSlug
+   * @returns {Promise<Object|null>}
+   */
+  async resolveWorkspace(workspaceSlug) {
+    const slug = normalizeWorkspaceSlug(workspaceSlug);
+    if (!slug) return null;
+    try {
+      return await tenantApi.getTenantPreview(slug);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * @summary Checks whether the email domain is a personal provider.
+   * @param {string} email
+   * @returns {boolean}
+   */
+  isPersonalEmail(email) {
+    return isPersonalEmail(email);
+  },
+
+  /**
+   * @summary Verifies workspace-first credentials against the backend and returns a session.
+   * @param {string} workspaceSlug
    * @param {string} email
    * @param {string} password
-   * @returns {Promise<Object|null>} User record or null on mismatch.
+   * @returns {Promise<Object|null>} Session record or null on mismatch.
    */
-  async verifyCredentials(email, password) {
-    if (baseApi.coreBackendEnabled) {
-      const response = await baseApi.coreHttp.post('/authentication/sign-in', {
-        email: email,
-        username: email,
-        password: password
-      });
-      const backendUser = response.data;
-      const users = await iamApiService.getUsers();
-      const searchEmail = (email || '').toLowerCase().trim();
-      let profile = users.find(u => 
-        (u.email || '').toLowerCase().trim() === searchEmail || 
-        (u.username || '').toLowerCase().trim() === searchEmail
-      );
-      
-      const roleProfileMap = {
-        sales: {
-          role: "ops",
-          scope: "ops",
-          roleKey: "commercial",
-          roleName: "Sales",
-          department: "Sales",
-          initials: "VS"
-        },
-        logistics: {
-          role: "ops",
-          scope: "ops",
-          roleKey: "logistics",
-          roleName: "Logistics",
-          department: "Logistics",
-          initials: "RG"
-        },
-        buyer: {
-          id: "USR-BUYER",
-          name: "Elena Litano",
-          role: "portal",
-          scope: "portal",
-          roleKey: "buyer",
-          roleName: "B2B Buyer",
-          department: "Purchasing",
-          initials: "EL",
-          clientId: "CLI-001",
-        }
-      };
+  async verifyWorkspaceCredentials({ workspaceSlug, email, password }) {
+    const tenant = await this.resolveWorkspace(workspaceSlug);
+    if (tenant && tenant.status !== 'active') return { tenant, suspended: true };
 
-      const backendRole = String(backendUser.role || '').toLowerCase();
-      profile = {
-        ...(roleProfileMap[backendRole] || {}),
-        ...(profile || {})
-      };
+    const authenticatedUser = await iamApiService.signIn({ email, password, workspaceSlug: tenant?.slug || workspaceSlug });
+    const user = mapBackendUser(authenticatedUser);
+    const resolvedTenant = {
+      ...(tenant || {}),
+      id: authenticatedUser.tenantId,
+      slug: authenticatedUser.workspaceSlug || tenant?.slug || normalizeWorkspaceSlug(workspaceSlug),
+      workspaceId: authenticatedUser.workspaceId,
+      workspaceUrl: tenant?.workspaceUrl || `${authenticatedUser.workspaceSlug || normalizeWorkspaceSlug(workspaceSlug)}.nexa.com.pe`,
+      status: authenticatedUser.workspaceStatus || tenant?.status || 'active',
+      plan: tenant?.plan || 'Standard',
+    };
 
-      if (!profile) {
-        profile = {};
-      }
-
-      return {
-        ...profile,
-        id: backendUser.id,
-        email: backendUser.email,
-        role: profile.role || 'ops',
-        scope: profile.scope || 'ops',
-        roleKey: profile.roleKey || 'commercial',
-        roleName: profile.roleName || 'Operator',
-        department: profile.department || '',
-        initials: profile.initials || 'US',
-        clientId: profile.clientId || null,
-        accessToken: backendUser.accessToken
-      };
-    } else {
-      const user = await iamApiService.findUserByEmail(email);
-      if (!user) return null;
-      if (user.password !== password) return null;
-      return UserAssembler.toResource(UserAssembler.toEntity(user), user);
-    }
+    return {
+      accessToken: authenticatedUser.accessToken || authenticatedUser.AccessToken,
+      user,
+      tenant: resolvedTenant,
+      membership: {
+        tenantId: authenticatedUser.tenantId || resolvedTenant.id,
+        workspaceId: authenticatedUser.workspaceId || resolvedTenant.workspaceId,
+        workspaceSlug: authenticatedUser.workspaceSlug || resolvedTenant.slug,
+        userId: user.id,
+        role: user.roleName,
+        roleKey: user.roleKey,
+        scope: user.scope,
+        permissions: user.permissions,
+        clientAccountId: authenticatedUser.clientAccountId || authenticatedUser.ClientAccountId || null,
+        status: authenticatedUser.membershipStatus || 'active',
+      },
+    };
   },
 };

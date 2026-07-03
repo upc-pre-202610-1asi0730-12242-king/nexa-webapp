@@ -1,60 +1,121 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { orderStatusLabel, orderStatusBadge, buildOrderTrackingSteps, documentStatusLabel, documentStatusBadge, coldTypeLabel, coldTypeBadge, displayCode } from '@/shared/status';
+import { useBuyerPortalStore } from '@/sales/application/buyer-portal/buyer-portal.store';
+import { orderStatusLabel, orderStatusBadge, buildOrderTrackingSteps, documentStatusLabel, documentStatusBadge, coldTypeLabel, coldTypeBadge, displayCode, effectiveOrderStatus } from '@/shared/status';
+import { formatAddress } from '@/shared/utils/address.utils';
 
 const route = useRoute();
 const router = useRouter();
+const { t, locale } = useI18n();
 const auth = useAuthStore();
 const ds = useDataStore();
+const buyerPortal = useBuyerPortalStore();
+const downloadingDocumentId = ref(null);
+const documentError = ref('');
 
 const order = computed(() => {
   const found = ds.purchaseOrderById(route.params.id);
-  return found?.clientId === auth.user?.clientId ? found : null;
+  return ds.clientRecordMatches(found, auth.user?.clientId) ? found : null;
 });
 const dispatch = computed(() => order.value ? ds.dispatchForOrder(order.value.id) : null);
 const address = computed(() => order.value ? ds.deliveryAddressById(order.value.deliveryAddressId) : null);
 const docs = computed(() => order.value ? ds.documentsForOrder(order.value.id).filter(doc => doc.visibleToBuyer || doc.required) : []);
 const items = computed(() => order.value ? ds.orderItemsFor(order.value.id) : []);
-const events = computed(() => order.value ? ds.timelineForOrder(order.value.id).filter(event => event.visibleToBuyer !== false).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) : []);
+const orderReadModelId = computed(() => order.value ? (order.value.backendId || order.value.id) : null);
+const events = computed(() => {
+  if (!order.value) return [];
+  const readModelEvents = buyerPortal.lifecycleEventsForOrder(orderReadModelId.value);
+  return readModelEvents.length ? readModelEvents : ds.lifecycleEventsForOrder(order.value.id);
+});
 const temps = computed(() => order.value ? ds.temperatureForOrder(order.value.id).filter(log => log.visibleToBuyer) : []);
-const steps = computed(() => order.value ? buildOrderTrackingSteps(order.value, events.value) : []);
+const visibleEvents = computed(() => events.value);
+const trackedOrder = computed(() => {
+  if (!order.value) return null;
+  const dispatchStatus = dispatch.value?.status || dispatch.value?.column;
+  return { ...order.value, status: effectiveOrderStatus(order.value.status, dispatchStatus) };
+});
+const steps = computed(() => trackedOrder.value ? buildOrderTrackingSteps(trackedOrder.value, visibleEvents.value) : []);
+const deliveryAddressText = computed(() => {
+  const delivery = order.value?.delivery || {};
+  const street = [delivery.addressType, delivery.address].filter(Boolean).join(' ');
+  return formatAddress(street, delivery.district, delivery.city, delivery.province) || address.value?.address || dispatch.value?.routeName || '';
+});
+const warehouse = computed(() => ds.D.warehouses.find(item =>
+  String(item.name || '').includes('ICISA Lima Cold Hub') ||
+  String(item.location || item.address || '').includes('Guillermo Dansey')
+) || null);
+const warehouseOrigin = computed(() => warehouse.value
+  ? [warehouse.value.name, warehouse.value.address || warehouse.value.location, 'Peru'].filter(Boolean).join(', ')
+  : '');
+const mapReady = computed(() => Boolean(warehouseOrigin.value && deliveryAddressText.value));
+const encodedWarehouseOrigin = computed(() => encodeURIComponent(warehouseOrigin.value));
+const encodedDeliveryAddress = computed(() => encodeURIComponent(`${deliveryAddressText.value}, Peru`));
+const mapEmbedUrl = computed(() => mapReady.value ? `https://maps.google.com/maps?saddr=${encodedWarehouseOrigin.value}&daddr=${encodedDeliveryAddress.value}&output=embed` : '');
+const mapDirectionsUrl = computed(() => `https://www.google.com/maps/dir/?api=1&origin=${encodedWarehouseOrigin.value}&destination=${encodedDeliveryAddress.value}&travelmode=driving`);
+
+async function downloadDocument(document) {
+  if (!document.fileName || downloadingDocumentId.value) return;
+  downloadingDocumentId.value = document.id;
+  documentError.value = '';
+  try {
+    const { blob, contentDisposition } = await ds.downloadBusinessDocument(document.id);
+    const headerName = contentDisposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)/i)?.[1];
+    const extension = document.type?.endsWith('_xml') ? 'xml' : 'pdf';
+    const fileName = headerName ? decodeURIComponent(headerName) : `${document.type}.${extension}`;
+    const url = URL.createObjectURL(blob);
+    const anchor = window.document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    documentError.value = error?.message || t('portal.orderDetail.downloadFailed');
+  } finally {
+    downloadingDocumentId.value = null;
+  }
+}
+
+watch(orderReadModelId, (id) => {
+  if (id) buyerPortal.loadOrderLifecycle(id).catch(() => {});
+}, { immediate: true });
 </script>
 
 <template>
   <div v-if="!order" class="empty-state">
     <div class="empty-state-icon"><i class="pi pi-search"></i></div>
-    <div class="empty-state-title">Purchase Order not available</div>
-    <button class="btn btn-primary" @click="router.push('/portal/purchase-orders')">My Orders</button>
+    <div class="empty-state-title">{{ t('portal.orderDetail.notAvailable') }}</div>
+    <button class="btn btn-primary" @click="router.push('/portal/purchase-orders')">{{ t('portal.nav.orders') }}</button>
   </div>
 
   <template v-else>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-      <button class="btn btn-ghost btn-sm" @click="router.push('/portal/purchase-orders')"><i class="pi pi-arrow-left"></i> Purchase Orders</button>
+      <button class="btn btn-ghost btn-sm" @click="router.push('/portal/purchase-orders')"><i class="pi pi-arrow-left"></i> {{ t('portal.orderDetail.purchaseOrders') }}</button>
       <div style="flex:1">
         <div class="flow-row">
           <span class="page-title mono">{{ displayCode(order) }}</span>
-          <span :class="'badge ' + orderStatusBadge(order.status)">{{ orderStatusLabel(order.status) }}</span>
+          <span :class="'badge ' + orderStatusBadge(trackedOrder.status)">{{ orderStatusLabel(trackedOrder.status) }}</span>
         </div>
-        <div class="page-subtitle">Delivery {{ order.requestedDeliveryDate }} - {{ dispatch?.routeName || 'Route not assigned yet' }}</div>
+        <div class="page-subtitle">{{ t('portal.orderDetail.delivery') }} {{ order.requestedDeliveryDate }} - {{ dispatch?.routeName || t('portal.orderList.notAssigned') }}</div>
       </div>
     </div>
 
     <section class="buyer-shell-band" style="margin-bottom:18px">
       <div style="position:relative;z-index:1">
-        <div class="buyer-title">{{ orderStatusLabel(order.status) }}</div>
+        <div class="buyer-title">{{ orderStatusLabel(trackedOrder.status) }}</div>
         <div class="buyer-subtitle" style="margin-top:8px">
-          {{ address?.label || 'Registered address' }} - {{ address?.address || 'Delivery coordinated by operations' }}.
-          Status updates come from the S2 Dispatch Orders board.
+          {{ deliveryAddressText || t('portal.orderDetail.addressNotConfigured') }}.
+          {{ t('portal.orderDetail.statusSource') }}
         </div>
       </div>
     </section>
 
     <div class="flow-grid-12">
       <section class="flow-panel span-12">
-        <div class="flow-panel-head"><div class="flow-title">Purchase Order Timeline</div></div>
+        <div class="flow-panel-head"><div class="flow-title">{{ t('portal.orderDetail.timeline') }}</div></div>
         <div class="flow-panel-pad">
           <div class="flow-timeline-horizontal">
             <div v-for="step in steps" :key="step.key" class="flow-track-step" :class="step.state">
@@ -67,14 +128,20 @@ const steps = computed(() => order.value ? buildOrderTrackingSteps(order.value, 
       </section>
 
       <section class="flow-panel span-6">
-        <div class="flow-panel-head"><div class="flow-title">Products</div></div>
+        <div class="flow-panel-head"><div class="flow-title">{{ t('portal.products') }}</div></div>
         <table class="data-table">
-          <thead><tr><th>Product</th><th>Cold Chain</th><th>Quantity</th></tr></thead>
+          <thead><tr><th>{{ t('orderDetail.product') }}</th><th>{{ t('portal.orderDetail.coldChain') }}</th><th>{{ t('orderDetail.quantity') }}</th></tr></thead>
           <tbody>
             <tr v-for="item in items" :key="item.id">
               <td>
-                <div style="font-weight:800">{{ ds.productName(item.productId) }}</div>
-                <div class="flow-note">{{ ds.productById(item.productId)?.sku }}</div>
+                <div class="buyer-order-product">
+                  <img v-if="ds.productById(item.productId)?.imageUrl" :src="ds.productById(item.productId).imageUrl" :alt="ds.productName(item.productId)" loading="lazy" />
+                  <span v-else class="buyer-order-product-empty"><i class="pi pi-box"></i></span>
+                  <div>
+                    <div style="font-weight:800">{{ ds.productName(item.productId) }}</div>
+                    <div class="flow-note">{{ ds.productById(item.productId)?.sku }}</div>
+                  </div>
+                </div>
               </td>
               <td><span :class="coldTypeBadge(ds.productById(item.productId)?.coldType)">{{ coldTypeLabel(ds.productById(item.productId)?.coldType) }}</span></td>
               <td>{{ item.quantity }} {{ item.unit }}</td>
@@ -85,8 +152,7 @@ const steps = computed(() => order.value ? buildOrderTrackingSteps(order.value, 
 
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
-          <div class="flow-title">Available Business Documents</div>
-          <button class="btn btn-ghost btn-sm" @click="router.push('/portal/business-documents')">View All</button>
+          <div class="flow-title">{{ t('portal.orderDetail.documents') }}</div>
         </div>
         <div class="flow-panel-pad">
           <div v-for="doc in docs" :key="doc.id" class="document-check">
@@ -96,40 +162,51 @@ const steps = computed(() => order.value ? buildOrderTrackingSteps(order.value, 
             </div>
             <div class="flow-row">
               <span :class="'badge ' + documentStatusBadge(doc.status)">{{ documentStatusLabel(doc.status) }}</span>
-              <button class="btn btn-secondary btn-sm" :disabled="!doc.visibleToBuyer">Download</button>
+              <button class="btn btn-secondary btn-sm" :disabled="!doc.visibleToBuyer || !doc.fileName || downloadingDocumentId === doc.id" @click="downloadDocument(doc)">
+                {{ downloadingDocumentId === doc.id ? t('portal.orderDetail.downloading') : t('portal.orderDetail.download') }}
+              </button>
             </div>
           </div>
         </div>
+        <div v-if="documentError" class="banner banner-danger" style="margin:0 16px 16px">{{ documentError }}</div>
       </section>
 
       <section class="flow-panel span-6">
-        <div class="flow-panel-head"><div class="flow-title">Visible Events</div></div>
+        <div class="flow-panel-head"><div class="flow-title">{{ t('portal.orderDetail.visibleEvents') }}</div></div>
         <div class="flow-panel-pad">
           <div class="timeline">
-            <div v-for="event in events" :key="event.id" class="tl-item">
+            <div v-for="event in visibleEvents" :key="event.id" class="tl-item">
               <div class="tl-spine"></div>
               <div class="tl-dot" style="background:#DBEAFE;color:#1D4ED8"><i class="pi pi-check"></i></div>
               <div class="tl-content">
                 <div class="tl-title">{{ event.label }}</div>
-                <div class="tl-meta">{{ new Date(event.timestamp).toLocaleString('en-US') }}</div>
+                <div class="tl-meta">{{ new Date(event.timestamp).toLocaleString(locale === 'es' ? 'es-PE' : 'en-US') }}</div>
               </div>
             </div>
+            <div v-if="!visibleEvents.length" class="empty-state compact">{{ t('portal.orderDetail.noVisibleEvents') }}</div>
           </div>
         </div>
       </section>
 
       <section class="flow-panel span-6">
         <div class="flow-panel-head">
-          <div class="flow-title">Map / temperature</div>
-          <span class="premium-lock"><i class="pi pi-lock"></i> Preview</span>
+          <div class="flow-title">{{ t('portal.orderDetail.mapTemperature') }}</div>
+          <a v-if="mapReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer"><i class="pi pi-external-link"></i> {{ t('portal.orderDetail.openMap') }}</a>
         </div>
         <div class="flow-panel-pad flow-stack">
+          <div v-if="mapReady" class="route-preview-box">
+            <iframe title="Nexa registered delivery route" :src="mapEmbedUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            <div class="route-preview-meta">
+              <span><i class="pi pi-warehouse"></i> {{ warehouse.name }}</span>
+              <span><i class="pi pi-map-marker"></i> {{ deliveryAddressText }}</span>
+            </div>
+          </div>
           <div class="banner banner-info" style="margin-bottom:0">
             <i class="pi pi-map"></i>
-            <div>Map tracking and telemetry are planned for Premium operations and will appear here when connected to live route data.</div>
+            <div>{{ t('portal.orderDetail.mapDescription') }}</div>
           </div>
           <div v-for="log in temps" :key="log.id" class="flow-row-between">
-            <span>{{ new Date(log.timestamp).toLocaleTimeString('en-US') }}</span>
+            <span>{{ new Date(log.timestamp).toLocaleTimeString(locale === 'es' ? 'es-PE' : 'en-US') }}</span>
             <strong>{{ log.temperatureC }} C - {{ log.status }}</strong>
           </div>
         </div>
@@ -137,3 +214,30 @@ const steps = computed(() => order.value ? buildOrderTrackingSteps(order.value, 
     </div>
   </template>
 </template>
+
+<style scoped>
+.buyer-order-product {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 210px;
+}
+
+.buyer-order-product img,
+.buyer-order-product-empty {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  object-fit: contain;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.buyer-order-product-empty {
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+</style>

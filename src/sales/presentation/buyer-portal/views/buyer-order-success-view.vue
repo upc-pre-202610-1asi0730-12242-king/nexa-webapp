@@ -14,7 +14,7 @@ const auth = useAuthStore();
 const order = computed(() => {
   if (!route.query.orderId || !auth.user?.clientId) return null;
   const found = ds.orderById(route.query.orderId);
-  return found?.clientId === auth.user.clientId ? found : null;
+  return ds.clientRecordMatches(found, auth.user.clientId) ? found : null;
 });
 const orderId   = computed(() => order.value?.id || '');
 const total     = computed(() => order.value?.total || 0);

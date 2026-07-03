@@ -22,6 +22,20 @@ class PurchaseOrdersApiService {
     return this.orders.getAll();
   }
 
+  getSalesOrderSummaries(params = {}) {
+    return this.orders.request((client) =>
+      client.get(this.orders.pathFor(client, '', '/api/v1/sales/order-summaries'), { params }).then(response => response.data));
+  }
+
+  getOrderSummaries(params = {}) {
+    return this.getSalesOrderSummaries(params);
+  }
+
+  getOrderTimeline(id) {
+    return this.orders.request((client) =>
+      client.get(this.orders.pathFor(client, `/${id}/timeline`, '/api/v1/orders')).then(response => response.data));
+  }
+
   /**
    * @summary Gets a single order by ID.
    * @param {string} id - Order identifier.
