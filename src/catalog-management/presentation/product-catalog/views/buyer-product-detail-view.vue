@@ -11,7 +11,7 @@ import { brandForProduct, logoForProduct } from '@/catalog-management/applicatio
 
 const route = useRoute();
 const router = useRouter();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const ds = useDataStore();
 const cart = useCartStore();
@@ -67,6 +67,12 @@ function stockLabel(item) {
   return item.commercialAvailability || t('catalog.available');
 }
 
+function categoryLabel(value) {
+  const key = String(value || '').toLowerCase();
+  const labelKey = `catalog.category.${key}`;
+  return key && te(labelKey) ? t(labelKey) : value;
+}
+
 watch(productReadModelId, (id) => {
   if (id) productCatalogStore.loadProductAvailability(id).catch(() => {});
 }, { immediate: true });
@@ -84,7 +90,7 @@ watch(productReadModelId, (id) => {
       <button class="btn btn-ghost btn-sm" @click="router.push('/portal/product-catalog')"><i class="pi pi-arrow-left"></i> {{ t('portal.nav.catalog') }}</button>
       <div>
         <div class="page-title">{{ product.name }}</div>
-        <div class="page-subtitle">{{ product.sku }} - {{ product.category }} - {{ t('catalog.detail.brand') }}: {{ brandForProduct(product) }}</div>
+        <div class="page-subtitle">{{ product.sku }} - {{ categoryLabel(product.category) }} - {{ t('catalog.detail.brand') }}: {{ brandForProduct(product) }}</div>
       </div>
     </div>
 
@@ -109,7 +115,7 @@ watch(productReadModelId, (id) => {
 
           <div class="buyer-product-summary">
             <div>
-              <span class="flow-eyebrow">{{ product.category }}</span>
+              <span class="flow-eyebrow">{{ categoryLabel(product.category) }}</span>
               <div class="buyer-title">{{ product.name }}</div>
               <p>{{ product.description || t('catalog.detail.defaultDescription') }}</p>
             </div>
@@ -128,7 +134,7 @@ watch(productReadModelId, (id) => {
             <div><span>{{ t('catalog.temperature') }}</span><strong>{{ product.temperatureRange || product.temp }}</strong></div>
             <div><span>{{ t('catalog.detail.coldType') }}</span><strong>{{ coldTypeLabel(product.coldType) }}</strong></div>
             <div><span>{{ t('catalog.warehouse') }}</span><strong>{{ product.warehouse || 'ICISA Lima Cold Hub' }}</strong></div>
-            <div><span>{{ t('catalog.detail.storageZone') }}</span><strong>{{ product.zone || product.category }}</strong></div>
+            <div><span>{{ t('catalog.detail.storageZone') }}</span><strong>{{ product.zone || categoryLabel(product.category) }}</strong></div>
             <div><span>{{ t('catalog.detail.brand') }}</span><strong>{{ brandForProduct(product) }}</strong></div>
             <div><span>SKU</span><strong class="mono">{{ product.sku }}</strong></div>
           </div>
@@ -185,7 +191,7 @@ watch(productReadModelId, (id) => {
             <div class="flow-panel-pad related-product-body">
               <strong>{{ item.name }}</strong>
               <span>{{ brandForProduct(item) }}</span>
-              <small>{{ item.category }} - {{ item.temperatureRange || item.temp }} - {{ item.presentation || item.unit }}</small>
+              <small>{{ categoryLabel(item.category) }} - {{ item.temperatureRange || item.temp }} - {{ item.presentation || item.unit }}</small>
               <div class="flow-row-between related-price-row">
                 <strong>S/ {{ item.price.toFixed(2) }}</strong>
                 <span>{{ stockLabel(item) }}</span>

@@ -10,7 +10,7 @@ import { orderStatusLabel, orderStatusBadge, requestStatusLabel, requestStatusBa
 import { creditSummary } from '@/shared/credit';
 
 const router = useRouter();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const ds = useDataStore();
 const cart = useCartStore();
 const auth = useAuthStore();
@@ -56,6 +56,12 @@ const featured = computed(() =>
 const trackingSteps = computed(() => activeOrder.value ? buildOrderTrackingSteps(activeOrder.value, ds.timelineForOrder(activeOrder.value.id)) : []);
 const firstName = computed(() => auth.user?.name?.split(' ')[0] || 'buyer');
 const formatMoney = (value) => Number(value || 0).toLocaleString();
+
+function categoryLabel(value) {
+  const key = String(value || '').toLowerCase();
+  const labelKey = `catalog.category.${key}`;
+  return key && te(labelKey) ? t(labelKey) : value;
+}
 
 onMounted(() => {
   if (!auth.user?.clientId) return;
@@ -213,7 +219,7 @@ onMounted(() => {
             </div>
             <div style="padding:14px">
               <div style="font-weight:800;font-size:13px">{{ product.name }}</div>
-              <div class="flow-note">{{ product.category }} - {{ product.temperatureRange || product.temp }}</div>
+              <div class="flow-note">{{ categoryLabel(product.category) }} - {{ product.temperatureRange || product.temp }}</div>
               <div class="flow-row-between" style="margin-top:12px">
                 <strong>S/ {{ Number(product.price || product.priceAmount || 0).toFixed(2) }}</strong>
                 <button class="add-btn add-btn-default" type="button" :aria-label="t('catalog.addToRequest') + ': ' + product.name" @click="cart.add(product)"><i class="pi pi-plus" aria-hidden="true"></i></button>

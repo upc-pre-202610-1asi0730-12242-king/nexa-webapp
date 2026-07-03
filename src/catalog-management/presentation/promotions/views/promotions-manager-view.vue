@@ -78,6 +78,12 @@ function promotionLabel(key) {
   return te(labelKey) ? t(labelKey) : String(key || '').replaceAll('_', ' ');
 }
 
+function categoryLabel(value) {
+  const key = String(value || '').toLowerCase();
+  const labelKey = `catalog.category.${key}`;
+  return key && te(labelKey) ? t(labelKey) : value;
+}
+
 function buildSegments(field) {
   const totals = promotions.value.reduce((acc, promotion) => {
     const key = promotion[field] || 'not_configured';
@@ -229,7 +235,7 @@ function toggleProduct(productId) {
           >
             <span>
               <strong>{{ product.name }}</strong>
-              <small>{{ product.category }} · {{ product.temp || product.temperatureRange || t('promotions.coldChain') }}</small>
+              <small>{{ categoryLabel(product.category) }} · {{ product.temp || product.temperatureRange || t('promotions.coldChain') }}</small>
             </span>
             <i :class="form.productIds.includes(product.id) ? 'pi pi-check-circle' : 'pi pi-circle'"></i>
           </button>

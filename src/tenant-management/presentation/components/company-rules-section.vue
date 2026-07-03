@@ -5,6 +5,14 @@ defineProps({ rules: { type: Array, required: true } });
 const emit = defineEmits(['add-rule', 'update-rule', 'remove-rule']);
 const showForm = ref(false);
 const editingKey = ref('');
+const categoryOptions = [
+  { value: 'Tenant', key: 'tenant' },
+  { value: 'Warehouse', key: 'warehouse' },
+  { value: 'Logistics', key: 'logistics' },
+  { value: 'Dispatch', key: 'dispatch' },
+  { value: 'Commercial', key: 'commercial' },
+  { value: 'Buyer Portal', key: 'buyerPortal' },
+];
 const form = reactive({
   title: '',
   description: '',
@@ -14,6 +22,12 @@ const form = reactive({
 
 function label(rule, t) {
   return rule.title || t(`tenant.companyAdmin.rules.${rule.key}`);
+}
+
+function categoryLabel(value, t) {
+  const normalized = String(value || 'Tenant').trim().toLowerCase().replace(/\s+/g, '');
+  const option = categoryOptions.find(item => item.key.toLowerCase() === normalized || item.value.toLowerCase().replace(/\s+/g, '') === normalized);
+  return option ? t(`tenant.companyAdmin.ruleCategories.${option.key}`) : value;
 }
 
 function edit(rule, t) {
@@ -62,14 +76,14 @@ function save() {
           <span class="status-pill" :class="rule.status || (rule.enabled === false ? 'disabled' : 'enabled')">
             {{ $t(`tenant.companyAdmin.status.${rule.status || (rule.enabled === false ? 'disabled' : 'enabled')}`) }}
           </span>
-          <span>{{ rule.category || 'Tenant' }}</span>
+          <span>{{ categoryLabel(rule.category, $t) }}</span>
         </div>
         <strong>{{ label(rule, $t) }}</strong>
         <small>{{ rule.description || $t('tenant.companyAdmin.rules.noDescription') }}</small>
         <div class="rule-meta">
-          <span>Inventory</span>
-          <span>Dispatch</span>
-          <span>Portal</span>
+          <span>{{ $t('tenant.companyAdmin.roleAccess.inventory') }}</span>
+          <span>{{ $t('tenant.companyAdmin.roleAccess.dispatch') }}</span>
+          <span>{{ $t('tenant.companyAdmin.roleAccess.buyerPortal') }}</span>
         </div>
         <div class="rule-actions">
           <button type="button" class="admin-button" @click="edit(rule, $t)">{{ $t('common.edit') }}</button>
@@ -79,10 +93,10 @@ function save() {
         <form v-if="editingKey === rule.key" class="admin-form admin-editor-panel inline-rule-editor" @submit.prevent="save">
           <div class="editor-heading span-2">
             <strong>{{ $t('common.edit') }} · {{ label(rule, $t) }}</strong>
-            <span>{{ rule.category || 'Tenant' }}</span>
+            <span>{{ categoryLabel(rule.category, $t) }}</span>
           </div>
           <label>{{ $t('tenant.companyAdmin.form.ruleTitle') }}<input v-model="form.title" required /></label>
-          <label>{{ $t('tenant.companyAdmin.form.category') }}<select v-model="form.category"><option>Warehouse</option><option>Logistics</option><option>Dispatch</option><option>Commercial</option><option>Buyer Portal</option></select></label>
+          <label>{{ $t('tenant.companyAdmin.form.category') }}<select v-model="form.category"><option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ $t(`tenant.companyAdmin.ruleCategories.${option.key}`) }}</option></select></label>
           <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option></select></label>
           <label class="span-2">{{ $t('tenant.companyAdmin.form.description') }}<textarea v-model="form.description" rows="3"></textarea></label>
           <div class="section-toolbar span-2">
@@ -99,7 +113,7 @@ function save() {
         <span>{{ $t('tenant.companyAdmin.sections.rules') }}</span>
       </div>
       <label>{{ $t('tenant.companyAdmin.form.ruleTitle') }}<input v-model="form.title" required /></label>
-      <label>{{ $t('tenant.companyAdmin.form.category') }}<select v-model="form.category"><option>Warehouse</option><option>Logistics</option><option>Dispatch</option><option>Commercial</option><option>Buyer Portal</option></select></label>
+      <label>{{ $t('tenant.companyAdmin.form.category') }}<select v-model="form.category"><option v-for="option in categoryOptions" :key="option.value" :value="option.value">{{ $t(`tenant.companyAdmin.ruleCategories.${option.key}`) }}</option></select></label>
       <label>{{ $t('tenant.companyAdmin.form.status') }}<select v-model="form.status"><option value="enabled">{{ $t('tenant.companyAdmin.status.enabled') }}</option><option value="disabled">{{ $t('tenant.companyAdmin.status.disabled') }}</option></select></label>
       <label class="span-2">{{ $t('tenant.companyAdmin.form.description') }}<textarea v-model="form.description" rows="3"></textarea></label>
       <div class="section-toolbar span-2">

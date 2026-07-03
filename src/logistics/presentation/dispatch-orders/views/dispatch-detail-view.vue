@@ -46,6 +46,7 @@ const temperatureSummary = computed(() => {
 
 async function runDispatchAction(status) {
   if (!dispatch.value || saving.value) return;
+  if (status === 'incident' && !window.confirm(t('dispatch.detailView.incidentConfirm'))) return;
   saving.value = true;
   actionError.value = '';
   try {
@@ -112,6 +113,13 @@ watch(dispatchReadModelId, (id) => {
       </div>
     </div>
     <div v-if="actionError" class="banner banner-danger" style="margin-bottom:16px"><i class="pi pi-exclamation-triangle"></i><div>{{ actionError }}</div></div>
+    <div v-if="dispatch.status === 'incident'" class="banner banner-danger" style="margin-bottom:16px">
+      <i class="pi pi-exclamation-triangle"></i>
+      <div>
+        <strong>{{ t('dispatch.detailView.incidentLockedTitle') }}</strong>
+        <div>{{ t('dispatch.detailView.incidentLockedDesc') }}</div>
+      </div>
+    </div>
 
     <div class="flow-grid-12">
       <section class="flow-panel span-4">
