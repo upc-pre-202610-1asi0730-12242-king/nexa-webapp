@@ -20,7 +20,8 @@ const attachBearerToken = (config) => {
   const path = String(config.url || '');
   const isPublicWorkspaceLookup = path.endsWith('/tenants') && Boolean(config.params?.slug);
   const isPublicAuthentication = path.includes('/authentication/sign-in') || path.endsWith('/authentication');
-  if (isPublicWorkspaceLookup || isPublicAuthentication) return config;
+  const isPublicOrganizationRegistration = path.includes('/organization-registrations');
+  if (isPublicWorkspaceLookup || isPublicAuthentication || isPublicOrganizationRegistration) return config;
 
   const token = localStorage.getItem('nexa.token');
   if (token) config.headers.Authorization = `Bearer ${token}`;

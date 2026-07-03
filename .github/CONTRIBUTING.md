@@ -1,97 +1,65 @@
 # Contributing to Nexa WebApp
 
-Thank you for your interest in contributing to Nexa WebApp! This document outlines the standards, guidelines, and workflows for contributing to our Vue 3 / Vite B2B cold-chain operations application.
+## Repository Context
 
-## Code of Conduct
+`nexa-webapp` is the Vue workspace for the Nexa TB2 delivery.
 
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md) at all times.
+| Field | Value |
+|---|---|
+| Current release | `v3.0.1` |
+| Delivery | TB2 |
+| Runtime | Vue 3 / Vite |
+| State and routing | Pinia / Vue Router |
+| Live WebApp | https://nexa-webapp.onrender.com/#/auth/login |
+| Platform API | https://nexa-platform-20wt.onrender.com |
 
-## Architectural Guidelines
+## Workflow
 
-The Nexa WebApp frontend is structured modularly. When adding or modifying code, please respect the boundaries of each Bounded Context:
+1. Create a branch from `develop` unless the maintainer requests a release correction from `main`.
+2. Keep changes scoped to one bounded context or one documentation concern.
+3. Use conventional commits.
+4. Validate locally before opening a pull request.
+5. Do not commit local credentials, `.env` files, generated bundles, `node_modules`, or temporary artifacts.
 
-1. **State & Local Data (Pinia):**
-   - Keep global application cache in `src/app/application/stores/data.store.js`.
-   - Never query or mutate the global store directly from presentation layers; utilize designated actions.
-   - For modules without live backend endpoints, always ensure that data.store.js uses deep clones of the static `initial-data.json` to manage in-memory CRUD operations safely.
+## Branch Names
 
-2. **Presentation Components (Vue 3 / PrimeVue 4):**
-   - Follow the Vue 3 Composition API style utilizing `<script setup>`.
-   - Use layout rules defined in `src/assets/styles/ops.css` and utility classes for layout changes. Do not inject ad-hoc custom styles into component code unless absolutely necessary.
-   - Ensure all layouts are responsive and function correctly on smaller screens. Maintain flexible grid layouts (`repeat(auto-fit, minmax(N, 1fr))`) and avoid hardcoded widths that break the viewport.
+| Prefix | Use |
+|---|---|
+| `feature/` | New user-facing workflow |
+| `fix/` | Bug fix |
+| `docs/` | Documentation update |
+| `refactor/` | Internal restructuring without behavior change |
+| `chore/` | Configuration, tooling, release maintenance |
 
-3. **HTTP Client & REST APIs (Axios):**
-   - Inherit API class endpoints from `BaseEndpoint` or `BaseApi`.
-   - All network configurations reside under `src/shared/infrastructure/http.js`. Do not define custom Axios instances inline in components.
-   - Clean up credentials and configurations: never hardcode passwords, session keys, or mentions of "fakeapi" or mock routing configurations in backend API connections.
+## Architecture Rules
 
-## Git & Development Workflow
+- Keep API calls inside infrastructure services.
+- Keep shared state inside Pinia stores.
+- Keep visible text in i18n locale files.
+- Keep presentation components focused on UI and user interaction.
+- Preserve route guards and role-based navigation.
+- Do not hardcode secrets, passwords, tokens, or production-only values.
 
-We use a standard GitFlow workflow for planning, developing, and releasing software.
+## Validation Checklist
 
-### Branch Strategy
+Before requesting review:
 
-- `main`: Houses stable, production-ready releases.
-- `develop`: The primary branch for integrating completed feature branches.
-- `feature/*`: Work branches for individual features or bug fixes. Always branch off `develop`.
-- `hotfix/*`: Quick corrections directly targeting critical bugs in `main`.
-
-### Commit Message Format
-
-Every commit must follow this structured multiline format:
-
-```txt
-<type>(<scope>): <short action summary>
-
-Context:
-- What area, milestone or branch this commit belongs to.
-
-Changes:
-- What was changed.
-- What was added, corrected or normalized.
-
-Reason:
-- Why the change was necessary.
-
-Validation:
-- What was reviewed or checked before committing.
+```bash
+npm run build
 ```
 
-#### Commit Types:
-- `feat`: A new user-facing feature.
-- `fix`: A bug fix.
-- `docs`: Documentation edits.
-- `style`: Formatting, layout padding tweaks, style corrections.
-- `refactor`: Code restructuring without user-facing behavior changes.
+For route or UI work, also verify login, workspace selection, and the affected role-specific flow in a browser.
 
-#### Example Commit:
-```txt
-feat(sales): add commercial orders list component
+## Pull Request Notes
 
-Context:
-- Sales Context, commercial verification milestone, branch feature/sales-orders.
+Each pull request should include:
 
-Changes:
-- Added OrdersDataTable component in sales presentation.
-- Connected search filters to catalog items.
-
-Reason:
-- Needed to let operators verify incoming buyer orders on small monitors.
-
-Validation:
-- Tested responsive table width rendering down to 480px.
-- Verified compilation via npm run build.
-```
+- Scope and bounded context.
+- User-facing route or view impact.
+- API contract dependency, if any.
+- Validation commands and results.
+- Deployment or environment notes, if any.
 
 ---
 
-## Pull Request Guidelines
-
-Before opening a pull request, please complete the following verification checklist:
-
-1. **Clean Code**: Ensure there are no leftover debug comments, console logs, or references to placeholder systems.
-2. **Build Success**: Verify that compiling the project succeeds locally:
-   ```bash
-   npm run build
-   ```
-3. **No Garbage Files**: Do not commit build directories (`dist/`), packages (`node_modules/`), local env files (`.env.local`), IDE settings, or OS-specific cache files (`.DS_Store`).
+Team King · UPC · Aplicaciones Web · TB2 · 2026-10

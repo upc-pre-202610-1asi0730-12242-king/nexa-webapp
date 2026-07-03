@@ -61,7 +61,7 @@ const statusLabels = {
     preparing: 'Preparando despacho',
     dispatched: 'Despachada',
     in_route: 'En ruta',
-    delayed: 'Entrega demorada',
+    delayed: 'Entrega retrasada',
     delivered: 'Entregada',
     incident: 'Incidencia',
     observed: 'Observada',

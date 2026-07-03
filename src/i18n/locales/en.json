@@ -1266,7 +1266,7 @@
     "active": "Active",
     "guest": "Guest",
     "adminAccess": "Administrative Access",
-    "adminAccessDesc": "User and role management is an administrative capability outside the TB1 scope.",
+    "adminAccessDesc": "User and role management is an administrative capability outside the current release scope.",
     "table": {
       "user": "User",
       "role": "Role",

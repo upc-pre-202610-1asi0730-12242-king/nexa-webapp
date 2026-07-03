@@ -1266,7 +1266,7 @@
     "active": "Activo",
     "guest": "Invitado",
     "adminAccess": "Acceso administrativo",
-    "adminAccessDesc": "La gestión de usuarios y roles es una capacidad administrativa fuera del alcance TB1.",
+    "adminAccessDesc": "La gestión de usuarios y roles es una capacidad administrativa fuera del alcance de la version inicial.",
     "table": {
       "user": "Usuario",
       "role": "Rol",
