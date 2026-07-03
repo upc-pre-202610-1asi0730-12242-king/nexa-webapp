@@ -2,7 +2,7 @@
 
 <br/>
 
-<img src="./docs/assets/nexa-logo.svg" alt="Nexa" width="200"/>
+<img src="./src/assets/img/nexa.svg" alt="Nexa" width="200"/>
 
 <br/><br/>
 
@@ -24,7 +24,7 @@
 ![Cycle](https://img.shields.io/badge/Cycle-2026--10-0a2540?style=flat-square)
 ![University](https://img.shields.io/badge/University-UPC-0a2540?style=flat-square)
 ![Team](https://img.shields.io/badge/Team-King-2a67d9?style=flat-square)
-![Status](https://img.shields.io/badge/Status-Release%201.0.0-22c55e?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Release%203.0.0-22c55e?style=flat-square)
 
 <br/>
 
@@ -71,7 +71,7 @@ The `nexa-webapp` repository houses the single-page application (SPA) client int
     <td width="50%">
       <p><a href="https://github.com/upc-pre-202610-1asi0730-12242-king/nexa-platform">nexa-platform</a></p>
       <p>Backend platform and API service layer context workspace.</p>
-      <p><a href="https://github.com/upc-pre-202610-1asi0730-12242-king/nexa-platform/wiki">Open Engineering Wiki</a></p>
+      <p><a href="https://github.com/upc-pre-202610-1asi0730-12242-king/nexa-platform">Open Platform Repository</a></p>
       <p>
         <img alt="Platform" src="https://img.shields.io/badge/Platform-backend%20workspace-512BD4?style=flat-square" />
         <img alt="API" src="https://img.shields.io/badge/API-domain%20services-0EA5E9?style=flat-square" />
@@ -200,11 +200,8 @@ Specific functional contexts are assigned to primary owners:
 
 ## Documentation
 
-Full frontend specifications, architecture guides, and developer workflows are maintained in:
-- **[Nexa WebApp Wiki Index (wiki/Home.md)](wiki/Home.md)** (Local offline copy) or online GitHub Wiki.
-- [Frontend Architecture Guidelines](docs/frontend-architecture.md)
-- [Validation Evidence Log](docs/validation-evidence.md)
-- [Security Guidelines (SECURITY.md)](.github/SECURITY.md)
+- **[Security Guidelines (SECURITY.md)](.github/SECURITY.md)**
+- **[Main Website](https://upc-pre-202610-1asi0730-12242-king.github.io/nexa-website/)**
 
 ---
 

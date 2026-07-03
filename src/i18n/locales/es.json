@@ -521,6 +521,14 @@
         "inventoryReservationRequired": "Reserva de inventario antes de despacho",
         "noDescription": "Sin descripción registrada."
       },
+      "ruleCategories": {
+        "tenant": "Tenant",
+        "warehouse": "Almacén",
+        "logistics": "Logística",
+        "dispatch": "Despacho",
+        "commercial": "Comercial",
+        "buyerPortal": "Buyer Portal"
+      },
       "customFields": {
         "lotNumber": "Número de lote",
         "expirationDate": "Fecha de vencimiento",
@@ -1032,6 +1040,8 @@
       "notScheduled": "Sin programar",
       "updating": "Actualizando...",
       "returnedToSales": "Devuelto a Sales",
+      "incidentLocked": "Incidencia en revisión",
+      "incidentLockedDesc": "Este despacho está en estado terminal de incidencia. El avance queda restringido hasta revisión de Sales u Operaciones.",
       "moveForward": "Avanzar despacho",
       "etaReview": "ETA requiere revisión antes de actualizar al comprador.",
       "updateError": "No se pudo actualizar el despacho.",
@@ -1060,6 +1070,9 @@
       "readyRoute": "Ruta lista",
       "startRoute": "Iniciar ruta",
       "returnToSales": "Devolver a Sales",
+      "incidentConfirm": "¿Marcar este despacho como incidencia? El avance puede quedar restringido hasta revisión de Sales u Operaciones.",
+      "incidentLockedTitle": "Incidencia en revisión",
+      "incidentLockedDesc": "Este despacho está en estado terminal de incidencia. El avance queda restringido.",
       "actionError": "Falló la acción de despacho.",
       "podError": "No se pudo completar el POD.",
       "operationalSummary": "Resumen operativo",

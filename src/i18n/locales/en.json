@@ -521,6 +521,14 @@
         "inventoryReservationRequired": "Inventory reservation required before dispatch",
         "noDescription": "No description provided."
       },
+      "ruleCategories": {
+        "tenant": "Tenant",
+        "warehouse": "Warehouse",
+        "logistics": "Logistics",
+        "dispatch": "Dispatch",
+        "commercial": "Commercial",
+        "buyerPortal": "Buyer Portal"
+      },
       "customFields": {
         "lotNumber": "Lot number",
         "expirationDate": "Expiration date",
@@ -882,7 +890,7 @@
       "cheese": "Cheese",
       "charcuterie": "Charcuterie",
       "butter": "Butter",
-      "dessert": "Dessert"
+      "dessert": "Desserts"
     },
     "detail": {
       "notFound": "Product not found",
@@ -1032,6 +1040,8 @@
       "notScheduled": "Not scheduled",
       "updating": "Updating...",
       "returnedToSales": "Returned to Sales",
+      "incidentLocked": "Incident under review",
+      "incidentLockedDesc": "This dispatch is in a terminal incident state. Further movement is restricted until Sales or Operations reviews it.",
       "moveForward": "Move dispatch forward",
       "etaReview": "ETA requires review before buyer update.",
       "updateError": "Dispatch could not be updated.",
@@ -1060,6 +1070,9 @@
       "readyRoute": "Ready route",
       "startRoute": "Start route",
       "returnToSales": "Return to Sales",
+      "incidentConfirm": "Mark this dispatch as an incident? Further movement may be restricted until Sales or Operations reviews it.",
+      "incidentLockedTitle": "Incident under review",
+      "incidentLockedDesc": "This dispatch is in a terminal incident state. Further movement is restricted.",
       "actionError": "Dispatch action failed.",
       "podError": "POD could not be completed.",
       "operationalSummary": "Operational Summary",

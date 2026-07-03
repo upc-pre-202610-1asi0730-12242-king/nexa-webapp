@@ -192,14 +192,19 @@ async function moveForward(dispatch) {
           <i class="pi pi-exclamation-triangle"></i>
           <div>{{ dispatch.incidentNote }}</div>
         </div>
+        <div v-else-if="dispatch.status === 'incident'" class="banner banner-danger" style="margin:10px 0 0;padding:9px">
+          <i class="pi pi-exclamation-triangle"></i>
+          <div>{{ t('dispatch.board.incidentLockedDesc') }}</div>
+        </div>
         <button
           class="btn btn-secondary btn-sm"
           style="margin-top:12px;width:100%;justify-content:center"
           :disabled="Boolean(busyDispatchId) || ['incident', 'cancelled', 'rejected', 'delivered'].includes(dispatch.status)"
+          :title="dispatch.status === 'incident' ? t('dispatch.board.incidentLockedDesc') : ''"
           @click.stop="moveForward(dispatch)"
         >
           <i :class="busyDispatchId === dispatch.id ? 'pi pi-spin pi-spinner' : 'pi pi-arrow-right'"></i>
-          {{ busyDispatchId === dispatch.id ? t('dispatch.board.updating') : ['incident', 'cancelled', 'rejected'].includes(dispatch.status) ? t('dispatch.board.returnedToSales') : dispatch.status === 'delivered' ? t('dispatch.deliveredBtn') : t('dispatch.board.moveForward') }}
+          {{ busyDispatchId === dispatch.id ? t('dispatch.board.updating') : dispatch.status === 'incident' ? t('dispatch.board.incidentLocked') : ['cancelled', 'rejected'].includes(dispatch.status) ? t('dispatch.board.returnedToSales') : dispatch.status === 'delivered' ? t('dispatch.deliveredBtn') : t('dispatch.board.moveForward') }}
         </button>
       </article>
     </section>

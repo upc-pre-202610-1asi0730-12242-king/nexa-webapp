@@ -8,7 +8,7 @@ import { useCartStore } from '@/app/application/stores/cart.store';
 import { coldTypeBadge, coldTypeLabel } from '@/shared/status';
 import { CATALOG_BRANDS, brandForProduct, logoForProduct } from '@/catalog-management/application/product-catalog/product-brand';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const toast = useToast();
 const router = useRouter();
 const ds = useDataStore();
@@ -57,6 +57,12 @@ function statusLabel(status) {
 
 function statusBadge(status) {
   return 'badge-' + ({ ok: 'green', low: 'amber', out: 'red' }[status] || 'gray');
+}
+
+function categoryLabel(value) {
+  const key = String(value || '').toLowerCase();
+  const labelKey = `catalog.category.${key}`;
+  return key && te(labelKey) ? t(labelKey) : value;
 }
 
 function hasActiveDemand(product) {
@@ -114,7 +120,7 @@ function goToOrderCart() {
       <section class="catalog-filter-section">
         <div class="catalog-filter-title">{{ t('catalog.categories') }}</div>
         <button v-for="item in categories" :key="item" class="catalog-filter-option" :class="{ active: category === item }" @click="category = item">
-          {{ item === 'all' ? t('catalog.allCategories') : item }}
+          {{ item === 'all' ? t('catalog.allCategories') : categoryLabel(item) }}
         </button>
       </section>
 
