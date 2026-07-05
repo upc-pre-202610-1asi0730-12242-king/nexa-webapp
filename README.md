@@ -29,12 +29,25 @@
 
 <br/>
 
+**[Start Website Flow](https://upc-pre-202610-1asi0730-12242-king.github.io/nexa-website/)** ·
 **[Open Live WebApp](https://nexa-webapp.onrender.com/#/auth/login)** ·
 **[Open Platform Swagger](https://nexa-platform-20wt.onrender.com/swagger/index.html)**
 
 <br/>
 
 </div>
+
+---
+
+## Project Entry Flow
+
+Start the Nexa review from the public Website and continue through the operational products:
+
+1. **Website:** https://upc-pre-202610-1asi0730-12242-king.github.io/nexa-website/
+2. **WebApp:** https://nexa-webapp.onrender.com/#/auth/login
+3. **Platform API:** https://nexa-platform-20wt.onrender.com
+4. **Swagger UI:** https://nexa-platform-20wt.onrender.com/swagger/index.html
+5. **Report Repository:** https://github.com/upc-pre-202610-1asi0730-12242-king/nexa-ecosystem-report
 
 ---
 
@@ -79,7 +92,7 @@ This repository is part of the **TB2 delivery** and is currently published as **
       <p>Backend platform and API service layer for domain, persistence, security, and deployment concerns.</p>
       <p><a href="https://nexa-platform-20wt.onrender.com/swagger/index.html">Open Swagger UI</a></p>
       <p>
-        <img alt="Version" src="https://img.shields.io/badge/v2.0.1-TB2-22c55e?style=flat-square" />
+        <img alt="Version" src="https://img.shields.io/badge/v2.0.0-TB2-22c55e?style=flat-square" />
         <img alt="Platform" src="https://img.shields.io/badge/Platform-backend%20workspace-512BD4?style=flat-square" />
         <img alt="API" src="https://img.shields.io/badge/API-domain%20services-0EA5E9?style=flat-square" />
         <img alt="EF Core" src="https://img.shields.io/badge/EF%20Core-PostgreSQL-512BD4?style=flat-square" />
@@ -105,8 +118,8 @@ This repository is part of the **TB2 delivery** and is currently published as **
 | Component | Current Version | URL |
 |---|---:|---|
 | WebApp | `v3.0.1` | https://nexa-webapp.onrender.com/#/auth/login |
-| Platform API | `v2.0.1` | https://nexa-platform-20wt.onrender.com |
-| Swagger UI | `v2.0.1` | https://nexa-platform-20wt.onrender.com/swagger/index.html |
+| Platform API | `v2.0.0` | https://nexa-platform-20wt.onrender.com |
+| Swagger UI | `v2.0.0` | https://nexa-platform-20wt.onrender.com/swagger/index.html |
 | Website | `v4.0.1` | https://upc-pre-202610-1asi0730-12242-king.github.io/nexa-website/ |
 
 ---
