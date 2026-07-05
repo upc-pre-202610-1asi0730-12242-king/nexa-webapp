@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
 import { usePurchaseOrdersStore } from '@/sales/application/purchase-orders/purchase-orders.store';
-import { ORDER_STATUS_FILTERS, orderStatusLabel, orderStatusBadge, priorityLabel, displayCode } from '@/shared/status';
+import { ORDER_STATUS_FILTERS, orderStatusLabel, orderStatusBadge, priorityLabel, displayCode, isRecordNew } from '@/shared/status';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -40,6 +40,7 @@ const sourceOrders = computed(() => purchaseOrdersStore.summaryRows.length
   ? purchaseOrdersStore.summaryRows
   : (D.purchaseOrders.length ? D.purchaseOrders : D.orders));
 const clientLabel = (order) => order.clientName || ds.clientName(order.clientId);
+const isNewOrder = (order) => isRecordNew(order.createdAt || order.date);
 
 const filtered = computed(() => {
   let arr = sourceOrders.value;
@@ -127,7 +128,12 @@ onMounted(() => {
       </thead>
       <tbody>
         <tr v-for="o in filtered" :key="o.id" style="cursor:pointer" @click="router.push(`/ops/commercial/purchase-orders/${o.id}`)">
-          <td><span class="mono">{{ displayCode(o) }}</span></td>
+          <td>
+            <div class="order-code-cell">
+              <span class="mono">{{ displayCode(o) }}</span>
+              <span v-if="isNewOrder(o)" class="badge badge-new">{{ t('common.new') }}</span>
+            </div>
+          </td>
           <td>
             <div style="font-weight:500;font-size:13px">{{ clientLabel(o) }}</div>
             <div style="font-size:11px;color:#9CA3AF">{{ ds.clientById(o.clientId)?.type || ds.clientById(o.clientId)?.segment }}</div>
@@ -159,5 +165,18 @@ onMounted(() => {
 .table-sort i {
   font-size: 11px;
   color: #94a3b8;
+}
+.order-code-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.badge-new {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 </style>

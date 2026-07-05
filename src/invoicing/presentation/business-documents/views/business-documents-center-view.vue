@@ -3,19 +3,17 @@ import { computed, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { documentStatusLabel, documentStatusBadge, displayCode } from '@/shared/status';
+import { documentStatusLabel, documentStatusBadge, displayCode, formatRecordDateTime, isRecordNew } from '@/shared/status';
 
 const ds = useDataStore();
 const route = useRoute();
 const router = useRouter();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const D = ds.D;
 const statusFilter = ref('all');
 const typeFilter = ref('all');
 const clientFilter = ref('all');
 const showForm = ref(false);
-const sortKey = ref('date');
-const sortDir = ref('desc');
 const saving = ref(false);
 const generatingKey = ref('');
 const formError = ref('');
@@ -38,13 +36,6 @@ const documentTemplates = [
 ];
 const requiredDocumentTypes = ['factura_xml', 'factura_pdf', 'guia_pdf'];
 
-const documents = computed(() => {
-  let rows = D.businessDocuments || [];
-  if (statusFilter.value !== 'all') rows = rows.filter(document => document.status === statusFilter.value);
-  if (typeFilter.value !== 'all') rows = rows.filter(document => document.type === typeFilter.value);
-  if (clientFilter.value !== 'all') rows = rows.filter(document => document.clientId === clientFilter.value);
-  return [...rows].sort((a, b) => compareDocument(a, b));
-});
 const pendingCount = computed(() => D.businessDocuments.filter(document => document.status === 'pending').length);
 const reviewCount = computed(() => D.businessDocuments.filter(document => ['uploaded', 'ready'].includes(document.status)).length);
 const linkedCount = computed(() => D.businessDocuments.filter(document => document.orderId).length);
@@ -181,33 +172,16 @@ function generationIcon(type) {
   return type === 'factura_xml' ? 'pi-code' : 'pi-file-pdf';
 }
 
-function documentDate(document) {
-  return document.date || document.createdAt || document.updatedAt || '';
+function isNewRecord(record) {
+  return isRecordNew(record?.createdAt);
 }
 
-function sortBy(key) {
-  if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-  else {
-    sortKey.value = key;
-    sortDir.value = key === 'date' ? 'desc' : 'asc';
-  }
+function isNewDocumentCard(card) {
+  return isNewRecord(card.order) || card.docs.some(document => isNewRecord(document));
 }
 
-function sortIndicator(key) {
-  if (sortKey.value !== key) return 'pi-sort-alt';
-  return sortDir.value === 'asc' ? 'pi-sort-amount-up-alt' : 'pi-sort-amount-down';
-}
-
-function compareDocument(a, b) {
-  const values = {
-    document: [a.label || typeLabel(a.type), b.label || typeLabel(b.type)],
-    client: [ds.clientName(a.clientId), ds.clientName(b.clientId)],
-    date: [documentDate(a), documentDate(b)],
-    source: [sourceLabel(a.source), sourceLabel(b.source)],
-    status: [documentStatusLabel(a.status), documentStatusLabel(b.status)],
-  }[sortKey.value] || ['', ''];
-  const result = String(values[0]).localeCompare(String(values[1]), undefined, { numeric: true, sensitivity: 'base' });
-  return sortDir.value === 'asc' ? result : -result;
+function recordDateLabel(record) {
+  return formatRecordDateTime(record?.createdAt || record?.date || record?.updatedAt, locale.value);
 }
 </script>
 
@@ -313,9 +287,12 @@ function compareDocument(a, b) {
         <article v-for="card in orderDocumentCards" :key="card.order.id" class="flow-panel flow-panel-pad order-document-card">
           <div class="flow-row-between" style="align-items:flex-start">
             <div>
-              <div class="mono order-code">{{ displayCode(card.order) }}</div>
+              <div class="document-card-title-row">
+                <div class="mono order-code">{{ displayCode(card.order) }}</div>
+                <span v-if="isNewDocumentCard(card)" class="badge-new">{{ t('common.new') }}</span>
+              </div>
               <h2>{{ ds.clientName(card.order.clientId) }}</h2>
-              <p class="muted-text">{{ t('businessDocuments.requiredBeforeDispatch') }}</p>
+              <p class="muted-text">{{ t('businessDocuments.requiredBeforeDispatch') }} · {{ recordDateLabel(card.order) }}</p>
             </div>
             <span :class="['badge', card.missingCount ? 'badge-amber' : 'badge-green']">
               {{ t('businessDocuments.readyCount', { ready: card.readyCount, total: requiredDocumentTypes.length }) }}
@@ -349,33 +326,6 @@ function compareDocument(a, b) {
           <div class="empty-state-desc">{{ t('businessDocuments.noOrdersDesc') }}</div>
         </div>
       </section>
-
-      <section class="flow-panel document-card-queue">
-        <div class="flow-panel-head">
-          <div>
-            <div class="flow-title">{{ t('businessDocuments.recordsTitle') }}</div>
-            <div class="flow-subtitle">{{ t('businessDocuments.recordsSubtitle') }}</div>
-          </div>
-        </div>
-        <div class="flow-panel-pad document-record-grid">
-          <article v-for="document in documents" :key="document.id" class="document-record-card">
-            <div class="document-record-icon">
-              <i :class="'pi ' + generationIcon(document.type)"></i>
-            </div>
-            <div class="document-record-body">
-              <strong>{{ document.label || typeLabel(document.type) }}</strong>
-              <span>{{ ds.clientName(document.clientId) }} · <span class="mono">{{ document.orderId }}</span></span>
-              <small>{{ document.fileName || t('businessDocuments.fileReferencePending') }} · {{ sourceLabel(document.source) }}</small>
-            </div>
-            <span :class="'badge ' + documentStatusBadge(document.status)">{{ documentStatusLabel(document.status) }}</span>
-          </article>
-          <div v-if="!documents.length" class="empty-state compact">
-            <div class="empty-state-icon"><i class="pi pi-file"></i></div>
-            <div class="empty-state-title">{{ t('businessDocuments.emptyTitle') }}</div>
-            <div class="empty-state-desc">{{ t('businessDocuments.emptyDesc') }}</div>
-          </div>
-        </div>
-      </section>
     </template>
   </div>
 </template>
@@ -401,7 +351,9 @@ function compareDocument(a, b) {
 .linked-products { display:grid; gap:5px; margin-top:6px; padding:10px; border-radius:8px; background:#f8fafc; color:#64748b; font-size:11px; }
 .order-document-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-bottom:18px; align-items:start; }
 .order-document-card h2 { margin:4px 0 2px; color:#0f172a; font-size:18px; }
+.document-card-title-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .order-code { color:#1d4ed8; font-weight:900; font-size:13px; }
+.badge-new { display:inline-flex; align-items:center; width:max-content; min-height:20px; padding:2px 8px; border:1px solid #93c5fd; border-radius:999px; background:#dbeafe; color:#1d4ed8; font-size:10px; font-weight:900; text-transform:uppercase; }
 .document-checklist { display:grid; gap:10px; margin-top:14px; }
 .order-detail-button { width:100%; justify-content:center; margin-top:12px; }
 .document-check-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:10px 0; border-top:1px solid #e2e8f0; }
@@ -409,29 +361,6 @@ function compareDocument(a, b) {
 .document-check-row strong { color:#0f172a; font-size:13px; }
 .document-check-row small { color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .document-action-button { min-width:168px; justify-content:center; }
-.document-card-queue { overflow:hidden; }
-.document-record-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.document-record-card { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:12px; align-items:center; padding:14px; border:1px solid #e2e8f0; border-radius:14px; background:#fff; }
-.document-record-icon { width:42px; height:42px; display:grid; place-items:center; border-radius:12px; background:#eff6ff; color:#1d4ed8; }
-.document-record-body { display:grid; gap:3px; min-width:0; }
-.document-record-body strong { color:#0f172a; }
-.document-record-body span,.document-record-body small { color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.table-sort {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: 800;
-  cursor: pointer;
-  padding: 0;
-}
-.table-sort i {
-  font-size: 11px;
-  color: #94a3b8;
-}
 .linked-products span { color:#334155; font-weight:900; }
 .action-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:18px; border-color:#bfdbfe; box-shadow:0 14px 32px rgba(15,23,42,.08); }
 .editor-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; padding-bottom:4px; border-bottom:1px solid #dbeafe; }
@@ -443,6 +372,6 @@ function compareDocument(a, b) {
 .span-2 { grid-column:1/-1; }
 .form-actions,.row-actions { display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
 .compact-filter { width:auto; min-width:180px; font-size:12px; font-weight:800; }
-@media (max-width:980px){ .document-layout,.order-document-grid,.document-record-grid { grid-template-columns:1fr; } }
-@media (max-width:720px){ .action-form { grid-template-columns:1fr; } .span-2 { grid-column:auto; } .compact-filter { width:100%; } .builder-topbar { align-items:flex-start; flex-direction:column; } .document-check-row,.document-record-card { grid-template-columns:1fr; } .document-action-button { width:100%; } }
+@media (max-width:980px){ .document-layout,.order-document-grid { grid-template-columns:1fr; } }
+@media (max-width:720px){ .action-form { grid-template-columns:1fr; } .span-2 { grid-column:auto; } .compact-filter { width:100%; } .builder-topbar { align-items:flex-start; flex-direction:column; } .document-check-row { grid-template-columns:1fr; } .document-action-button { width:100%; } }
 </style>

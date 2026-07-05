@@ -11,6 +11,7 @@ import {
   recordTimestamp,
   formatCalendarDate,
   formatRecordDateTime,
+  isRecordNew,
 } from '@/shared/status';
 import { formatAddress } from '@/shared/utils/address.utils';
 
@@ -71,6 +72,7 @@ function canRespond(request) {
 }
 
 const clientLabel = (request) => request.clientName || ds.clientName(request.clientId);
+const isNewRequest = (request) => isRecordNew(request.createdAt);
 
 onMounted(() => {
   purchaseRequestsStore.loadSalesInbox().catch(() => {});
@@ -106,6 +108,7 @@ onMounted(() => {
           <div>
             <div class="flow-row" style="margin-bottom:6px">
               <span class="mono" style="font-weight:800;color:#1D4ED8">{{ displayCode(request) }}</span>
+              <span v-if="isNewRequest(request)" class="badge badge-new">{{ t('common.new') }}</span>
               <span :class="'badge ' + requestStatusBadge(request.status)">{{ requestStatusLabel(request.status) }}</span>
             </div>
             <h2 style="margin:0">{{ clientLabel(request) }}</h2>
@@ -194,6 +197,7 @@ onMounted(() => {
 .span-2 { grid-column:1/-1; }
 .form-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:12px; }
 .doc-chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.badge-new { background:#dcfce7; color:#15803d; border:1px solid #86efac; text-transform:uppercase; letter-spacing:.04em; }
 button:disabled { opacity:.45; cursor:not-allowed; }
 .request-modal-backdrop { position:fixed; inset:0; z-index:1200; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(15,23,42,.46); }
 .request-detail-modal { width:min(920px,100%); max-height:min(86vh,820px); overflow:auto; border-radius:22px; background:#fff; border:1px solid #dbe5f2; box-shadow:0 24px 60px rgba(15,23,42,.24); }

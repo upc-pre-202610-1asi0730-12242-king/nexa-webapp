@@ -15,7 +15,11 @@ const actionError = ref('');
 
 const order = computed(() => ds.purchaseOrderById(route.params.orderId));
 const client = computed(() => order.value ? ds.clientById(order.value.clientId) : null);
-const items = computed(() => order.value ? ds.orderItemsFor(order.value.id) : []);
+const items = computed(() => {
+  if (!order.value) return [];
+  if (Array.isArray(order.value.items) && order.value.items.length) return order.value.items;
+  return ds.orderItemsFor(order.value.id);
+});
 const documents = computed(() => requiredTypes.map(type => ({
   type,
   document: order.value
@@ -44,6 +48,20 @@ function actionLabel(type, exists) {
     : type === 'factura_pdf'
       ? t('businessDocuments.detail.generateInvoicePdf')
       : t('businessDocuments.detail.generateGuidePdf');
+}
+
+function itemName(item) {
+  return item.itemName || item.name || ds.productName(item.productId) || item.productId || t('common.pending');
+}
+
+function itemQuantity(item) {
+  return Number(item.quantity ?? item.qty ?? 0);
+}
+
+function itemLineTotal(item) {
+  const subtotal = Number(item.subtotal ?? item.subtotalAmount ?? 0);
+  if (subtotal > 0) return subtotal;
+  return itemQuantity(item) * Number(item.price ?? item.unitPriceAmount ?? 0);
 }
 
 async function generate(type) {
@@ -133,7 +151,7 @@ async function download(document) {
     <section class="flow-panel order-lines-panel">
       <div class="flow-panel-head"><div><div class="flow-title">{{ t('businessDocuments.detail.sourceData') }}</div><div class="flow-subtitle">{{ t('businessDocuments.detail.sourceDataDesc') }}</div></div></div>
       <div class="flow-panel-pad order-line-grid">
-        <div v-for="item in items" :key="item.id" class="mini-row"><span>{{ item.itemName || ds.productName(item.productId) }}</span><strong>{{ item.quantity || item.qty }} · S/ {{ Number(item.subtotal || item.price || 0).toFixed(2) }}</strong></div>
+        <div v-for="item in items" :key="item.id || item.productId || item.itemName" class="mini-row"><span>{{ itemName(item) }}</span><strong>{{ itemQuantity(item) }} · S/ {{ itemLineTotal(item).toFixed(2) }}</strong></div>
       </div>
     </section>
   </div>

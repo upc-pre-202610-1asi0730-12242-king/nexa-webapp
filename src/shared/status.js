@@ -280,6 +280,14 @@ export const formatRecordDateTime = (value, locale = currentLocale()) => {
   });
 };
 
+export const isRecordNew = (value, now = Date.now(), maxAgeHours = 24) => {
+  if (!value) return false;
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return false;
+  const age = now - timestamp;
+  return age >= 0 && age <= maxAgeHours * 60 * 60 * 1000;
+};
+
 export const buildOrderTrackingSteps = (order, events = []) => {
   const visibleEvents = events.filter(event => event.visibleToBuyer !== false);
   return ORDER_TRACKING_STEPS.map(([key, label], index) => {

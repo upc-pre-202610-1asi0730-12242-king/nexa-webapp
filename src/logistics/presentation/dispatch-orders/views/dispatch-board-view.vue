@@ -3,11 +3,11 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { orderStatusLabel, orderStatusBadge, coldTypeLabel, coldTypeBadge, priorityLabel, displayCode } from '@/shared/status';
+import { orderStatusLabel, orderStatusBadge, coldTypeLabel, coldTypeBadge, priorityLabel, displayCode, formatCalendarDate, isRecordNew } from '@/shared/status';
 import { creditSummary } from '@/shared/credit';
 
 const router = useRouter();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const ds = useDataStore();
 const D = ds.D;
 const search = ref('');
@@ -71,7 +71,11 @@ function creditFor(dispatch) {
 }
 
 function etaLabel(dispatch) {
-  return dispatch.eta ? new Date(dispatch.eta).toLocaleDateString('en-US') : t('dispatch.board.notScheduled');
+  return dispatch.eta ? formatCalendarDate(dispatch.eta, locale.value) : t('dispatch.board.notScheduled');
+}
+
+function isNewDispatch(dispatch) {
+  return isRecordNew(dispatch.createdAt);
 }
 
 async function moveForward(dispatch) {
@@ -152,7 +156,10 @@ async function moveForward(dispatch) {
       >
         <div class="flow-row-between" style="margin-bottom:8px">
           <span class="mono">{{ displayCode(dispatch) }}</span>
-          <span :class="'badge-priority-' + (dispatch.priority === 'normal' ? 'medium' : dispatch.priority)">{{ priorityLabel(dispatch.priority) }}</span>
+          <span class="dispatch-card-badges">
+            <span v-if="isNewDispatch(dispatch)" class="badge-new">{{ t('common.new') }}</span>
+            <span :class="'badge-priority-' + (dispatch.priority === 'normal' ? 'medium' : dispatch.priority)">{{ priorityLabel(dispatch.priority) }}</span>
+          </span>
         </div>
         <div style="font-size:13px;font-weight:800;margin-bottom:3px">{{ ds.clientName(dispatch.clientId) }}</div>
         <div class="flow-note">{{ t('dispatch.board.purchaseOrder') }} <span class="mono">{{ dispatch.orderId }}</span></div>
@@ -244,6 +251,25 @@ async function moveForward(dispatch) {
 }
 .dispatch-card {
   padding: 14px;
+}
+.dispatch-card-badges {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.badge-new {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 8px;
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 .dispatch-card strong {
   text-align: left;

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useDataStore } from '@/app/application/stores/data.store';
-import { orderStatusLabel, orderStatusBadge, buildOrderTrackingSteps, displayCode, recordTimestamp, documentStatusLabel, documentStatusBadge, effectiveOrderStatus } from '@/shared/status';
+import { orderStatusLabel, orderStatusBadge, buildOrderTrackingSteps, displayCode, recordTimestamp, documentStatusLabel, documentStatusBadge, effectiveOrderStatus, isRecordNew } from '@/shared/status';
 import { formatAddress } from '@/shared/utils/address.utils';
 
 const router = useRouter();
@@ -33,6 +33,10 @@ function statusFor(order) {
 
 function trackedOrder(order) {
   return { ...order, status: statusFor(order) };
+}
+
+function isNewOrder(order) {
+  return isRecordNew(order.createdAt);
 }
 
 function stepsFor(order) {
@@ -94,6 +98,7 @@ function deliveryText(order) {
         <div>
           <div class="flow-row" style="margin-bottom:5px">
             <span class="mono" style="font-weight:800;color:#1D4ED8">{{ displayCode(order) }}</span>
+            <span v-if="isNewOrder(order)" class="badge badge-new">{{ t('common.new') }}</span>
             <span :class="'badge ' + orderStatusBadge(statusFor(order))">{{ orderStatusLabel(statusFor(order)) }}</span>
             <span v-if="dispatchFor(order)" class="flow-pill flow-pill-blue">{{ dispatchFor(order).code || dispatchFor(order).id }}</span>
           </div>
@@ -199,6 +204,13 @@ function deliveryText(order) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+.badge-new {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 @media (max-width: 760px) {
   .buyer-order-card-head,

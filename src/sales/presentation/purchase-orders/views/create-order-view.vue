@@ -246,6 +246,7 @@ const deliveryDestination = computed(() => [
 const deliveryAddressReady = computed(() => Boolean(
   warehouseOrigin.value && delivery.value.address.trim() && delivery.value.city && delivery.value.province && delivery.value.district
 ));
+const deliveryMapReady = computed(() => Boolean(warehouseOrigin.value && deliveryDestination.value));
 const encodedDeliveryAddress = computed(() => encodeURIComponent(deliveryDestination.value));
 const encodedWarehouseOrigin = computed(() => encodeURIComponent(warehouseOrigin.value));
 const mapEmbedUrl = computed(() => `https://maps.google.com/maps?saddr=${encodedWarehouseOrigin.value}&daddr=${encodedDeliveryAddress.value}&hl=es&z=13&output=embed`);
@@ -611,7 +612,7 @@ async function confirm() {
             <div class="card-title">{{ t('manualOrder.routePreview') }}</div>
             <p>{{ t('manualOrder.routePreviewDesc') }}</p>
           </div>
-          <a v-if="deliveryAddressReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer">
+          <a v-if="deliveryMapReady" class="btn btn-secondary btn-sm" :href="mapDirectionsUrl" target="_blank" rel="noopener noreferrer">
             <i class="pi pi-external-link"></i> {{ t('manualOrder.openMap') }}
           </a>
         </div>
@@ -620,7 +621,7 @@ async function confirm() {
           <span><i class="pi pi-map-marker"></i> {{ deliveryDestination || t('manualOrder.deliveryAddressPending') }}</span>
         </div>
         <iframe
-          v-if="deliveryAddressReady"
+          v-if="deliveryMapReady"
           class="route-map-frame"
           :title="t('manualOrder.mapTitle')"
           :src="mapEmbedUrl"

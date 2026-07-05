@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
+import DatePicker from 'primevue/datepicker';
 import { useAuthStore } from '@/iam/application/iam.store';
 import { useCartStore } from '@/app/application/stores/cart.store';
 import { useDataStore } from '@/app/application/stores/data.store';
@@ -19,7 +20,8 @@ const steps = computed(() => [
   t('buyerRequestBuilder.steps.delivery'),
   t('buyerRequestBuilder.steps.confirm'),
 ]);
-const requestedDeliveryDate = ref(datePlusISO(3));
+const minimumDeliveryDateISO = nextBusinessDateISO(3);
+const requestedDeliveryDate = ref(minimumDeliveryDateISO);
 const comments = ref('');
 const district = ref('');
 const province = ref('');
@@ -173,11 +175,17 @@ const grandTotal = computed(() => subtotal.value + shippingCost.value);
 const shippingEta = computed(() => t('buyerRequestBuilder.shippingEtaValue', { date: requestedDeliveryDate.value }));
 const totalUnits = computed(() => cart.items.reduce((sum, item) => sum + Number(item.qty || 0), 0));
 const canContinueProducts = computed(() => cart.items.length > 0);
+const minimumDeliveryDate = computed(() => dateFromISO(minimumDeliveryDateISO));
+const requestedDeliveryDateModel = computed({
+  get: () => dateFromISO(requestedDeliveryDate.value),
+  set: value => { requestedDeliveryDate.value = dateToISO(value); },
+});
 const deliveryDateWarning = computed(() => {
   if (!requestedDeliveryDate.value) return t('buyerRequestBuilder.deliveryDateRequired');
   const selected = new Date(`${requestedDeliveryDate.value}T00:00:00`);
-  const minimum = new Date(`${datePlusISO(3)}T00:00:00`);
-  return selected < minimum ? t('buyerRequestBuilder.deliveryDateMinimum') : '';
+  const minimum = new Date(`${minimumDeliveryDateISO}T00:00:00`);
+  if (selected < minimum) return t('buyerRequestBuilder.deliveryDateMinimum');
+  return [0, 6].includes(selected.getDay()) ? t('buyerRequestBuilder.deliveryDateWeekday') : '';
 });
 const canSubmit = computed(() => {
   if (!auth.user?.clientId || !cart.items.length || !deliveryAddressText.value || deliveryDateWarning.value || submitting.value) return false;
@@ -197,13 +205,37 @@ const enrichedItems = computed(() => cart.items.map(item => {
   };
 }));
 
-function datePlusISO(days) {
+function utcDatePlusISO(days) {
   const date = new Date();
-  date.setDate(date.getDate() + days);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
+  date.setUTCDate(date.getUTCDate() + days);
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function dateFromISO(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function dateToISO(value) {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return '';
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function nextBusinessDateISO(days) {
+  let value = utcDatePlusISO(days);
+  let date = dateFromISO(value);
+  while ([0, 6].includes(date.getDay())) {
+    date.setDate(date.getDate() + 1);
+    value = dateToISO(date);
+  }
+  return value;
 }
 
 async function submitRequest() {
@@ -237,7 +269,11 @@ async function submitRequest() {
     cart.clearDraft();
     router.push('/portal/purchase-requests/' + request.id);
   } catch (error) {
-    submitError.value = error?.message || t('buyerRequestBuilder.submitError');
+    submitError.value = error?.response?.data?.detail
+      || error?.response?.data?.message
+      || error?.nexaMessage
+      || error?.message
+      || t('buyerRequestBuilder.submitError');
   } finally {
     submitting.value = false;
   }
@@ -447,7 +483,16 @@ function useCurrentLocation() {
             </label>
             <label class="field span-full">
               <span class="field-label">{{ t('buyerRequestBuilder.requestedDate') }}</span>
-              <input v-model="requestedDeliveryDate" type="date" class="plain-input" :min="datePlusISO(3)" />
+              <DatePicker
+                v-model="requestedDeliveryDateModel"
+                class="delivery-date-picker"
+                date-format="yy-mm-dd"
+                :min-date="minimumDeliveryDate"
+                :disabled-days="[0, 6]"
+                :manual-input="false"
+                show-icon
+                fluid
+              />
               <small v-if="deliveryDateWarning" class="field-error">{{ deliveryDateWarning }}</small>
             </label>
             <label class="field span-full">
@@ -563,6 +608,9 @@ function useCurrentLocation() {
 </template>
 
 <style scoped>
+.delivery-date-picker { width:100%; }
+:deep(.delivery-date-picker .p-inputtext) { width:100%; min-height:42px; border:1px solid #d7deea; border-radius:10px 0 0 10px; color:#0f172a; }
+:deep(.delivery-date-picker .p-datepicker-dropdown) { border-color:#d7deea; background:#eff6ff; color:#1d4ed8; }
 .buyer-builder-flow {
   display: grid;
   gap: 18px;

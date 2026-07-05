@@ -41,9 +41,16 @@ const parseProblemDetails = (err) => {
   return data.detail || data.title || data.message || err.message || 'common.dataLoadError';
 };
 
+const isPublicBrowserPath = () => {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.startsWith('/auth/')
+    || window.location.pathname.startsWith('/tenant-management/register-organization')
+    || window.location.pathname.startsWith('/tenant-management/registration-pending/');
+};
+
 const handleUnauthorized = (err) => {
   err.nexaMessage = parseProblemDetails(err);
-  if (err.response?.status === 401 && typeof window !== 'undefined') {
+  if (err.response?.status === 401 && typeof window !== 'undefined' && !isPublicBrowserPath()) {
     localStorage.removeItem('nexa.user');
     localStorage.removeItem('nexa.token');
     localStorage.removeItem('nexa.scope');
@@ -53,7 +60,7 @@ const handleUnauthorized = (err) => {
       window.location.assign('/auth/login');
     }
   }
-  if (err.response?.status === 403 && typeof window !== 'undefined') {
+  if (err.response?.status === 403 && typeof window !== 'undefined' && !isPublicBrowserPath()) {
     const target = '/auth/forbidden';
     if (window.location.pathname !== target) {
       window.location.assign(target);
