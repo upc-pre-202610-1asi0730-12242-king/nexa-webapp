@@ -12,6 +12,10 @@ coverage/
 .env
 .env.local
 .env.*.local
+ngrok.yml
+.ngrok.yml
+ngrok.yaml
+.ngrok.yaml
 .vscode/*
 !.vscode/extensions.json
 .idea
