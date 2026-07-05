@@ -724,7 +724,7 @@ export const useDataStore = defineStore('data', () => {
       if (backendId) {
         const endpoint = api.proofOfDelivery;
         await endpoint.request((client, endpointPath) =>
-          client.put(endpoint.pathFor(client, `/${backendId}/complete`, endpointPath), {
+          client.post(endpoint.pathFor(client, `/${backendId}/completions`, endpointPath), {
             receivedBy: payload.receivedBy,
             completedAt: payload.completedAt,
             photoReference: payload.photoReference,
