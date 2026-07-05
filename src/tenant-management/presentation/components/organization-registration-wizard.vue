@@ -1,5 +1,6 @@
 <script setup>
 import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 import { useOrganizationRegistrationStore } from '@/tenant-management/application/organization-registration.store';
 import RegistrationStepper from './registration-stepper.vue';
 import CompanyInformationStep from './company-information-step.vue';
@@ -10,6 +11,7 @@ import WorkspaceSetupStep from './workspace-setup-step.vue';
 import ReviewSubmitStep from './review-submit-step.vue';
 
 const store = useOrganizationRegistrationStore();
+const router = useRouter();
 const {
   form,
   currentStep,
@@ -22,6 +24,15 @@ const {
 
 const steps = store.steps;
 const registrationOptions = store.REGISTRATION_OPTIONS;
+
+function handleBack() {
+  if (currentStep.value === 0) {
+    router.push({ name: 'auth.login' });
+    return;
+  }
+
+  store.previousStep();
+}
 </script>
 
 <template>
@@ -36,7 +47,7 @@ const registrationOptions = store.REGISTRATION_OPTIONS;
     <ReviewSubmitStep v-else :form="form" :errors="errors" :workspace-url="workspaceUrl" @update="store.update" />
 
     <div class="wizard-actions">
-      <button type="button" class="btn-secondary" :disabled="currentStep === 0 || submitting" @click="store.previousStep">{{ $t('common.back') }}</button>
+      <button type="button" class="btn-secondary" :disabled="submitting" @click="handleBack">{{ $t('common.back') }}</button>
       <button v-if="currentStep < steps.length - 1" type="button" class="btn-primary" @click="store.nextStep">{{ $t('common.next') }}</button>
       <button v-else type="submit" class="btn-primary" :disabled="submitting">{{ submitting ? $t('common.loading') : $t('tenant.registration.submit') }}</button>
     </div>
